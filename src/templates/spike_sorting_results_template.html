@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Spike sorting results: {{ subject }} - {{ recording_date }}</title>
+   <link rel="stylesheet" href="../../../src/templates/style.css">
+  </head>
+<body>
+    <h1>{{ subject }} - {{ recording_date }}</h1>
+    <h2>Sorting process</h2>
+    <table width="100%" border="1">
+        <tr>
+            <th>Array</th>
+            <th>Channel</th>
+            <th>Extracted waveforms</th>
+            <th>Cleaned waveforms</th>
+            <th>Excluded: Positive peak clusters</th>
+            <th>Remaining: Nonpositive peak clusters</th>
+            <th>Excluded: Misaligned clusters</th>
+            <th>Remaining: Aligned clusters</th>
+            <th>Merged clusters</th>
+            <th>Final clusters</th>
+        </tr>
+        {% for channel_result in channel_results %}
+            <tr>
+                <td>{{ channel_result['array'] }}</td>
+                <td>{{ channel_result['channel'] }}</td>
+                <td><img class="thumnbail" style="display:block;" width="100%" height="100%" src="channel_group_{{ channel_result['channel'] }}/extracted_waveforms.png"/></td>
+                <td><img class="thumnbail" style="display:block;" width="100%" height="100%" src="channel_group_{{ channel_result['channel'] }}/cleaned_waveforms.png"/></td>
+                <td><img class="thumnbail" style="display:block;" width="100%" height="100%" src="channel_group_{{ channel_result['channel'] }}/postprocess1_positive_peak_clusters.png"/></td>
+                <td><img class="thumnbail" style="display:block;" width="100%" height="100%" src="channel_group_{{ channel_result['channel'] }}/postprocess1_good_clusters.png"/></td>
+                <td><img class="thumnbail" style="display:block;" width="100%" height="100%" src="channel_group_{{ channel_result['channel'] }}/postprocess2_misaligned_clusters.png"/></td>
+                <td><img class="thumnbail" style="display:block;" width="100%" height="100%" src="channel_group_{{ channel_result['channel'] }}/postprocess2_good_clusters.png"/></td>
+                <td>{% for merge in channel_result['merge_clusters'] %}<img class="thumnbail" style="display:block;" width="100%" height="100%" src="channel_group_{{ channel_result['channel'] }}/postprocess3_merge_{{ merge[0] }}_{{ merge[1] }}.png"/>{% endfor %}</td>
+                <td><img class="thumnbail" style="display:block;" width="100%" height="100%" src="channel_group_{{ channel_result['channel'] }}/postprocess3_final_clusters.png"/></td>
+            </tr>
+        {% endfor %}
+    </table>
+
+    <h2>Final clusters</h2>
+    <table width="100%" border="1">
+        <tr>
+            <th>Total Unit #</th>
+            <th>Array</th>
+            <th>Channel</th>
+            <th>Array Unit #</th>
+            <th>Cluster</th>
+            <th></th>
+        <tr>
+        {% for cluster_result in cluster_results %}
+            <tr>
+                <td>{{ cluster_result['total_number'] }}</td>
+                <td>{{ cluster_result['array'] }}</td>
+                <td>{{ cluster_result['channel'] }}</td>
+                <td>{{ cluster_result['array_number'] }}</td>
+                <td>{{ cluster_result['cluster'] }}</td>
+                <td><img class="thumnbail" style="display:block;" width="100%" height="100%" src="{{ cluster_result['img'] }}"/></td>
+            </tr>
+        {% endfor %}
+</body>
+</html>

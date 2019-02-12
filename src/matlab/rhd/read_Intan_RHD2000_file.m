@@ -1,4 +1,4 @@
-function read_Intan_RHD2000_file
+function [amplifier_data,board_dig_in_data,sample_rate]=read_Intan_RHD2000_file(filename, verbose)
 
 % read_Intan_RHD2000_file
 %
@@ -17,12 +17,12 @@ function read_Intan_RHD2000_file
 % >> amplifier_channels(1)
 % >> plot(t_amplifier, amplifier_data(1,:))
 
-[file, path, filterindex] = ...
-    uigetfile('*.rhd', 'Select an RHD2000 Data File', 'MultiSelect', 'off');
+%[file, path, filterindex] = ...
+%    uigetfile('*.rhd', 'Select an RHD2000 Data File', 'MultiSelect', 'off');
 
-if (file == 0)
-    return;
-end
+%if (file == 0)
+%    return;
+%end
 
 % Read most recent file automatically.
 % path = 'C:\Users\Reid\Documents\RHD2132\testing\';
@@ -30,7 +30,7 @@ end
 % file = d(end).name;
 
 tic;
-filename = [path,file];
+%filename = [path,file];
 fid = fopen(filename, 'r');
 
 s = dir(filename);
@@ -47,10 +47,12 @@ end
 data_file_main_version_number = fread(fid, 1, 'int16');
 data_file_secondary_version_number = fread(fid, 1, 'int16');
 
-fprintf(1, '\n');
-fprintf(1, 'Reading Intan Technologies RHD2000 Data File, Version %d.%d\n', ...
-    data_file_main_version_number, data_file_secondary_version_number);
-fprintf(1, '\n');
+if verbose==1
+    fprintf(1, '\n');
+    fprintf(1, 'Reading Intan Technologies RHD2000 Data File, Version %d.%d\n', ...
+        data_file_main_version_number, data_file_secondary_version_number);
+    fprintf(1, '\n');
+end
 
 if (data_file_main_version_number == 1)
     num_samples_per_data_block = 60;
@@ -237,21 +239,23 @@ num_board_adc_channels = board_adc_index - 1;
 num_board_dig_in_channels = board_dig_in_index - 1;
 num_board_dig_out_channels = board_dig_out_index - 1;
 
-fprintf(1, 'Found %d amplifier channel%s.\n', ...
-    num_amplifier_channels, plural(num_amplifier_channels));
-fprintf(1, 'Found %d auxiliary input channel%s.\n', ...
-    num_aux_input_channels, plural(num_aux_input_channels));
-fprintf(1, 'Found %d supply voltage channel%s.\n', ...
-    num_supply_voltage_channels, plural(num_supply_voltage_channels));
-fprintf(1, 'Found %d board ADC channel%s.\n', ...
-    num_board_adc_channels, plural(num_board_adc_channels));
-fprintf(1, 'Found %d board digital input channel%s.\n', ...
-    num_board_dig_in_channels, plural(num_board_dig_in_channels));
-fprintf(1, 'Found %d board digital output channel%s.\n', ...
-    num_board_dig_out_channels, plural(num_board_dig_out_channels));
-fprintf(1, 'Found %d temperature sensor channel%s.\n', ...
-    num_temp_sensor_channels, plural(num_temp_sensor_channels));
-fprintf(1, '\n');
+if verbose==1
+    fprintf(1, 'Found %d amplifier channel%s.\n', ...
+        num_amplifier_channels, plural(num_amplifier_channels));
+    fprintf(1, 'Found %d auxiliary input channel%s.\n', ...
+        num_aux_input_channels, plural(num_aux_input_channels));
+    fprintf(1, 'Found %d supply voltage channel%s.\n', ...
+        num_supply_voltage_channels, plural(num_supply_voltage_channels));
+    fprintf(1, 'Found %d board ADC channel%s.\n', ...
+        num_board_adc_channels, plural(num_board_adc_channels));
+    fprintf(1, 'Found %d board digital input channel%s.\n', ...
+        num_board_dig_in_channels, plural(num_board_dig_in_channels));
+    fprintf(1, 'Found %d board digital output channel%s.\n', ...
+        num_board_dig_out_channels, plural(num_board_dig_out_channels));
+    fprintf(1, 'Found %d temperature sensor channel%s.\n', ...
+        num_temp_sensor_channels, plural(num_temp_sensor_channels));
+    fprintf(1, '\n');
+end
 
 % Determine how many samples the data file contains.
 
@@ -295,20 +299,24 @@ num_board_dig_out_samples = num_samples_per_data_block * num_data_blocks;
 
 record_time = num_amplifier_samples / sample_rate;
 
-if (data_present)
-    fprintf(1, 'File contains %0.3f seconds of data.  Amplifiers were sampled at %0.2f kS/s.\n', ...
-        record_time, sample_rate / 1000);
-    fprintf(1, '\n');
-else
-    fprintf(1, 'Header file contains no data.  Amplifiers were sampled at %0.2f kS/s.\n', ...
-        sample_rate / 1000);
-    fprintf(1, '\n');
+if verbose==1
+    if (data_present)
+        fprintf(1, 'File contains %0.3f seconds of data.  Amplifiers were sampled at %0.2f kS/s.\n', ...
+            record_time, sample_rate / 1000);
+        fprintf(1, '\n');
+    else
+        fprintf(1, 'Header file contains no data.  Amplifiers were sampled at %0.2f kS/s.\n', ...
+            sample_rate / 1000);
+        fprintf(1, '\n');
+    end
 end
 
 if (data_present)
     
     % Pre-allocate memory for data.
-    fprintf(1, 'Allocating memory for data...\n');
+    if verbose==1
+        fprintf(1, 'Allocating memory for data...\n');
+    end
 
     t_amplifier = zeros(1, num_amplifier_samples);
 
@@ -323,7 +331,9 @@ if (data_present)
     board_dig_out_raw = zeros(1, num_board_dig_out_samples);
 
     % Read sampled data from file.
-    fprintf(1, 'Reading data from file...\n');
+    if verbose==1
+        fprintf(1, 'Reading data from file...\n');
+    end
 
     amplifier_index = 1;
     aux_input_index = 1;
@@ -375,7 +385,9 @@ if (data_present)
 
         fraction_done = 100 * (i / num_data_blocks);
         if (fraction_done >= percent_done)
-            fprintf(1, '%d%% done...\n', percent_done);
+            if verbose==1
+                fprintf(1, '%d%% done...\n', percent_done);
+            end
             percent_done = percent_done + print_increment;
         end
     end
@@ -393,7 +405,9 @@ fclose(fid);
 
 if (data_present)
     
-    fprintf(1, 'Parsing data...\n');
+    if verbose==1
+        fprintf(1, 'Parsing data...\n');
+    end
 
     % Extract digital input channels to separate variables.
     for i=1:num_board_dig_in_channels
@@ -420,8 +434,11 @@ if (data_present)
 
     % Check for gaps in timestamps.
     num_gaps = sum(diff(t_amplifier) ~= 1);
+    
     if (num_gaps == 0)
-        fprintf(1, 'No missing timestamps in data.\n');
+        if verbose==1
+            fprintf(1, 'No missing timestamps in data.\n');
+        end
     else
         fprintf(1, 'Warning: %d gaps in timestamp data found.  Time scale will not be uniform!\n', ...
             num_gaps);
@@ -437,97 +454,99 @@ if (data_present)
 
     % If the software notch filter was selected during the recording, apply the
     % same notch filter to amplifier data here.
-    if (notch_filter_frequency > 0)
-        fprintf(1, 'Applying notch filter...\n');
-
-        print_increment = 10;
-        percent_done = print_increment;
-        for i=1:num_amplifier_channels
-            amplifier_data(i,:) = ...
-                notch_filter(amplifier_data(i,:), sample_rate, notch_filter_frequency, 10);
-
-            fraction_done = 100 * (i / num_amplifier_channels);
-            if (fraction_done >= percent_done)
-                fprintf(1, '%d%% done...\n', percent_done);
-                percent_done = percent_done + print_increment;
-            end
-
-        end
-    end
+%     if (notch_filter_frequency > 0)
+%         fprintf(1, 'Applying notch filter...\n');
+% 
+%         print_increment = 10;
+%         percent_done = print_increment;
+%         for i=1:num_amplifier_channels
+%             amplifier_data(i,:) = ...
+%                 notch_filter(amplifier_data(i,:), sample_rate, notch_filter_frequency, 10);
+% 
+%             fraction_done = 100 * (i / num_amplifier_channels);
+%             if (fraction_done >= percent_done)
+%                 fprintf(1, '%d%% done...\n', percent_done);
+%                 percent_done = percent_done + print_increment;
+%             end
+% 
+%         end
+%     end
 
 end
 
 % Move variables to base workspace.
 
 % new for version 2.01: move filename info to base workspace
-filename = file;
-move_to_base_workspace(filename);
-move_to_base_workspace(path);
+%filename = file;
+%move_to_base_workspace(filename);
+%move_to_base_workspace(path);
 
-move_to_base_workspace(notes);
-move_to_base_workspace(frequency_parameters);
-if (data_file_main_version_number > 1)
-    move_to_base_workspace(reference_channel);
-end
+%move_to_base_workspace(notes);
+%move_to_base_workspace(frequency_parameters);
+%if (data_file_main_version_number > 1)
+%    move_to_base_workspace(reference_channel);
+%end
 
-if (num_amplifier_channels > 0)
-    move_to_base_workspace(amplifier_channels);
-    if (data_present)
-        move_to_base_workspace(amplifier_data);
-        move_to_base_workspace(t_amplifier);
-    end
-    move_to_base_workspace(spike_triggers);
-end
-if (num_aux_input_channels > 0)
-    move_to_base_workspace(aux_input_channels);
-    if (data_present)
-        move_to_base_workspace(aux_input_data);
-        move_to_base_workspace(t_aux_input);
-    end
-end
-if (num_supply_voltage_channels > 0)
-    move_to_base_workspace(supply_voltage_channels);
-    if (data_present)
-        move_to_base_workspace(supply_voltage_data);
-        move_to_base_workspace(t_supply_voltage);
-    end
-end
-if (num_board_adc_channels > 0)
-    move_to_base_workspace(board_adc_channels);
-    if (data_present)
-        move_to_base_workspace(board_adc_data);
-        move_to_base_workspace(t_board_adc);
-    end
-end
-if (num_board_dig_in_channels > 0)
-    move_to_base_workspace(board_dig_in_channels);
-    if (data_present)
-        move_to_base_workspace(board_dig_in_data);
-        move_to_base_workspace(t_dig);
-    end
-end
-if (num_board_dig_out_channels > 0)
-    move_to_base_workspace(board_dig_out_channels);
-    if (data_present)
-        move_to_base_workspace(board_dig_out_data);
-        move_to_base_workspace(t_dig);
-    end
-end
-if (num_temp_sensor_channels > 0)
-    if (data_present)
-        move_to_base_workspace(temp_sensor_data);
-        move_to_base_workspace(t_temp_sensor);
-    end
-end
+%if (num_amplifier_channels > 0)
+%    move_to_base_workspace(amplifier_channels);
+%    if (data_present)
+%        move_to_base_workspace(amplifier_data);
+%        move_to_base_workspace(t_amplifier);
+%    end
+%    move_to_base_workspace(spike_triggers);
+%end
+%if (num_aux_input_channels > 0)
+%    move_to_base_workspace(aux_input_channels);
+%    if (data_present)
+%        move_to_base_workspace(aux_input_data);
+%        move_to_base_workspace(t_aux_input);
+%    end
+%end
+%if (num_supply_voltage_channels > 0)
+%    move_to_base_workspace(supply_voltage_channels);
+%    if (data_present)
+%        move_to_base_workspace(supply_voltage_data);
+%        move_to_base_workspace(t_supply_voltage);
+%    end
+%end
+%if (num_board_adc_channels > 0)
+%    move_to_base_workspace(board_adc_channels);
+%    if (data_present)
+%        move_to_base_workspace(board_adc_data);
+%        move_to_base_workspace(t_board_adc);
+%    end
+%end
+%if (num_board_dig_in_channels > 0)
+%    move_to_base_workspace(board_dig_in_channels);
+%    if (data_present)
+%        move_to_base_workspace(board_dig_in_data);
+%        move_to_base_workspace(t_dig);
+%    end
+%end
+%if (num_board_dig_out_channels > 0)
+%    move_to_base_workspace(board_dig_out_channels);
+%    if (data_present)
+%        move_to_base_workspace(board_dig_out_data);
+%        move_to_base_workspace(t_dig);
+%    end
+%end
+%if (num_temp_sensor_channels > 0)
+%    if (data_present)
+%        move_to_base_workspace(temp_sensor_data);
+%        move_to_base_workspace(t_temp_sensor);
+%    end
+%end
 
-fprintf(1, 'Done!  Elapsed time: %0.1f seconds\n', toc);
-if (data_present)
-    fprintf(1, 'Extracted data are now available in the MATLAB workspace.\n');
-else
-    fprintf(1, 'Extracted waveform information is now available in the MATLAB workspace.\n');
+if verbose==1
+    fprintf(1, 'Done!  Elapsed time: %0.1f seconds\n', toc);
+    if (data_present)
+        fprintf(1, 'Extracted data are now available in the MATLAB workspace.\n');
+    else
+        fprintf(1, 'Extracted waveform information is now available in the MATLAB workspace.\n');
+    end
+    fprintf(1, 'Type ''whos'' to see variables.\n');
+    fprintf(1, '\n');
 end
-fprintf(1, 'Type ''whos'' to see variables.\n');
-fprintf(1, '\n');
 
 return
 

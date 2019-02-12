@@ -66,7 +66,7 @@ case('init')
 %
 % We recommend analyzing in 1 second chunks to start; if necessary adjust the 
 % ptspercut value to correspond with your sampling rate:
-ptspercut = 25000;	
+ptspercut = 30000;
 
 %useSD is a boolean to select the method by which spike events are initially
 % determined.  If 'true', then the standard deviation of the analog signal will
@@ -90,8 +90,8 @@ lowthresh = -100;			% used only if useSD is not 'true'; hi and lo are 'or'ed
 % replace with a noise estimate.  Unless your sampling rate is considerably different
 % than 25000/sec (or you are dealing with unusually long or short spikes) these values
 % should be fine
-prepts = 10;		% start point for replacement BEFORE spike detection time 
-postpts = 10;		% end point for replacement AFTER RETURN UNDER (amplitude or sd) THRESHOLD
+prepts = 20;		% start point for replacement BEFORE spike detection time
+postpts = 30;		% end point for replacement AFTER RETURN UNDER (amplitude or sd) THRESHOLD
 
 %If you choose to display the data, the program needs to know how far to offset each
 % analog trace.  analogDisplayOffset is the variable that holds this value
