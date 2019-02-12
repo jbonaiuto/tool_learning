@@ -6,7 +6,7 @@ import pandas as pd
 
 def process_logs(subj_name, date):
     recording_date = datetime.strptime(date, '%d.%m.%y')
-    log_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/logs/', subj_name)
+    log_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/data/logs/', subj_name)
     log_file_tasks = []
     log_file_names = []
     log_file_dates = []
@@ -26,7 +26,7 @@ def process_logs(subj_name, date):
     log_file_tasks = [x[1] for x in sorted_logs]
 
     # Read corresponding event files
-    evt_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/recordings/plexon', subj_name, date)
+    evt_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/data/recordings/plexon', subj_name, date)
     evt_files = []
     session_number = 0
     last_session_task = ''
@@ -87,7 +87,7 @@ def process_logs(subj_name, date):
                           np.any(evts.EventCode[np.where(evts.Trial == trial_idx)[0]]=='manual_reward')
             trial_info['correct'].append(correct_trial)
 
-    out_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data/', subj_name, date)
+    out_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/data/preprocessed_data/', subj_name, date)
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
 
