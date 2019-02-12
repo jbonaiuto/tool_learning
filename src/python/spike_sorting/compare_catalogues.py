@@ -1,14 +1,14 @@
 import sys
 from datetime import datetime
 
-from tridesclous import DataIO, CatalogueConstructor, Peeler
+from tridesclous import DataIO, CatalogueConstructor
 import numpy as np
 from tridesclous import metrics
 import matplotlib.pyplot as plt
 import os
 import glob
 
-from run_peeler import run_peeler
+from spike_sorting.run_peeler import run_peeler
 
 max_electrode_only=True
 

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from compute_catalogue import run_compute_catalogue
+from spike_sorting.compute_catalogue import run_compute_catalogue
 
 
 def resort(subject, date_start_str, date_end_str):

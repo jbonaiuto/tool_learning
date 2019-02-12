@@ -1,6 +1,6 @@
 function preprocessSpikeData(subject, date)
 
-data_dir=fullfile('/home/bonaiuto/Projects/tool_learning/recordings/rhd2000',subject,date);
+data_dir=fullfile('/home/bonaiuto/Projects/tool_learning/data/recordings/rhd2000',subject,date);
 files=dir(fullfile(data_dir,'*.rhd'));
 file_datetimes=[];
 for f_idx=1:length(files)

@@ -26,7 +26,6 @@ def compute_catalogue(dataio, chan_grp, total_duration, out_path, voltage_thresh
     # time limits of waveform around threshold crossing
     n_left=-20
     n_right=30
-    #
 
     ## Preprocess data
     catalogueconstructor = CatalogueConstructor(dataio=dataio, chan_grp=chan_grp)
@@ -49,9 +48,6 @@ def compute_catalogue(dataio, chan_grp, total_duration, out_path, voltage_thresh
                                                      # magnitude 1 = 1 mad = 1 robust sd = 68% of the noise
                                                      # magnitude 2 = 2 mad = 2 robust sd = 95 % of the noise
                                                      # magnitude 3 = 3 mad = 3 robust sd = 99.7% of the noise
-                                                     #relative_threshold=5,
-                                                     #relative_threshold=4,
-                                                     #relative_threshold=2.5,
                                                      relative_threshold=voltage_threshold,
                                                      # Min distance between extrema (in seconds)
                                                      peak_span=0.0002
@@ -77,9 +73,8 @@ def compute_catalogue(dataio, chan_grp, total_duration, out_path, voltage_thresh
 
     if extract_waveforms:
         ## Extract waveforms PCA cluster
-        # Take some waveforms in the signals n_left/n_right must be choosen arbitrary but lon enought. Better limits will be set later.
+        # Take some waveforms from the signals
         t1 = time.perf_counter()
-        #catalogueconstructor.extract_some_waveforms(n_left=n_left, n_right=n_right, mode='all', nb_max=100000, align_waveform=True)
         catalogueconstructor.extract_some_waveforms(n_left=n_left, n_right=n_right, mode='all', align_waveform=True)
         t2 = time.perf_counter()
         print('extract_some_waveforms', t2 - t1)
@@ -119,17 +114,13 @@ def compute_catalogue(dataio, chan_grp, total_duration, out_path, voltage_thresh
         t1 = time.perf_counter()
         # Had to modify incremental PCA to choose right batch size
         catalogueconstructor.extract_some_features(method='pca_by_channel', n_components_by_channel=5)
-        #catalogueconstructor.extract_some_features(method='peak_max')
         t2 = time.perf_counter()
         print('project', t2 - t1)
         print(catalogueconstructor)
 
     if find_clusters:
         t1 = time.perf_counter()
-        #catalogueconstructor.find_clusters(method='gmm', n_clusters=5 * 32)
-        #catalogueconstructor.find_clusters(method='gmm', n_clusters=20)
         catalogueconstructor.find_clusters(method='gmm', n_clusters=10)
-        #catalogueconstructor.find_clusters(method='sawchaincut')
         t2 = time.perf_counter()
         print('find_clusters', t2 - t1)
         print(catalogueconstructor)
@@ -138,32 +129,6 @@ def compute_catalogue(dataio, chan_grp, total_duration, out_path, voltage_thresh
         if catalogueconstructor.centroids_median is None:
             catalogueconstructor.compute_all_centroid()
 
-        # Remove clusters spread over multiple electrodes
-        # cluster_removed=True
-        # plt.figure()
-        # while cluster_removed:
-        #     chan_peaks = np.max(np.abs(catalogueconstructor.centroids_median), axis=1)
-        #     chan_peaks = chan_peaks / np.transpose(np.tile(np.max(chan_peaks,axis=1),(chan_peaks.shape[1],1)))
-        #
-        #     labels=catalogueconstructor.cluster_labels
-        #     cluster_mean = np.mean(chan_peaks,axis=1)
-        #
-        #     for idx,label in enumerate(labels):
-        #         if label>=0 and cluster_mean[idx]>0.5:
-        #             print('Removing cluster %d - spread over too many electrodes' % label)
-        #             plt.plot(catalogueconstructor.centroids_median[idx, :, :])
-        #             catalogueconstructor.remove_one_cluster(label)
-        #             cluster_removed=True
-        #             break
-        #         else:
-        #             cluster_removed=False
-        # plt.title('Noise clusters')
-        #
-        # plt.figure()
-        # for idx, label in enumerate(labels):
-        #     plt.plot(catalogueconstructor.centroids_median[idx,:,:])
-        # plt.title('Non-noise clusters')
-
         # Remove clusters with positive peaks
         cluster_removed = True
         fig=plt.figure()
@@ -171,14 +136,15 @@ def compute_catalogue(dataio, chan_grp, total_duration, out_path, voltage_thresh
 
             labels = catalogueconstructor.cluster_labels
             for idx,label in enumerate(labels):
-                max_channel=catalogueconstructor.clusters[idx][2]
+                unit_label=catalogueconstructor.clusters['cell_label'][idx]
+                max_channel=catalogueconstructor.clusters['max_on_channel'][idx]
                 max_val=np.max(catalogueconstructor.centroids_median[idx,:,max_channel])
                 min_val=np.min(catalogueconstructor.centroids_median[idx,:,max_channel])
                 if label>=0 and max_val>np.abs(min_val):
-                    print('Removing cluster %d - extrema on peak electrode is positive' % label)
+                    print('Removing unit %d - extrema on peak electrode is positive' % unit_label)
 
-                    color = catalogueconstructor.colors.get(idx, 'k')
-                    plt.plot(catalogueconstructor.centroids_median[idx, :, max_channel], color=color)
+                    color = catalogueconstructor.colors.get(label, 'k')
+                    plt.plot(catalogueconstructor.centroids_median[idx, :, max_channel], color=color, label=unit_label)
                     plt.fill_between(range(catalogueconstructor.centroids_median.shape[1]),
                                      catalogueconstructor.centroids_median[idx, :,max_channel] - catalogueconstructor.centroids_std[idx, :, max_channel],
                                      catalogueconstructor.centroids_median[idx, :,max_channel] + catalogueconstructor.centroids_std[idx, :, max_channel],
@@ -189,19 +155,22 @@ def compute_catalogue(dataio, chan_grp, total_duration, out_path, voltage_thresh
                     break
                 else:
                     cluster_removed = False
+        plt.legend(loc='best')
         plt.title('Positive peak clusters')
         fig.savefig(os.path.join(out_path, 'postprocess1_positive_peak_clusters.png'))
 
         labels = catalogueconstructor.cluster_labels
         fig=plt.figure()
         for idx, label in enumerate(labels):
-            max_channel = catalogueconstructor.clusters[idx][2]
-            color = catalogueconstructor.colors.get(idx, 'k')
-            plt.plot(catalogueconstructor.centroids_median[idx, :, max_channel], color=color)
+            unit_label=catalogueconstructor.clusters['cell_label'][idx]
+            max_channel = catalogueconstructor.clusters['max_on_channel'][idx]
+            color = catalogueconstructor.colors.get(label, 'k')
+            plt.plot(catalogueconstructor.centroids_median[idx, :, max_channel], color=color, label=unit_label)
             plt.fill_between(range(catalogueconstructor.centroids_median.shape[1]),
                              catalogueconstructor.centroids_median[idx, :, max_channel] - catalogueconstructor.centroids_std[idx,:, max_channel],
                              catalogueconstructor.centroids_median[idx, :, max_channel] + catalogueconstructor.centroids_std[idx,:, max_channel],
                              alpha=0.2, edgecolor=color, facecolor=color)
+        plt.legend(loc='best')
         plt.title('Non-positive peak clusters')
         fig.savefig(os.path.join(out_path, 'postprocess1_good_clusters.png'))
 
@@ -211,14 +180,15 @@ def compute_catalogue(dataio, chan_grp, total_duration, out_path, voltage_thresh
         while cluster_removed:
             labels = catalogueconstructor.cluster_labels
             for idx, label in enumerate(labels):
-                max_channel = catalogueconstructor.clusters[idx][2]
+                unit_label = catalogueconstructor.clusters['cell_label'][idx]
+                max_channel = catalogueconstructor.clusters['max_on_channel'][idx]
                 min_val = np.min(catalogueconstructor.centroids_median[idx, :, max_channel])
                 min_idx=np.where(catalogueconstructor.centroids_median[idx, :, max_channel]==min_val)
                 if label>=0 and (min_idx<np.abs(n_left)-5 or min_idx>np.abs(n_left)+5):
-                    print('Removing cluster %d - mis-aligned' % label)
+                    print('Removing unit %d - mis-aligned' % unit_label)
 
-                    color = catalogueconstructor.colors.get(idx, 'k')
-                    plt.plot(catalogueconstructor.centroids_median[idx, :, 0], color=color)
+                    color = catalogueconstructor.colors.get(label, 'k')
+                    plt.plot(catalogueconstructor.centroids_median[idx, :, 0], color=color, label=unit_label)
                     plt.fill_between(range(catalogueconstructor.centroids_median.shape[1]),
                                      catalogueconstructor.centroids_median[idx, :,0] - catalogueconstructor.centroids_std[idx, :, 0],
                                      catalogueconstructor.centroids_median[idx, :,0] + catalogueconstructor.centroids_std[idx, :, 0],
@@ -229,19 +199,22 @@ def compute_catalogue(dataio, chan_grp, total_duration, out_path, voltage_thresh
                     break
                 else:
                     cluster_removed = False
+        plt.legend(loc='best')
         plt.title('Mis-aligned clusters')
         fig.savefig(os.path.join(out_path, 'postprocess2_misaligned_clusters.png'))
 
         labels = catalogueconstructor.cluster_labels
         fig=plt.figure()
         for idx, label in enumerate(labels):
-            max_channel = catalogueconstructor.clusters[idx][2]
-            color = catalogueconstructor.colors.get(idx, 'k')
-            plt.plot(catalogueconstructor.centroids_median[idx, :, max_channel], color=color)
+            unit_label = catalogueconstructor.clusters['cell_label'][idx]
+            max_channel = catalogueconstructor.clusters['max_on_channel'][idx]
+            color = catalogueconstructor.colors.get(label, 'k')
+            plt.plot(catalogueconstructor.centroids_median[idx, :, max_channel], color=color, label=unit_label)
             plt.fill_between(range(catalogueconstructor.centroids_median.shape[1]),
                              catalogueconstructor.centroids_median[idx, :, max_channel] - catalogueconstructor.centroids_std[idx,:, max_channel],
                              catalogueconstructor.centroids_median[idx, :, max_channel] + catalogueconstructor.centroids_std[idx,:, max_channel],
                              alpha=0.2, edgecolor=color, facecolor=color)
+        plt.legend(loc='best')
         plt.title('Well aligned clusters')
         fig.savefig(os.path.join(out_path, 'postprocess2_good_clusters.png'))
 
@@ -259,26 +232,29 @@ def compute_catalogue(dataio, chan_grp, total_duration, out_path, voltage_thresh
                 idx2=np.where(catalogueconstructor.cluster_labels==k2)[0][0]
                 similarity=catalogueconstructor.cluster_similarity[idx1, idx2]
 
-                max_channel1 = catalogueconstructor.clusters[idx1][2]
-                max_channel2 = catalogueconstructor.clusters[idx2][2]
+                unit_label1 = catalogueconstructor.clusters['cell_label'][idx1]
+                max_channel1 = catalogueconstructor.clusters['max_on_channel'][idx1]
+                unit_label2 = catalogueconstructor.clusters['cell_label'][idx2]
+                max_channel2 = catalogueconstructor.clusters['max_on_channel'][idx2]
 
                 fig = plt.figure()
                 color1 = catalogueconstructor.colors.get(k1, 'k')
                 color2 = catalogueconstructor.colors.get(k2, 'k')
-                plt.plot(catalogueconstructor.centroids_median[idx1, :, max_channel1],color=color1)
+                plt.plot(catalogueconstructor.centroids_median[idx1, :, max_channel1],color=color1, label=unit_label1)
                 plt.fill_between(range(catalogueconstructor.centroids_median.shape[1]),
                                  catalogueconstructor.centroids_median[idx1, :, max_channel1]-catalogueconstructor.centroids_std[idx1,:,max_channel1],
                                  catalogueconstructor.centroids_median[idx1, :, max_channel1]+catalogueconstructor.centroids_std[idx1,:,max_channel1],
                                  alpha=0.2, edgecolor=color1, facecolor=color1)
-                plt.plot(catalogueconstructor.centroids_median[idx2, :, max_channel2], color=color2)
+                plt.plot(catalogueconstructor.centroids_median[idx2, :, max_channel2], color=color2, label=unit_label2)
                 plt.fill_between(range(catalogueconstructor.centroids_median.shape[1]),
                                  catalogueconstructor.centroids_median[idx2, :, max_channel2]-catalogueconstructor.centroids_std[idx2, :, max_channel2],
                                  catalogueconstructor.centroids_median[idx2, :, max_channel2]+catalogueconstructor.centroids_std[idx2, :, max_channel2],
                                  alpha=0.2, edgecolor=color2, facecolor=color2)
-                plt.title('Merge %d with %d, similarity=%.4f' % (k1,k2,similarity))
-                fig.savefig(os.path.join(out_path, 'postprocess3_merge_%d_%d.png' % (k1, k2)))
+                plt.title('Merge %d with %d, similarity=%.4f' % (unit_label1,unit_label2,similarity))
+                plt.legend(loc='best')
+                fig.savefig(os.path.join(out_path, 'postprocess3_merge_%d_%d.png' % (unit_label1, unit_label2)))
 
-                print('auto_merge', k1, 'with', k2)
+                print('auto_merge', unit_label1, 'with', unit_label2)
                 mask = catalogueconstructor.all_peaks['cluster_label'] == k2
                 catalogueconstructor.all_peaks['cluster_label'][mask] = k1
                 catalogueconstructor.remove_one_cluster(k2)
@@ -288,15 +264,17 @@ def compute_catalogue(dataio, chan_grp, total_duration, out_path, voltage_thresh
         labels = catalogueconstructor.cluster_labels
         fig = plt.figure()
         for idx, label in enumerate(labels):
-            max_channel = catalogueconstructor.clusters[idx][2]
-            color = catalogueconstructor.colors.get(idx, 'k')
-            plt.plot(catalogueconstructor.centroids_median[idx, :, max_channel], color=color)
+            unit_label = catalogueconstructor.clusters['cell_label'][idx]
+            max_channel = catalogueconstructor.clusters['max_on_channel'][idx]
+            color = catalogueconstructor.colors.get(label, 'k')
+            plt.plot(catalogueconstructor.centroids_median[idx, :, max_channel], color=color, label=unit_label)
             plt.fill_between(range(catalogueconstructor.centroids_median.shape[1]),
                              catalogueconstructor.centroids_median[idx, :,
                              max_channel] - catalogueconstructor.centroids_std[idx, :, max_channel],
                              catalogueconstructor.centroids_median[idx, :,
                              max_channel] + catalogueconstructor.centroids_std[idx, :, max_channel],
                              alpha=0.2, edgecolor=color, facecolor=color)
+        plt.legend(loc='best')
         plt.title('Final clusters')
         fig.savefig(os.path.join(out_path, 'postprocess3_final_clusters.png'))
 
@@ -316,9 +294,6 @@ def compute_catalogue(dataio, chan_grp, total_duration, out_path, voltage_thresh
     # save the catalogue
     catalogueconstructor.make_catalogue_for_peeler()
 
-    #tdc.summary_noise(dataio=dataio, chan_grp=chan_grp)
-    #tdc.summary_catalogue_clusters(dataio=dataio, chan_grp=chan_grp)
-    #plt.show()
 
 def open_cataloguewindow(dataio, chan_grp):
     catalogueconstructor = CatalogueConstructor(dataio=dataio, chan_grp=chan_grp)
@@ -332,7 +307,7 @@ def open_cataloguewindow(dataio, chan_grp):
 
 def run_compute_catalogue(subject, recording_date, display_catalogue=False):
     arrays = ['F1', 'F5hand', 'F5mouth', '46v/12r', '45a', 'F2']
-    data_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/recordings/rhd2000/', subject, recording_date)
+    data_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/data/recordings/rhd2000/', subject, recording_date)
     print(data_dir)
     if os.path.exists(data_dir):
         # Compute total duration (want to use all data for clustering)
@@ -355,7 +330,7 @@ def run_compute_catalogue(subject, recording_date, display_catalogue=False):
         data_file_names = [x for _, x in sorted(zip(data_file_times, data_file_names))]
 
         if os.path.exists(data_dir) and len(data_file_names) > 0:
-            output_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/spike_sorting/', subject, recording_date)
+            output_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/data/spike_sorting/', subject, recording_date)
 
             # create a DataIO
             if os.path.exists(output_dir):
@@ -384,22 +359,15 @@ def run_compute_catalogue(subject, recording_date, display_catalogue=False):
             dataio = DataIO(dirname=output_dir)
             dataio.set_data_source(type='RawData', filenames=data_file_names, dtype='float32', sample_rate=30000,total_channel=192)
 
-            # Setup channel groups - one for each array
-            #for ch_grp, array_name in enumerate(arrays):
-            #    dataio.add_one_channel_group(channels=range(ch_grp * 32, (ch_grp + 1) * 32), chan_grp=ch_grp)
+            # Setup channel groups - one for each channel
             for ch_grp in range(32*6):
                  dataio.add_one_channel_group(channels=[ch_grp], chan_grp=ch_grp)
 
-            # Set probe file
-            #dataio.set_probe_file('/home/bonaiuto/Projects/tool_learning/spike_sorting/6x32ch_arrays.prb')
+            print(dataio)
 
-            #print(dataio)
-
-            #for ch_grp, array_name in enumerate(arrays):
-                #array_name = arrays[ch_grp]
             for ch_grp in range(32 * 6):
                 print(ch_grp)
-                # Compute catalogue for array
+                # Compute catalogue for channel
                 compute_catalogue(dataio, ch_grp, total_duration, os.path.join(output_dir,'channel_group_%d' % ch_grp))
 
                 if display_catalogue:
