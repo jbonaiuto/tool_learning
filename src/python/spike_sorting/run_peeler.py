@@ -50,21 +50,32 @@ def export_spikes(dirname, chan_grp):
     print('Exporting ch %d' % chan_grp)
     data = {'array': [], 'electrode': [], 'unit': [], 'segment': [], 'time': []}
     array=arrays[int(np.floor(chan_grp/32))]
+
+
     dataio = DataIO(dirname=dirname, ch_grp=chan_grp)
     catalogue = dataio.load_catalogue(chan_grp=chan_grp)
     dataio._open_processed_data(ch_grp=chan_grp)
+
+    clusters = catalogue['clusters']
+
     for seg_num in range(dataio.nb_segment):
         spikes = dataio.get_spikes(seg_num=seg_num, chan_grp=chan_grp)
-        for spike in spikes:
+
+        spike_labels = spikes['cluster_label'].copy()
+        for l in clusters:
+            mask = spike_labels == l['cluster_label']
+            spike_labels[mask] = l['cell_label']
+        spike_indexes = spikes['index']
+
+        for (index,label) in zip(spike_indexes, spike_labels):
             data['array'].append(array)
             data['electrode'].append(chan_grp)
-            data['unit'].append(spike[1])
+            data['cell'].append(label)
             data['segment'].append(seg_num)
-            data['time'].append(spike[0])
+            data['time'].append(index)
         dataio.flush_processed_signals(seg_num=seg_num, chan_grp=chan_grp)
-    df=pd.DataFrame(data, columns=['array','electrode','unit','segment','time'])
+    df=pd.DataFrame(data, columns=['array','electrode','cell','segment','time'])
     df.to_csv(os.path.join(dirname,'%s_%d_spikes.csv' % (array, chan_grp)), index=False)
-    #dataio.export_spikes(dirname,formats=['csv','mat'])
 
 
 if __name__ == '__main__':
@@ -72,7 +83,7 @@ if __name__ == '__main__':
     recording_date=sys.argv[2]
     display_peeler = sys.argv[3] in ['true', 'True','1']
 
-    output_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/spike_sorting/',subject,recording_date)
+    output_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/data/spike_sorting/',subject,recording_date)
     if os.path.exists(output_dir):
         for ch_grp in range(32*6):
             run_peeler(output_dir, chan_grp=ch_grp)

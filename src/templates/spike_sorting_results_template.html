@@ -44,6 +44,7 @@
             <th>Channel</th>
             <th>Array Unit #</th>
             <th>Cluster</th>
+            <th>Cell</th>
             <th></th>
         <tr>
         {% for cluster_result in cluster_results %}
@@ -53,6 +54,7 @@
                 <td>{{ cluster_result['channel'] }}</td>
                 <td>{{ cluster_result['array_number'] }}</td>
                 <td>{{ cluster_result['cluster'] }}</td>
+                <td>{{ cluster_result['cell'] }}</td>
                 <td><img class="thumnbail" style="display:block;" width="100%" height="100%" src="{{ cluster_result['img'] }}"/></td>
             </tr>
         {% endfor %}

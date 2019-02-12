@@ -3,7 +3,7 @@ import glob
 import numpy as np
 import os
 import sys
-import faulthandler;
+import faulthandler
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -15,7 +15,7 @@ arrays = ['F1', 'F5hand', 'F5mouth', '46v-12r', '45a', 'F2']
 
 def generate_spike_sorting_report(subject, recording_date):
 
-    data_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/spike_sorting/', subject, recording_date)
+    data_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/data/spike_sorting/', subject, recording_date)
 
     channel_results=[]
     cluster_results = []
@@ -59,26 +59,28 @@ def generate_spike_sorting_report(subject, recording_date):
         bin_size = 1.
 
         for idx, label in enumerate(labels):
-            cluster_result = {'array': array, 'channel': chan_grp, 'cluster': label}
+            cell_label = catalogueconstructor.clusters['cell_label'][idx]
+            max_channel = catalogueconstructor.clusters['max_on_channel'][idx]
+            
+            cluster_result = {'array': array, 'channel': chan_grp, 'cluster': label, 'cell': cell_label}
             cluster_result['total_number']=total_unit_idx
             cluster_result['array_number']=array_unit_idx
             total_unit_idx=total_unit_idx+1
-            array_unit_idx=array_unit_idx+1
+            array_unit_idx=array_unit_idx+1                        
 
             fig = plt.figure()
             ax=plt.subplot(2,1,1)
-            max_channel = catalogueconstructor.clusters[idx][2]
             color = catalogueconstructor.colors.get(idx, 'k')
             time_range=range(catalogueconstructor.info['waveform_extractor_params']['n_left'],
             catalogueconstructor.info['waveform_extractor_params']['n_right'])
             plt.plot(time_range,catalogueconstructor.centroids_median[idx, :, max_channel], color=color)
             plt.fill_between(time_range,
-            catalogueconstructor.centroids_median[idx, :,max_channel] - catalogueconstructor.centroids_std[idx, :, max_channel],
+                             catalogueconstructor.centroids_median[idx, :,max_channel] - catalogueconstructor.centroids_std[idx, :, max_channel],
                              catalogueconstructor.centroids_median[idx, :,max_channel] + catalogueconstructor.centroids_std[idx, :, max_channel],
-            alpha=0.2, edgecolor=color, facecolor=color)
+                             alpha=0.2, edgecolor=color, facecolor=color)
             plt.xlabel('Time step')
             plt.ylabel('Centroid median')
-            plt.title('Array %s, Channel, %d, Cluster %d' % (array, chan_grp, label))
+            plt.title('Array %s, Channel, %d, Cluster %d, Cell %d' % (array, chan_grp, label, cell_label))
 
             ax = plt.subplot(2, 1, 2)
             bins = np.arange(bin_min, bin_max, bin_size)
@@ -108,7 +110,7 @@ def generate_spike_sorting_report(subject, recording_date):
 
         channel_results.append(channel_result)
 
-    env=Environment(loader=FileSystemLoader('../templates'))
+    env=Environment(loader=FileSystemLoader('../../templates'))
     template=env.get_template('spike_sorting_results_template.html')
     template_output=template.render(subject=subject, recording_date=recording_date, channel_results=channel_results,
                                     cluster_results=cluster_results)

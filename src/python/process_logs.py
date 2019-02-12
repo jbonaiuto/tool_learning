@@ -91,7 +91,7 @@ def process_logs(subj_name, date):
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
 
-    df=pd.DataFrame(trial_info)
+    df=pd.DataFrame(trial_info, columns=['block','trial','condition','correct'])
     df.to_csv(os.path.join(out_dir,'trial_info.csv'),index=False)
 
 if __name__=='__main__':

@@ -13,15 +13,15 @@ from spike_sorting.run_peeler import run_peeler
 max_electrode_only=True
 
 def compare_catalogues(subject, date, similarity_threshold=0.7):
-    new_output_dir = '/home/bonaiuto/Projects/tool_learning/spike_sorting/%s/%s' % (subject, date)
-    plot_output_dir='/home/bonaiuto/Projects/tool_learning/spike_sorting/%s/%s/catalogue_comparison' % (subject, date)
+    new_output_dir = '/home/bonaiuto/Projects/tool_learning/data/spike_sorting/%s/%s' % (subject, date)
+    plot_output_dir='/home/bonaiuto/Projects/tool_learning/data/spike_sorting/%s/%s/catalogue_comparison' % (subject, date)
     if not os.path.exists(plot_output_dir):
         os.mkdir(plot_output_dir)
 
-    x=os.listdir('/home/bonaiuto/Projects/tool_learning/spike_sorting/%s' % (subject))
+    x=os.listdir('/home/bonaiuto/Projects/tool_learning/data/spike_sorting/%s' % (subject))
     sorted_files=[]
     for y in x:
-        if os.path.isdir(os.path.join('/home/bonaiuto/Projects/tool_learning/spike_sorting/%s' % (subject),y)):
+        if os.path.isdir(os.path.join('/home/bonaiuto/Projects/tool_learning/data/spike_sorting/%s' % (subject),y)):
             sorted_files.append(y)
     sorted_dates=[datetime.strptime(x,'%d.%m.%y') for x in sorted_files]
     sorted_files = [x for _, x in sorted(zip(sorted_dates, sorted_files))]
@@ -44,7 +44,7 @@ def compare_catalogues(subject, date, similarity_threshold=0.7):
         all_old_wfs=np.zeros((0,50))
         for old_date,old_file in zip(sorted_dates,sorted_files):
             if old_date<new_date:
-                old_output_dir = '/home/bonaiuto/Projects/tool_learning/spike_sorting/%s/%s' % (subject, old_file)
+                old_output_dir = '/home/bonaiuto/Projects/tool_learning/data/spike_sorting/%s/%s' % (subject, old_file)
                 old_dataio = DataIO(dirname=old_output_dir, ch_grp=ch_grp)
 
                 old_catalogueconstructor = CatalogueConstructor(dataio=old_dataio, chan_grp=ch_grp)
@@ -80,19 +80,20 @@ def compare_catalogues(subject, date, similarity_threshold=0.7):
                     print('relabeling unit %d-%d as unit %d-%d' % (ch_grp, new_cell_labels[new_cluster_idx], ch_grp,
                                                                    all_old_cell_labels[most_similar]))
                     fig = plt.figure()
-                    plt.plot(all_old_wfs[most_similar, :], 'b')
-                    plt.plot(new_wfs_reshaped[new_cluster_idx, :], 'r')
+                    plt.plot(all_old_wfs[most_similar, :], 'b', label='old')
+                    plt.plot(new_wfs_reshaped[new_cluster_idx, :], 'r', label='new')
                     plt.title('%s: %d - %d, similarity=%.3f' % (date, new_cell_labels[new_cluster_idx],
                                                                 all_old_cell_labels[most_similar],
                                                                 new_old_cluster_similarity[new_cluster_idx, most_similar]))
+                    plt.legend(loc='best')
                     fig.savefig(os.path.join(plot_output_dir, '%d_merge_%d-%d.png' % (ch_grp,new_cell_labels[new_cluster_idx],all_old_cell_labels[most_similar])))
 
                     new_cell_labels[new_cluster_idx]=all_old_cell_labels[most_similar]
                 else:
                     fig = plt.figure()
-                    plt.plot(new_wfs_reshaped[new_cluster_idx, :], 'r')
+                    plt.plot(new_wfs_reshaped[new_cluster_idx, :], 'r', label='new: %d' % new_cell_labels[new_cluster_idx])
                     for i in range(len(all_old_cell_labels)):
-                        plt.plot(all_old_wfs[i, :], '--', label='%d=%.2f' % (all_old_cell_labels[i],new_old_cluster_similarity[new_cluster_idx,i]))
+                        plt.plot(all_old_wfs[i, :], '--', label='old: %d=%.2f' % (all_old_cell_labels[i], new_old_cluster_similarity[new_cluster_idx,i]))
                     plt.legend(loc='best')
                     fig.savefig(os.path.join(plot_output_dir, '%d_nonmerge_%d.png' % (ch_grp, new_cell_labels[new_cluster_idx])))
 
@@ -102,10 +103,28 @@ def compare_catalogues(subject, date, similarity_threshold=0.7):
             if new_cell_labels[new_cluster_idx] >= 0 and all_old_cell_labels[most_similar] >= 0:
                 similarity = new_old_cluster_similarity[new_cluster_idx,most_similar]
                 if similarity < similarity_threshold:
-                    print('adding new unit %d-%d' % (ch_grp, np.max(old_cell_labels)+1))
-                    new_cell_labels[new_cluster_idx]=np.max(old_cell_labels)+1
+                    new_label=np.max(old_cell_labels)+1
+                    print('adding new unit %d-%d' % (ch_grp, new_label))
+                    new_cell_labels[new_cluster_idx]=new_label
 
         catalogueconstructor.clusters['cell_label']=new_cell_labels
+
+        labels = catalogueconstructor.cluster_labels
+        fig = plt.figure()
+        for idx, label in enumerate(labels):
+            cell_label = catalogueconstructor.clusters['cell_label'][idx]
+            max_channel = catalogueconstructor.clusters['max_on_channel'][idx]
+            color = catalogueconstructor.colors.get(label, 'k')
+            plt.plot(catalogueconstructor.centroids_median[idx, :, max_channel], color=color, label=cell_label)
+            plt.fill_between(range(catalogueconstructor.centroids_median.shape[1]),
+                             catalogueconstructor.centroids_median[idx, :,
+                             max_channel] - catalogueconstructor.centroids_std[idx, :, max_channel],
+                             catalogueconstructor.centroids_median[idx, :,
+                             max_channel] + catalogueconstructor.centroids_std[idx, :, max_channel],
+                             alpha=0.2, edgecolor=color, facecolor=color)
+        plt.legend(loc='best')
+        plt.title('Final clusters')
+        fig.savefig(os.path.join(plot_output_dir, 'final_clusters.png'))
 
         catalogueconstructor.make_catalogue_for_peeler()
 
