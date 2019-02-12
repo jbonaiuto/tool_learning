@@ -48,7 +48,7 @@ def open_PeelerWindow(dirname, chan_grp):
 
 def export_spikes(dirname, chan_grp):
     print('Exporting ch %d' % chan_grp)
-    data = {'array': [], 'electrode': [], 'unit': [], 'segment': [], 'time': []}
+    data = {'array': [], 'electrode': [], 'cell': [], 'segment': [], 'time': []}
     array=arrays[int(np.floor(chan_grp/32))]
 
 
