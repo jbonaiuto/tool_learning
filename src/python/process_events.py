@@ -10,7 +10,7 @@ def process_events(subject, date):
     recording_date=datetime.strptime(date, '%d.%m.%y')
 
     # Reads and sorts log files by date/time
-    log_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/logs/', subject)
+    log_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/data/logs/', subject)
     log_file_names = []
     log_file_dates = []
     for x in os.listdir(log_dir):
@@ -69,7 +69,7 @@ def process_events(subject, date):
 
     trials = []
 
-    plx_data_dir=os.path.join('/home/bonaiuto/Projects/tool_learning/recordings/plexon/%s/%s' % (subject, date))
+    plx_data_dir=os.path.join('/home/bonaiuto/Projects/tool_learning/data/recordings/plexon/%s/%s' % (subject, date))
     for f_idx,plx_file in enumerate(plx_file_names):
         log_file_name=log_file_names[f_idx]
         if os.path.exists(os.path.join(plx_data_dir, plx_file)):
@@ -180,7 +180,7 @@ def process_events(subject, date):
 
 
     # Write to csv
-    out_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data/', subject, date)
+    out_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/data/preprocessed_data/', subject, date)
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
 
