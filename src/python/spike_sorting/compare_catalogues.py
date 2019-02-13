@@ -1,6 +1,8 @@
 import sys
 from datetime import datetime
+from shutil import copyfile
 
+from jinja2 import Environment, FileSystemLoader
 from tridesclous import DataIO, CatalogueConstructor
 import numpy as np
 from tridesclous import metrics
@@ -10,7 +12,7 @@ import glob
 
 from spike_sorting.run_peeler import run_peeler
 
-max_electrode_only=True
+arrays = ['F1', 'F5hand', 'F5mouth', '46v-12r', '45a', 'F2']
 
 def compare_catalogues(subject, date, similarity_threshold=0.7):
     new_output_dir = '/home/bonaiuto/Projects/tool_learning/data/spike_sorting/%s/%s' % (subject, date)
@@ -29,12 +31,20 @@ def compare_catalogues(subject, date, similarity_threshold=0.7):
 
     new_date = datetime.strptime(date, '%d.%m.%y')
 
-    for ch_grp in range(32*6):
+    channel_results = []
+
+    #for ch_grp in range(32*6):
+    for ch_grp in [2,3]:
+        array = arrays[int(np.floor(ch_grp / 32))]
+
+        channel_result = {'array': array, 'channel': ch_grp, 'merged': [], 'unmerged': []}
+
         new_dataio = DataIO(dirname=new_output_dir, ch_grp=ch_grp)
         catalogueconstructor = CatalogueConstructor(dataio=new_dataio,chan_grp=ch_grp)
 
         if catalogueconstructor.centroids_median is None:
             catalogueconstructor.compute_all_centroid()
+        catalogueconstructor.refresh_colors()
 
         new_cell_labels = catalogueconstructor.clusters['cell_label']
         new_wfs = catalogueconstructor.centroids_median[:, :, :]
@@ -69,7 +79,10 @@ def compare_catalogues(subject, date, similarity_threshold=0.7):
         plt.xlabel('Old cells')
         plt.ylabel('New cells')
         plt.colorbar()
-        fig.savefig(os.path.join(plot_output_dir, '%d_similarity.png' % ch_grp))
+        fname='%d_similarity.png' % ch_grp
+        fig.savefig(os.path.join(plot_output_dir, fname))
+        channel_result['similarity']=os.path.join('catalogue_comparison',fname)
+        plt.close('all')
 
         for new_cluster_idx in range(new_wfs_reshaped.shape[0]):
             most_similar = np.argmax(new_old_cluster_similarity[new_cluster_idx,:])
@@ -86,7 +99,10 @@ def compare_catalogues(subject, date, similarity_threshold=0.7):
                                                                 all_old_cell_labels[most_similar],
                                                                 new_old_cluster_similarity[new_cluster_idx, most_similar]))
                     plt.legend(loc='best')
-                    fig.savefig(os.path.join(plot_output_dir, '%d_merge_%d-%d.png' % (ch_grp,new_cell_labels[new_cluster_idx],all_old_cell_labels[most_similar])))
+                    fname='%d_merge_%d-%d.png' % (ch_grp,new_cell_labels[new_cluster_idx],all_old_cell_labels[most_similar])
+                    fig.savefig(os.path.join(plot_output_dir, fname))
+                    channel_result['merged'].append(os.path.join('catalogue_comparison',fname))
+                    plt.close('all')
 
                     new_cell_labels[new_cluster_idx]=all_old_cell_labels[most_similar]
                 else:
@@ -95,8 +111,10 @@ def compare_catalogues(subject, date, similarity_threshold=0.7):
                     for i in range(len(all_old_cell_labels)):
                         plt.plot(all_old_wfs[i, :], '--', label='old: %d=%.2f' % (all_old_cell_labels[i], new_old_cluster_similarity[new_cluster_idx,i]))
                     plt.legend(loc='best')
-                    fig.savefig(os.path.join(plot_output_dir, '%d_nonmerge_%d.png' % (ch_grp, new_cell_labels[new_cluster_idx])))
-
+                    fname='%d_nonmerge_%d.png' % (ch_grp, new_cell_labels[new_cluster_idx])
+                    fig.savefig(os.path.join(plot_output_dir, fname))
+                    channel_result['unmerged'].append(os.path.join('catalogue_comparison',fname))
+                    plt.close('all')
 
         for new_cluster_idx in range(new_wfs.shape[0]):
             most_similar = np.argmax(new_old_cluster_similarity[new_cluster_idx,:])
@@ -124,7 +142,11 @@ def compare_catalogues(subject, date, similarity_threshold=0.7):
                              alpha=0.2, edgecolor=color, facecolor=color)
         plt.legend(loc='best')
         plt.title('Final clusters')
-        fig.savefig(os.path.join(plot_output_dir, 'final_clusters.png'))
+        fname='%d_final_clusters.png' % ch_grp
+        fig.savefig(os.path.join(plot_output_dir, fname))
+        channel_result['final']=os.path.join('catalogue_comparison',fname)
+        channel_results.append(channel_result)
+        plt.close('all')
 
         catalogueconstructor.make_catalogue_for_peeler()
 
@@ -132,6 +154,17 @@ def compare_catalogues(subject, date, similarity_threshold=0.7):
             # Do what you want with the file
             os.remove(fl)
         run_peeler(new_output_dir, chan_grp=ch_grp)
+
+    template_dir = '/home/bonaiuto/Projects/tool_learning/src/templates'
+    env = Environment(loader=FileSystemLoader(template_dir))
+    template = env.get_template('spike_sorting_merge_template.html')
+    template_output = template.render(subject=subject, recording_date=date, channel_results=channel_results)
+
+    out_filename = os.path.join(new_output_dir, 'spike_sorting_merge_report.html')
+    with open(out_filename, 'w') as fh:
+        fh.write(template_output)
+
+    copyfile(os.path.join(template_dir, 'style.css'), os.path.join(new_output_dir, 'style.css'))
 
 
 if __name__=='__main__':
