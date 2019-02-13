@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Spike sorting merge results: {{ subject }} - {{ recording_date }}</title>
+   <link rel="stylesheet" href="style.css">
+  </head>
+<body>
+    <h1>{{ subject }} - {{ recording_date }}</h1>
+    <h2>Sorting process</h2>
+    <table width="100%" border="1">
+        <tr>
+            <th>Array</th>
+            <th>Channel</th>
+            <th>Similarity</th>
+            <th>Merged clusters</th>
+            <th>Unmerged clusters</th>
+            <th>Final clusters</th>
+        </tr>
+        {% for channel_result in channel_results %}
+            <tr>
+                <td>{{ channel_result['array'] }}</td>
+                <td>{{ channel_result['channel'] }}</td>
+                <td><img class="thumnbail" src="{{ channel_result['similarity'] }}"/></td>
+                <td>{% for merged in channel_result['merged'] %}<img class="thumnbail" src="{{ merged }}"/>{% endfor %}</td>
+                <td>{% for unmerged in channel_result['unmerged'] %}<img class="thumnbail" src="{{ unmerged }}"/>{% endfor %}</td>
+                <td><img class="thumnbail" src="{{ channel_result['final'] }}"/></td>
+            </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
