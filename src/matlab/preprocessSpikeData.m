@@ -36,7 +36,7 @@ for i=1:length(sorted_idx)
     rec_signal=rec_signal(window+1:end-window);
     
     % Skip if erroneous (recording signal is just a one time step blip)
-    if length(find(rec_signal==1))>1
+    if length(find(rec_signal==1))>1 && rec_signal(1)~=1
 
         % Median filter (window length=3ms; Michaels et al., 2018)
         winlen=round(0.003*sample_rate)+1;

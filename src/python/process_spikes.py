@@ -8,12 +8,15 @@ import sys
 
 arrays = ['F1', 'F5hand', 'F5mouth', '46v-12r', '45a', 'F2']
 
-def process_spikes(subj_name, date):
+def run_process_spikes(subj_name, date):
+
+    trial_info=pd.read_csv(os.path.join('/home/bonaiuto/Projects/tool_learning/data/preprocessed_data/', subj_name, date,'trial_info.csv'))
+
     # Get times and recording start times
     trial_times = []
     trial_start_times = []
     srate = 30000.0
-    rec_data_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/recordings/rhd2000', subj_name, date)
+    rec_data_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/data/recordings/rhd2000', subj_name, date)
     rec_fnames = glob(os.path.join(rec_data_dir, '*rec_signal.mat'))
     rec_fdates = []
     for rec_fname in rec_fnames:
@@ -34,11 +37,13 @@ def process_spikes(subj_name, date):
         trial_times.append(times)
         trial_start_times.append(trial_start_time)
 
-    out_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data/', subj_name, date)
+    assert(len(trial_start_times)==len(trial_info.trial))
+
+    out_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/data/preprocessed_data/', subj_name, date)
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
 
-    spike_data_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/spike_sorting', subj_name, date)
+    spike_data_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/data/spike_sorting', subj_name, date)
 
     # Import spikes
     for array_idx, region in enumerate(arrays):
@@ -57,4 +62,4 @@ def process_spikes(subj_name, date):
 if __name__=='__main__':
     subject = sys.argv[1]
     recording_date = sys.argv[2]
-    process_spikes(subject, recording_date)
+    run_process_spikes(subject, recording_date)

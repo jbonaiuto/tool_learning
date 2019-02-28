@@ -6,8 +6,7 @@ from pandas import DataFrame, Series
 import matplotlib.pyplot as plt
 
 def check_impedances(subject):
-    arrays=['45A','46V/12R','F1','F2','F5(HAND)','F5(MOUTH)']
-    basepath=os.path.join('/home/bonaiuto/Projects/tool_learning/recordings/rhd2000/',subject)
+    basepath=os.path.join('/home/bonaiuto/Projects/tool_learning/data/recordings/rhd2000/',subject)
     index=[]
     array_impedances={}
     for f in os.listdir(basepath):

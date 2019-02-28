@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')
 import os
 import shutil
 import sys
@@ -6,6 +8,7 @@ from datetime import datetime
 
 import pyqtgraph as pg
 import matplotlib.pyplot as plt
+plt.ioff()
 import numpy as np
 import transplant
 
@@ -24,8 +27,8 @@ def compute_catalogue(dataio, chan_grp, total_duration, out_path, voltage_thresh
                       extract_waveforms=True, extract_features=True, find_clusters=True, postprocess=True):
 
     # time limits of waveform around threshold crossing
-    n_left=-20
-    n_right=30
+    n_left=-10
+    n_right=25
 
     ## Preprocess data
     catalogueconstructor = CatalogueConstructor(dataio=dataio, chan_grp=chan_grp)
@@ -39,7 +42,7 @@ def compute_catalogue(dataio, chan_grp, total_duration, out_path, voltage_thresh
                                                      # Remove common reference (needed when there is an artifact on all channels
                                                      common_ref_removal=False,
                                                      lostfront_chunksize=0,
-                                                     signalpreprocessor_engine='numpy',
+                                                     signalpreprocessor_engine='opencl',
 
                                                      # peak detector
                                                      peakdetector_engine='opencl',
@@ -87,6 +90,18 @@ def compute_catalogue(dataio, chan_grp, total_duration, out_path, voltage_thresh
         plt.title('Extracted waveforms')
         fig.savefig(os.path.join(out_path, 'extracted_waveforms.png'))
 
+        # new_n_left, new_n_right = catalogueconstructor.find_good_limits(mad_threshold = 1.1,)
+        # print('n_left', new_n_left, 'n_right', new_n_right)
+        # if not (new_n_left is None or new_n_right is None):
+        #     n_left=new_n_left
+        #     n_right=new_n_right
+        #
+        # # Plot extracted waveforms
+        # fig = plt.figure()
+        # plt.plot(np.transpose(np.squeeze(catalogueconstructor.some_waveforms[:, :, 0])))
+        # plt.title('Extracted waveforms')
+        # fig.savefig(os.path.join(out_path, 'extracted_waveforms_autowin.png'))
+
         # Clean waveforms
         # try to detect bad waveforms to not include them in features aand clustering.Strange waveforms are tag with -9 (alien)
         t1 = time.perf_counter()
@@ -104,7 +119,8 @@ def compute_catalogue(dataio, chan_grp, total_duration, out_path, voltage_thresh
     if extract_features:
         # extract_some_noise
         t1 = time.perf_counter()
-        catalogueconstructor.extract_some_noise(nb_snippet=300)
+        n_snippet=dataio.nb_segment*2
+        catalogueconstructor.extract_some_noise(nb_snippet=n_snippet)
         t2 = time.perf_counter()
         print('extract_some_noise', t2 - t1)
         median, mad = median_mad(catalogueconstructor.some_noise_snippet, axis=0)
@@ -367,6 +383,8 @@ def run_compute_catalogue(subject, recording_date, display_catalogue=False):
 
             for ch_grp in range(32 * 6):
                 print(ch_grp)
+                dataio = DataIO(dirname=output_dir, ch_grp=ch_grp)
+
                 # Compute catalogue for channel
                 compute_catalogue(dataio, ch_grp, total_duration, os.path.join(output_dir,'channel_group_%d' % ch_grp))
 
@@ -382,10 +400,13 @@ if __name__=='__main__':
     if len(sys.argv)>4:
         preprocess=sys.argv[4] in ['true','True','1']
 
+    start_time = time.time()
     if preprocess:
         matlab = transplant.Matlab()
-        matlab.addpath('/home/bonaiuto/Projects/tool_learning/src/matlab/mulab_data_cleaner')
+        matlab.addpath('/home/bonaiuto/Projects/tool_learning/src/matlab')
         matlab.preprocessSpikeData(subject, recording_date)
         matlab.exit()
 
     run_compute_catalogue(subject, recording_date, display_catalogue=display_catalogue)
+    elapsed_time = time.time() - start_time
+    print(elapsed_time)

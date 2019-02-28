@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Spike sorting longitudinal results: {{ subject }}</title>
+   <link rel="stylesheet" href="style.css">
+  </head>
+<body>
+    <h1>{{ subject }}</h1>
+    <ul>
+        {% for date_result in date_results %}
+            <li>{{ date_result }}: <a href="{{ date_result }}/spike_sorting_report.html">sort report</a> <a href="{{ date_result }}/spike_sorting_merge_report.html">merge report</a></li>
+        {% endfor %}
+    </ul>
+    <table width="100%" border="1">
+        <tr>
+            <th>Array</th>
+            <th>Channel</th>
+            <th>Spikes</th>
+            <th>Impedance</th>
+        </tr>
+        {% for array_result in array_results %}
+            <tr>
+                <td>{{ array_result['array'] }}</td>
+                <td>{{ array_result['channel'] }}</td>
+                <td><img class="thumnbail" src="{{ array_result['spike_img'] }}"/></td>
+                <td><img class="thumnbail" src="{{ array_result['impedance_img'] }}"/></td>
+            </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

@@ -26,6 +26,7 @@ def generate_spike_sorting_report(subject, recording_date, regenerate_figures=Tr
     array_unit_idx=0
 
     for chan_grp in range(32*6):
+        print(chan_grp)
         array = arrays[int(np.floor(chan_grp / 32))]
         if not array==last_array:
             array_unit_idx=0
@@ -61,129 +62,131 @@ def generate_spike_sorting_report(subject, recording_date, regenerate_figures=Tr
         bin_size = 1.
 
         for idx, label in enumerate(labels):
-            cell_label = catalogueconstructor.clusters['cell_label'][idx]
-            max_channel = catalogueconstructor.clusters['max_on_channel'][idx]
-            
-            cluster_result = {'array': array, 'channel': chan_grp, 'cluster': label, 'cell': cell_label, 'comparison_imgs':[]}
-            cluster_result['total_number']=total_unit_idx
-            cluster_result['array_number']=array_unit_idx
-            total_unit_idx=total_unit_idx+1
-            array_unit_idx=array_unit_idx+1
+            if label>=0:
+                cell_label = catalogueconstructor.clusters['cell_label'][idx]
+                max_channel = catalogueconstructor.clusters['max_on_channel'][idx]
 
-            fname = 'channel_%d_cluster_%d.png' % (chan_grp, label)
-            if regenerate_figures:
-                fig = plt.figure()
-                ax=plt.subplot(2,1,1)
-                color = catalogueconstructor.colors.get(idx, 'k')
-                time_range=range(catalogueconstructor.info['waveform_extractor_params']['n_left'],
-                catalogueconstructor.info['waveform_extractor_params']['n_right'])
-                plt.plot(time_range,catalogueconstructor.centroids_median[idx, :, max_channel], color=color)
-                plt.fill_between(time_range,
-                                 catalogueconstructor.centroids_median[idx, :,max_channel] - catalogueconstructor.centroids_std[idx, :, max_channel],
-                                 catalogueconstructor.centroids_median[idx, :,max_channel] + catalogueconstructor.centroids_std[idx, :, max_channel],
-                                 alpha=0.2, edgecolor=color, facecolor=color)
-                plt.xlabel('Time step')
-                plt.ylabel('Centroid median')
-                plt.title('Array %s, Channel, %d, Cluster %d, Cell %d' % (array, chan_grp, label, cell_label))
+                cluster_result = {'array': array, 'channel': chan_grp, 'cluster': label, 'cell': cell_label, 'comparison_imgs':[]}
+                cluster_result['total_number']=total_unit_idx
+                cluster_result['array_number']=array_unit_idx
+                total_unit_idx=total_unit_idx+1
+                array_unit_idx=array_unit_idx+1
 
-                ax = plt.subplot(2, 1, 2)
-                bins = np.arange(bin_min, bin_max, bin_size)
+                fname = 'channel_%d_cluster_%d.png' % (chan_grp, label)
+                if regenerate_figures:
+                    fig = plt.figure()
+                    ax=plt.subplot(2,1,1)
+                    color = catalogueconstructor.colors.get(idx, 'k')
+                    time_range=range(catalogueconstructor.info['waveform_extractor_params']['n_left'],
+                    catalogueconstructor.info['waveform_extractor_params']['n_right'])
+                    plt.plot(time_range,catalogueconstructor.centroids_median[idx, :, max_channel], color=color)
+                    plt.fill_between(time_range,
+                                     catalogueconstructor.centroids_median[idx, :,max_channel] - catalogueconstructor.centroids_std[idx, :, max_channel],
+                                     catalogueconstructor.centroids_median[idx, :,max_channel] + catalogueconstructor.centroids_std[idx, :, max_channel],
+                                     alpha=0.2, edgecolor=color, facecolor=color)
+                    plt.xlabel('Time step')
+                    plt.ylabel('Centroid median')
+                    plt.title('Array %s, Channel, %d, Cluster %d, Cell %d' % (array, chan_grp, label, cell_label))
 
-                count = None
-                for seg_num in range(dataio.nb_segment):
-                    spikes = dataio.get_spikes(seg_num=seg_num, chan_grp=chan_grp, )
-                    spikes = spikes[spikes['cluster_label'] == label]
-                    spike_indexes = spikes['index']
+                    ax = plt.subplot(2, 1, 2)
+                    bins = np.arange(bin_min, bin_max, bin_size)
 
-                    isi = np.diff(spike_indexes) / (sr / 1000.)
+                    count = None
+                    for seg_num in range(dataio.nb_segment):
+                        spikes = dataio.get_spikes(seg_num=seg_num, chan_grp=chan_grp, )
+                        spikes = spikes[spikes['cluster_label'] == label]
+                        spike_indexes = spikes['index']
 
-                    count_, bins = np.histogram(isi, bins=bins)
-                    if count is None:
-                        count = count_
-                    else:
-                        count += count_
+                        isi = np.diff(spike_indexes) / (sr / 1000.)
 
-                ax.plot(bins[:-1], count, color=color)
-                plt.xlabel('ISI')
-                plt.ylabel('Count')
-                fig.savefig(os.path.join(out_path, fname))
-                plt.close('all')
+                        count_, bins = np.histogram(isi, bins=bins)
+                        if count is None:
+                            count = count_
+                        else:
+                            count += count_
 
-            cluster_result['img'] = os.path.join(array,fname)
+                    ax.plot(bins[:-1], count, color=color)
+                    plt.xlabel('ISI')
+                    plt.ylabel('Count')
+                    fig.savefig(os.path.join(out_path, fname))
+                    plt.close('all')
 
-            for idx2, label2 in enumerate(labels):
-                cell_label2 = catalogueconstructor.clusters['cell_label'][idx2]
-                if cell_label2>cell_label:
-                    max_channel2 = catalogueconstructor.clusters['max_on_channel'][idx2]
+                cluster_result['img'] = os.path.join(array,fname)
 
-                    cidx1 = np.where(catalogueconstructor.cluster_labels == label)[0][0]
-                    cidx2 = np.where(catalogueconstructor.cluster_labels == label2)[0][0]
-                    similarity = catalogueconstructor.cluster_similarity[cidx1, cidx2]
+                for idx2, label2 in enumerate(labels):
+                    cell_label2 = catalogueconstructor.clusters['cell_label'][idx2]
+                    if cell_label2>cell_label:
+                        max_channel2 = catalogueconstructor.clusters['max_on_channel'][idx2]
 
-                    if similarity>=0.35:
-                        fname = 'channel_%d_clusters_%d-%d.png' % (chan_grp, label, label2)
+                        nz_labels=np.where(catalogueconstructor.cluster_labels>=0)[0]
+                        cidx1 = np.where(catalogueconstructor.cluster_labels[nz_labels] == label)[0][0]
+                        cidx2 = np.where(catalogueconstructor.cluster_labels[nz_labels] == label2)[0][0]
+                        similarity = catalogueconstructor.cluster_similarity[cidx1, cidx2]
 
-                        if regenerate_figures:
-                            fig = plt.figure()
-                            ax = plt.subplot(2, 1, 1)
-                            color2 = catalogueconstructor.colors.get(idx2, 'k')
-                            plt.plot(time_range, catalogueconstructor.centroids_median[idx, :, max_channel], color=color, label=cell_label)
-                            plt.fill_between(time_range,
-                                             catalogueconstructor.centroids_median[idx, :, max_channel] - catalogueconstructor.centroids_std[idx, :, max_channel],
-                                             catalogueconstructor.centroids_median[idx, :, max_channel] + catalogueconstructor.centroids_std[idx, :, max_channel],
-                                             alpha=0.2, edgecolor=color, facecolor=color)
-                            plt.plot(time_range, catalogueconstructor.centroids_median[idx2, :, max_channel2], color=color2, label=cell_label2)
-                            plt.fill_between(time_range,
-                                             catalogueconstructor.centroids_median[idx2, :, max_channel2] - catalogueconstructor.centroids_std[idx2, :, max_channel2],
-                                             catalogueconstructor.centroids_median[idx2, :, max_channel2] + catalogueconstructor.centroids_std[idx2, :, max_channel2],
-                                             alpha=0.2, edgecolor=color2, facecolor=color2)
-                            plt.legend(loc='best')
-                            plt.xlabel('Time step')
-                            plt.ylabel('Centroid median')
+                        if similarity>=0.35:
+                            fname = 'channel_%d_clusters_%d-%d.png' % (chan_grp, label, label2)
 
-                            plt.title('Array %s, Channel, %d, Cells %d-%d, Similarity=%0.4f' % (array, chan_grp, cell_label, cell_label2, similarity))
+                            if regenerate_figures:
+                                fig = plt.figure()
+                                ax = plt.subplot(2, 1, 1)
+                                color2 = catalogueconstructor.colors.get(idx2, 'k')
+                                plt.plot(time_range, catalogueconstructor.centroids_median[idx, :, max_channel], color=color, label=cell_label)
+                                plt.fill_between(time_range,
+                                                 catalogueconstructor.centroids_median[idx, :, max_channel] - catalogueconstructor.centroids_std[idx, :, max_channel],
+                                                 catalogueconstructor.centroids_median[idx, :, max_channel] + catalogueconstructor.centroids_std[idx, :, max_channel],
+                                                 alpha=0.2, edgecolor=color, facecolor=color)
+                                plt.plot(time_range, catalogueconstructor.centroids_median[idx2, :, max_channel2], color=color2, label=cell_label2)
+                                plt.fill_between(time_range,
+                                                 catalogueconstructor.centroids_median[idx2, :, max_channel2] - catalogueconstructor.centroids_std[idx2, :, max_channel2],
+                                                 catalogueconstructor.centroids_median[idx2, :, max_channel2] + catalogueconstructor.centroids_std[idx2, :, max_channel2],
+                                                 alpha=0.2, edgecolor=color2, facecolor=color2)
+                                plt.legend(loc='best')
+                                plt.xlabel('Time step')
+                                plt.ylabel('Centroid median')
 
-                            ax = plt.subplot(2, 1, 2)
-                            bins = np.arange(bin_min, bin_max, bin_size)
+                                plt.title('Array %s, Channel, %d, Cells %d-%d, Similarity=%0.4f' % (array, chan_grp, cell_label, cell_label2, similarity))
 
-                            count = None
-                            for seg_num in range(dataio.nb_segment):
-                                spikes = dataio.get_spikes(seg_num=seg_num, chan_grp=chan_grp, )
-                                spikes = spikes[spikes['cluster_label'] == label]
-                                spike_indexes = spikes['index']
+                                ax = plt.subplot(2, 1, 2)
+                                bins = np.arange(bin_min, bin_max, bin_size)
 
-                                isi = np.diff(spike_indexes) / (sr / 1000.)
+                                count = None
+                                for seg_num in range(dataio.nb_segment):
+                                    spikes = dataio.get_spikes(seg_num=seg_num, chan_grp=chan_grp, )
+                                    spikes = spikes[spikes['cluster_label'] == label]
+                                    spike_indexes = spikes['index']
 
-                                count_, bins = np.histogram(isi, bins=bins)
-                                if count is None:
-                                    count = count_
-                                else:
-                                    count += count_
+                                    isi = np.diff(spike_indexes) / (sr / 1000.)
 
-                            ax.plot(bins[:-1], count, color=color, label=cell_label)
-                            count = None
-                            for seg_num in range(dataio.nb_segment):
-                                spikes = dataio.get_spikes(seg_num=seg_num, chan_grp=chan_grp, )
-                                spikes = spikes[spikes['cluster_label'] == label2]
-                                spike_indexes = spikes['index']
+                                    count_, bins = np.histogram(isi, bins=bins)
+                                    if count is None:
+                                        count = count_
+                                    else:
+                                        count += count_
 
-                                isi = np.diff(spike_indexes) / (sr / 1000.)
+                                ax.plot(bins[:-1], count, color=color, label=cell_label)
+                                count = None
+                                for seg_num in range(dataio.nb_segment):
+                                    spikes = dataio.get_spikes(seg_num=seg_num, chan_grp=chan_grp, )
+                                    spikes = spikes[spikes['cluster_label'] == label2]
+                                    spike_indexes = spikes['index']
 
-                                count_, bins = np.histogram(isi, bins=bins)
-                                if count is None:
-                                    count = count_
-                                else:
-                                    count += count_
+                                    isi = np.diff(spike_indexes) / (sr / 1000.)
 
-                            ax.plot(bins[:-1], count, color=color2, label=cell_label2)
-                            plt.legend(loc='best')
-                            plt.xlabel('ISI')
-                            plt.ylabel('Count')
-                            fig.savefig(os.path.join(out_path, fname))
-                            plt.close('all')
-                        cluster_result['comparison_imgs'].append(os.path.join(array, fname))
+                                    count_, bins = np.histogram(isi, bins=bins)
+                                    if count is None:
+                                        count = count_
+                                    else:
+                                        count += count_
 
-            cluster_results.append(cluster_result)
+                                ax.plot(bins[:-1], count, color=color2, label=cell_label2)
+                                plt.legend(loc='best')
+                                plt.xlabel('ISI')
+                                plt.ylabel('Count')
+                                fig.savefig(os.path.join(out_path, fname))
+                                plt.close('all')
+                            cluster_result['comparison_imgs'].append(os.path.join(array, fname))
+
+                cluster_results.append(cluster_result)
 
         channel_results.append(channel_result)
 

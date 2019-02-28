@@ -10,11 +10,11 @@ import matplotlib.pyplot as plt
 import os
 import glob
 
-from spike_sorting.run_peeler import run_peeler
+from spike_sorting.run_peeler import run_peeler, export_spikes
 
 arrays = ['F1', 'F5hand', 'F5mouth', '46v-12r', '45a', 'F2']
 
-def compare_catalogues(subject, date, similarity_threshold=0.7):
+def run_compare_catalogues(subject, date, similarity_threshold=0.7):
     new_output_dir = '/home/bonaiuto/Projects/tool_learning/data/spike_sorting/%s/%s' % (subject, date)
     plot_output_dir='/home/bonaiuto/Projects/tool_learning/data/spike_sorting/%s/%s/catalogue_comparison' % (subject, date)
     if not os.path.exists(plot_output_dir):
@@ -24,7 +24,11 @@ def compare_catalogues(subject, date, similarity_threshold=0.7):
     sorted_files=[]
     for y in x:
         if os.path.isdir(os.path.join('/home/bonaiuto/Projects/tool_learning/data/spike_sorting/%s' % (subject),y)):
-            sorted_files.append(y)
+            try:
+                datetime.strptime(y, '%d.%m.%y')
+                sorted_files.append(y)
+            except:
+                pass
     sorted_dates=[datetime.strptime(x,'%d.%m.%y') for x in sorted_files]
     sorted_files = [x for _, x in sorted(zip(sorted_dates, sorted_files))]
     sorted_dates=sorted(sorted_dates)
@@ -33,8 +37,7 @@ def compare_catalogues(subject, date, similarity_threshold=0.7):
 
     channel_results = []
 
-    #for ch_grp in range(32*6):
-    for ch_grp in [2,3]:
+    for ch_grp in range(32*6):
         array = arrays[int(np.floor(ch_grp / 32))]
 
         channel_result = {'array': array, 'channel': ch_grp, 'merged': [], 'unmerged': []}
@@ -51,7 +54,7 @@ def compare_catalogues(subject, date, similarity_threshold=0.7):
         new_wfs_reshaped = new_wfs.reshape(new_wfs.shape[0], -1)
 
         all_old_cell_labels=[]
-        all_old_wfs=np.zeros((0,50))
+        all_old_wfs=np.zeros((0,35))
         for old_date,old_file in zip(sorted_dates,sorted_files):
             if old_date<new_date:
                 old_output_dir = '/home/bonaiuto/Projects/tool_learning/data/spike_sorting/%s/%s' % (subject, old_file)
@@ -127,6 +130,23 @@ def compare_catalogues(subject, date, similarity_threshold=0.7):
 
         catalogueconstructor.clusters['cell_label']=new_cell_labels
 
+        # Merge clusters with same labels
+        cluster_removed = True
+        while cluster_removed:
+            for cell_label in catalogueconstructor.clusters['cell_label']:
+                cluster_idx=np.where(catalogueconstructor.clusters['cell_label']==cell_label)[0]
+                if len(cluster_idx)>1:
+                    cluster_label1=catalogueconstructor.cluster_labels[cluster_idx[0]]
+                    cluster_label2 = catalogueconstructor.cluster_labels[cluster_idx[1]]
+
+                    print('auto_merge', cell_label, 'with', cell_label)
+                    mask = catalogueconstructor.all_peaks['cluster_label'] == cluster_label2
+                    catalogueconstructor.all_peaks['cluster_label'][mask] = cluster_label1
+                    catalogueconstructor.remove_one_cluster(cluster_label2)
+                    break
+                else:
+                    cluster_removed = False
+
         labels = catalogueconstructor.cluster_labels
         fig = plt.figure()
         for idx, label in enumerate(labels):
@@ -150,10 +170,8 @@ def compare_catalogues(subject, date, similarity_threshold=0.7):
 
         catalogueconstructor.make_catalogue_for_peeler()
 
-        for fl in glob.glob(os.path.join(new_output_dir, '*spikes.csv')):
-            # Do what you want with the file
-            os.remove(fl)
         run_peeler(new_output_dir, chan_grp=ch_grp)
+        export_spikes(new_output_dir, ch_grp)
 
     template_dir = '/home/bonaiuto/Projects/tool_learning/src/templates'
     env = Environment(loader=FileSystemLoader(template_dir))
@@ -170,4 +188,4 @@ def compare_catalogues(subject, date, similarity_threshold=0.7):
 if __name__=='__main__':
     subject = sys.argv[1]
     date = sys.argv[2]
-    compare_catalogues(subject, date)
+    run_compare_catalogues(subject, date)
