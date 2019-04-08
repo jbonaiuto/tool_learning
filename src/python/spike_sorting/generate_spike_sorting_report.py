@@ -77,8 +77,7 @@ def generate_spike_sorting_report(subject, recording_date, regenerate_figures=Tr
                     fig = plt.figure()
                     ax=plt.subplot(2,1,1)
                     color = catalogueconstructor.colors.get(idx, 'k')
-                    time_range=range(catalogueconstructor.info['waveform_extractor_params']['n_left'],
-                    catalogueconstructor.info['waveform_extractor_params']['n_right'])
+                    time_range=range(catalogueconstructor.info['waveform_extractor_params']['n_left'], catalogueconstructor.info['waveform_extractor_params']['n_right'])
                     plt.plot(time_range,catalogueconstructor.centroids_median[idx, :, max_channel], color=color)
                     plt.fill_between(time_range,
                                      catalogueconstructor.centroids_median[idx, :,max_channel] - catalogueconstructor.centroids_std[idx, :, max_channel],
