@@ -8,11 +8,11 @@ import numpy as np
 from tridesclous import metrics
 import matplotlib.pyplot as plt
 import os
-import glob
-
-from spike_sorting.run_peeler import run_peeler, export_spikes
 
 arrays = ['F1', 'F5hand', 'F5mouth', '46v-12r', '45a', 'F2']
+bin_min = 0
+bin_max = 100
+bin_size = 1.
 
 def run_compare_catalogues(subject, date, similarity_threshold=0.7):
     new_output_dir = '/home/bonaiuto/Projects/tool_learning/data/spike_sorting/%s/%s' % (subject, date)
@@ -42,17 +42,21 @@ def run_compare_catalogues(subject, date, similarity_threshold=0.7):
 
         channel_result = {'array': array, 'channel': ch_grp, 'merged': [], 'unmerged': []}
 
+        # load catalogue for this channel
         new_dataio = DataIO(dirname=new_output_dir, ch_grp=ch_grp)
         catalogueconstructor = CatalogueConstructor(dataio=new_dataio,chan_grp=ch_grp)
 
+        # refresh
         if catalogueconstructor.centroids_median is None:
             catalogueconstructor.compute_all_centroid()
         catalogueconstructor.refresh_colors()
 
+        # cell labels and cluster waveforms for this day
         new_cell_labels = catalogueconstructor.clusters['cell_label']
         new_wfs = catalogueconstructor.centroids_median[:, :, :]
         new_wfs_reshaped = new_wfs.reshape(new_wfs.shape[0], -1)
 
+        # Load cell labels and waveforms for all previous days
         all_old_cell_labels=[]
         all_old_wfs=np.zeros((0,35))
         for old_date,old_file in zip(sorted_dates,sorted_files):
@@ -60,7 +64,10 @@ def run_compare_catalogues(subject, date, similarity_threshold=0.7):
                 old_output_dir = '/home/bonaiuto/Projects/tool_learning/data/spike_sorting/%s/%s' % (subject, old_file)
                 old_dataio = DataIO(dirname=old_output_dir, ch_grp=ch_grp)
 
-                old_catalogueconstructor = CatalogueConstructor(dataio=old_dataio, chan_grp=ch_grp)
+                old_catalogueconstructor = CatalogueConstructor(dataio=old_dataio, chan_grp=ch_grp, load_persistent_arrays=False)
+                old_catalogueconstructor.arrays.load_if_exists('clusters')
+                old_catalogueconstructor.arrays.load_if_exists('centroids_median')
+
 
                 if old_catalogueconstructor.centroids_median is None:
                     old_catalogueconstructor.compute_all_centroid()
@@ -73,10 +80,12 @@ def run_compare_catalogues(subject, date, similarity_threshold=0.7):
                 all_old_wfs=np.concatenate((all_old_wfs,old_wfs_reshaped[to_include,:]))
                 all_old_cell_labels.extend(old_cell_labels[to_include])
 
+        # Compute cluster similarity
         wfs=np.concatenate((new_wfs_reshaped,all_old_wfs))
         cluster_similarity = metrics.cosine_similarity_with_max(wfs)
         new_old_cluster_similarity=cluster_similarity[0:new_wfs_reshaped.shape[0],new_wfs_reshaped.shape[0]:]
 
+        # Plot cluster similarity
         fig = plt.figure()
         plt.imshow(new_old_cluster_similarity)
         plt.xlabel('Old cells')
@@ -87,10 +96,13 @@ def run_compare_catalogues(subject, date, similarity_threshold=0.7):
         channel_result['similarity']=os.path.join('catalogue_comparison',fname)
         plt.close('all')
 
+        # Go through each cluster in current day
         for new_cluster_idx in range(new_wfs_reshaped.shape[0]):
+            # Find most similar cluster from previous days
             most_similar = np.argmax(new_old_cluster_similarity[new_cluster_idx,:])
-            if new_cell_labels[new_cluster_idx]>=0 and all_old_cell_labels[most_similar]>=0 and \
-                    not(new_cell_labels[new_cluster_idx]==all_old_cell_labels[most_similar]):
+            # If both are not trash clusters
+            if new_cell_labels[new_cluster_idx]>=0 and all_old_cell_labels[most_similar]>=0:
+                # Merge if similarity greater than threshold
                 similarity=new_old_cluster_similarity[new_cluster_idx,most_similar]
                 if similarity>=similarity_threshold:
                     print('relabeling unit %d-%d as unit %d-%d' % (ch_grp, new_cell_labels[new_cluster_idx], ch_grp,
@@ -108,25 +120,22 @@ def run_compare_catalogues(subject, date, similarity_threshold=0.7):
                     plt.close('all')
 
                     new_cell_labels[new_cluster_idx]=all_old_cell_labels[most_similar]
+                # Otherwise, add new cluster
                 else:
+                    new_label = np.max(all_old_cell_labels) + 1
+                    print('adding new unit %d-%d' % (ch_grp, new_label))
+                    all_old_cell_labels.append(new_label)
+                    new_cell_labels[new_cluster_idx] = new_label
+
                     fig = plt.figure()
                     plt.plot(new_wfs_reshaped[new_cluster_idx, :], 'r', label='new: %d' % new_cell_labels[new_cluster_idx])
-                    for i in range(len(all_old_cell_labels)):
+                    for i in range(new_old_cluster_similarity.shape[1]):
                         plt.plot(all_old_wfs[i, :], '--', label='old: %d=%.2f' % (all_old_cell_labels[i], new_old_cluster_similarity[new_cluster_idx,i]))
                     plt.legend(loc='best')
                     fname='%d_nonmerge_%d.png' % (ch_grp, new_cell_labels[new_cluster_idx])
                     fig.savefig(os.path.join(plot_output_dir, fname))
                     channel_result['unmerged'].append(os.path.join('catalogue_comparison',fname))
                     plt.close('all')
-
-        for new_cluster_idx in range(new_wfs.shape[0]):
-            most_similar = np.argmax(new_old_cluster_similarity[new_cluster_idx,:])
-            if new_cell_labels[new_cluster_idx] >= 0 and all_old_cell_labels[most_similar] >= 0:
-                similarity = new_old_cluster_similarity[new_cluster_idx,most_similar]
-                if similarity < similarity_threshold:
-                    new_label=np.max(old_cell_labels)+1
-                    print('adding new unit %d-%d' % (ch_grp, new_label))
-                    new_cell_labels[new_cluster_idx]=new_label
 
         catalogueconstructor.clusters['cell_label']=new_cell_labels
 
@@ -169,9 +178,6 @@ def run_compare_catalogues(subject, date, similarity_threshold=0.7):
         plt.close('all')
 
         catalogueconstructor.make_catalogue_for_peeler()
-
-        run_peeler(new_output_dir, chan_grp=ch_grp)
-        export_spikes(new_output_dir, ch_grp)
 
     template_dir = '/home/bonaiuto/Projects/tool_learning/src/templates'
     env = Environment(loader=FileSystemLoader(template_dir))
