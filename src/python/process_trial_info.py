@@ -82,12 +82,12 @@ def run_process_trial_info(subj_name, date):
 
 
     # Directories containing logs and plexon data (events)
-    log_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/data/logs/', subj_name)
-    plx_data_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/data/recordings/plexon/%s/%s' % (subj_name, date))
+    log_dir = os.path.join('/data/tool_learning/logs/', subj_name)
+    plx_data_dir = os.path.join('/data/tool_learning/recordings/plexon/%s/%s' % (subj_name, date))
 
     if os.path.exists(plx_data_dir):
         # Create output dir
-        out_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/data/preprocessed_data/', subj_name, date)
+        out_dir = os.path.join('/data/tool_learning/preprocessed_data/', subj_name, date)
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
 
