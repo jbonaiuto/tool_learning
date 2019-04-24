@@ -24,6 +24,9 @@ log_condition_map={
     'motor-grasp_left': 'motor_grasp',
     'motor-grasp_center': 'motor_grasp',
     'motor-grasp_right': 'motor_grasp',
+    'motor-rake_center' : 'motor_rake',
+    'motor-rake_center with cube': 'motor_rake',
+    'motor-rake_center catch': 'motor_rake_catch',
     'Rake pull_right': 'visual_rake_pull_right',
     'Rake pull_left': 'visual_rake_pull_left',
     'Pliers_right': 'visual_pliers_right',
@@ -62,10 +65,14 @@ event_channels={
     'trial_start': 27,
     'trial_stop': 28
 }
-visual_trial_events=['trial_start','trial_stop','error','exp_grasp_center','exp_place_left','exp_place_right', 'go','laser_exp_start_center',
-                     'reward','exp_start_off']
-motor_trial_events=['trial_start','trial_stop','error','go','laser_monkey_tool_center','reward','trap_bottom','monkey_handle_off','trap_edge']
+visual_trial_events=['trial_start','trial_stop','error','exp_grasp_center','exp_place_left','exp_place_right', 'go',
+                     'laser_exp_start_center', 'reward','exp_start_off']
+motor_grasp_trial_events=['trial_start', 'trial_stop', 'error', 'go', 'laser_monkey_tool_center', 'reward',
+                          'trap_bottom', 'monkey_handle_off', 'trap_edge']
 fixation_trial_events=['trial_start','trial_stop','error','go','laser_exp_start_center','reward']
+motor_rake_trial_events=['trial_start', 'trial_stop', 'error', 'go', 'laser_monkey_tool_center', 'reward',
+                         'monkey_tool_right', 'monkey_tool_mid_right', 'monkey_tool_center', 'monkey_tool_mid_left',
+                         'monkey_tool_left', 'trap_edge', 'trap_bottom', 'monkey_rake_handle', 'monkey_rake_blade']
 
 def str_to_bool(s):
     if s == 'True' or s=='true' or s=='t' or s=='T' or s=='1':
@@ -78,7 +85,7 @@ def str_to_bool(s):
 def run_process_trial_info(subj_name, date):
     # Parse date
     recording_date = datetime.strptime(date, '%d.%m.%y')
-
+    print(date)
 
 
     # Directories containing logs and plexon data (events)
@@ -92,24 +99,7 @@ def run_process_trial_info(subj_name, date):
             os.mkdir(out_dir)
 
         # Figure out temporal order of log files
-        log_file_tasks = []
-        log_file_names = []
-        log_file_dates = []
-        for x in os.listdir(log_dir):
-            if os.path.splitext(x)[1] == '.csv':
-                fparts = os.path.splitext(x)[0].split('_')
-                try:
-                    filedate = datetime.strptime(fparts[-1], '%Y-%d-%m--%H-%M')
-                    if filedate.year == recording_date.year and filedate.month == recording_date.month and filedate.day == recording_date.day:
-                        log_file_tasks.append('_'.join(fparts[0:-1]))
-                        log_file_dates.append(filedate)
-                        log_file_names.append(x)
-                except:
-                    pass
-        sorted_logs=sorted(zip(log_file_dates, log_file_tasks,log_file_names))
-        log_file_names=[x[2] for x in sorted_logs]
-        log_file_tasks = [x[1] for x in sorted_logs]
-
+        log_file_names, log_file_tasks = order_log_files(log_dir, recording_date)
 
         # Trial info
         trial_info={
@@ -120,7 +110,6 @@ def run_process_trial_info(subj_name, date):
         trial_event_info=[]
 
         # Trial and block index
-        trial_idx = 0
         block_idx = 0
 
         # Session number and last session task (for figuring out plexon filenames)
@@ -139,30 +128,10 @@ def run_process_trial_info(subj_name, date):
             plx_file_name='%s_%s_%s_%d.plx' % (subj_name, log_file_task, date, session_number)
             if os.path.exists(os.path.join(plx_data_dir,plx_file_name)):
 
-                trial_locs=[]
-                log_trial_conditions=[]
+                print(plx_file_name)
 
-                # Read log file
-                f=open(os.path.join(log_dir,log_file_name),'r')
-                trials_started = False
-
-                for line in f:
-                    # Remove extra characters
-                    line=line.strip()
-                    # Trial states start after first blank line
-                    if len(line)==0:
-                        trials_started=True
-                        continue
-
-                    if trials_started:
-                        # Parse line and get trial number
-                        line_parts=line.split(',')
-                        # Recording started - parse condition
-                        if line_parts[5]=='CheckHandleStartPosition':
-                            location = line_parts[4]
-                            trial_locs.append(location)
-                            log_trial_conditions.append(log_condition_map['%s_%s' % (line_parts[3],line_parts[4])])
-                f.close()
+                #trial_locs=[]
+                log_trial_conditions = read_conditions_from_log(log_dir, log_file_name)
 
                 r = neo.io.PlexonIO(filename=os.path.join(plx_data_dir, plx_file_name))
                 block = r.read(lazy=False)[0]
@@ -182,13 +151,12 @@ def run_process_trial_info(subj_name, date):
                             removed=x
                     assert(len(start_times)==len(stop_times))
 
-                    condition_pulses=np.array([x.rescale('ms').magnitude.item(0) for x in seg.events[22]])
+                    # condition_pulses=np.array([x.rescale('ms').magnitude.item(0) for x in seg.events[22]])
 
                     # Get time of all events in this segment
                     event_times = {}
                     for evt_code in event_channels.keys():
-                        event_times[evt_code] = np.array(
-                            [x.rescale('ms').magnitude.item(0) for x in seg.events[event_channels[evt_code]]])
+                        event_times[evt_code] = np.array([x.rescale('ms').magnitude.item(0) for x in seg.events[event_channels[evt_code]]])
 
                     seg_trials = []
                     # Get time of events in each trial
@@ -201,27 +169,30 @@ def run_process_trial_info(subj_name, date):
                             trial_events[evt_code] = event_times[evt_code][np.where((event_times[evt_code] >= trial_start) & (event_times[evt_code] <= trial_stop))[0]] - trial_start
                         seg_trials.append(trial_events)
 
-                        if i==0:
-                            pulse_codes=np.where(condition_pulses<trial_start)[0]
+                        # if i==0:
+                        #     pulse_codes=np.where(condition_pulses<trial_start)[0]
+                        # else:
+                        #     pulse_codes=np.where((condition_pulses>stop_times[i-1]) & (condition_pulses<trial_start))[0]
+                        #
+                        # # If not odd number of pulse codes - check for large temporal difference between them
+                        # if not len(pulse_codes)%2==1 or len(pulse_codes)>np.max(np.array(list(condition_pulse_codes.keys()))):
+                        #     pulse_code_time_diff=np.diff(condition_pulses[pulse_codes])
+                        #     big_diff=np.where(pulse_code_time_diff>100)[0]
+                        #     if len(big_diff):
+                        #         loc_trial_idx=loc_trial_idx+len(big_diff)
+                        #         big_diff=big_diff[-1]+1
+                        #         pulse_codes=pulse_codes[big_diff:]
+                        # if not len(pulse_codes) % 2 == 1 or len(pulse_codes)>np.max(np.array(list(condition_pulse_codes.keys()))):
+                        if date=='16.04.19' and log_file_task=='motor_task_rake':
+                            condition='motor_rake'
                         else:
-                            pulse_codes=np.where((condition_pulses>stop_times[i-1]) & (condition_pulses<trial_start))[0]
-
-                        # If not odd number of pulse codes - check for large temporal difference between them
-                        if not len(pulse_codes)%2==1 or len(pulse_codes)>np.max(np.array(list(condition_pulse_codes.keys()))):
-                            pulse_code_time_diff=np.diff(condition_pulses[pulse_codes])
-                            big_diff=np.where(pulse_code_time_diff>100)[0]
-                            if len(big_diff):
-                                loc_trial_idx=loc_trial_idx+len(big_diff)
-                                big_diff=big_diff[-1]+1
-                                pulse_codes=pulse_codes[big_diff:]
-                        if not len(pulse_codes) % 2 == 1 or len(pulse_codes)>np.max(np.array(list(condition_pulse_codes.keys()))):
                             assert (loc_trial_idx < len(log_trial_conditions))
                             condition=log_trial_conditions[loc_trial_idx]
-                        else:
-                            condition = condition_pulse_codes[len(pulse_codes) - 2]
-                            if condition == 'motor_grasp' or condition == 'motor_rake':
-                                assert (loc_trial_idx < len(trial_locs))
-                                condition = '%s_%s' % (condition, trial_locs[loc_trial_idx])
+                        # else:
+                        #     condition = condition_pulse_codes[len(pulse_codes) - 2]
+                        #     if condition == 'motor_grasp' or condition == 'motor_rake':
+                        #         assert (loc_trial_idx < len(trial_locs))
+                        #         condition = '%s_%s' % (condition, trial_locs[loc_trial_idx])
                         trial_info['block'].append(block_idx)
 
                         trial_info['condition'].append(condition)
@@ -237,128 +208,16 @@ def run_process_trial_info(subj_name, date):
                     n_correct = 0
                     for i, trial in enumerate(seg_trials):
                         if log_file_task == 'visual_task_training' or log_file_task=='visual_task_stage1-2':
-                            # Remove extra events
-                            for evt_code in trial.keys():
-                                if not evt_code in visual_trial_events:
-                                    trial[evt_code] = []
-
-                            # Reliable visual task events
-                            if len(trial['error']):
-                                trial['error'] = [np.min(trial['error'])]
-                            if len(trial['reward']):
-                                trial['reward'] = [np.min(trial['reward'])]
-                            if len(trial['laser_exp_start_center']):
-                                trial['laser_exp_start_center'] = [np.min(trial['laser_exp_start_center'])]
-                            if len(trial['go']):
-                                trial['go'] = [np.min(trial['go'])]
-                            if len(trial['exp_grasp_center']):
-                                trial['exp_grasp_center'] = [np.min(trial['exp_grasp_center'])]
-                            # Start offset should be between go and grasp
-                            if len(trial['exp_start_off']):
-                                off_times = trial['exp_start_off']
-                                if len(trial['go']) and len(trial['exp_grasp_center']):
-                                    go_time = trial['go'][0]
-                                    grasp_time = trial['exp_grasp_center'][0]
-                                    if len(np.where((off_times > go_time) & (off_times < grasp_time))[0]):
-                                        trial['exp_start_off'] = [np.max(
-                                            off_times[np.where((off_times > go_time) & (off_times < grasp_time))[0]])]
-                                    else:
-                                        trial['exp_start_off'] = [np.max(trial['exp_start_off'])]
-                                else:
-                                    trial['exp_start_off'] = [np.max(trial['exp_start_off'])]
-                            # Place should be after grasp
-                            if len(trial['exp_place_left']):
-                                place_times = trial['exp_place_left']
-                                if len(trial['exp_grasp_center']):
-                                    grasp_time = trial['exp_grasp_center'][0]
-                                    if len(np.where(place_times > grasp_time)[0]):
-                                        trial['exp_place_left'] = [
-                                            np.min(place_times[np.where(place_times > grasp_time)[0]])]
-                                    else:
-                                        trial['exp_place_left'] = [np.min(trial['exp_place_left'])]
-                                else:
-                                    trial['exp_place_left'] = [np.min(trial['exp_place_left'])]
-                            # Place should be after grasp
-                            if len(trial['exp_place_right']):
-                                place_times = trial['exp_place_right']
-                                if len(trial['exp_grasp_center']):
-                                    grasp_time = trial['exp_grasp_center'][0]
-                                    if len(np.where(place_times > grasp_time)[0]):
-                                        trial['exp_place_right'] = [
-                                            np.min(place_times[np.where(place_times > grasp_time)[0]])]
-                                    else:
-                                        trial['exp_place_right'] = [np.min(trial['exp_place_right'])]
-                                else:
-                                    trial['exp_place_right'] = [np.min(trial['exp_place_right'])]
+                            trial=filter_visual_events(trial)
 
                         elif log_file_task == 'motor_task_training' or log_file_task == 'motor_task_grasp':
-                            # Remove extra events
-                            for evt_code in trial.keys():
-                                if not evt_code in motor_trial_events:
-                                    trial[evt_code] = []
+                            trial=filter_motor_grasp_events(trial)
 
-                            # Reliable motor task events
-                            if len(trial['error']):
-                                trial['error'] = [np.min(trial['error'])]
-                            if len(trial['reward']):
-                                trial['reward'] = [np.min(trial['reward'])]
-                            if len(trial['laser_monkey_tool_center']):
-                                trial['laser_monkey_tool_center'] = [np.min(trial['laser_monkey_tool_center'])]
-                            if len(trial['go']):
-                                trial['go'] = [np.min(trial['go'])]
-                            # Handle off should be after go
-                            if len(trial['monkey_handle_off']):
-                                handle_off_times = trial['monkey_handle_off']
-                                if len(trial['go']):
-                                    go_time = trial['go'][0]
-                                    if len(np.where(handle_off_times > go_time)[0]):
-                                        trial['monkey_handle_off'] = [
-                                            np.min(handle_off_times[np.where(handle_off_times > go_time)[0]])]
-                                    else:
-                                        trial['monkey_handle_off'] = [np.min(trial['monkey_handle_off'])]
-                                else:
-                                    trial['monkey_handle_off'] = [np.min(trial['monkey_handle_off'])]
-                            # Trap edge (grasp) should be after handle off
-                            if len(trial['trap_edge']):
-                                trap_edge_times = trial['trap_edge']
-                                if len(trial['monkey_handle_off']):
-                                    handle_off_time = trial['monkey_handle_off']
-                                    if len(np.where(trap_edge_times > handle_off_time)[0]):
-                                        trial['trap_edge'] = [
-                                            np.min(trap_edge_times[np.where(trap_edge_times > handle_off_time)[0]])]
-                                    else:
-                                        trial['trap_edge'] = []
-                                else:
-                                    trial['trap_edge'] = []
-                            # Trap bottom (place) should be between trap edge (grasp) and reward
-                            if len(trial['trap_bottom']):
-                                trap_bottom_times = trial['trap_bottom']
-                                if len(trial['trap_edge']) and len(trial['reward']):
-                                    trap_edge_time = trial['trap_edge'][0]
-                                    reward_time = trial['reward'][0]
-                                    if len(np.where(
-                                            (trap_bottom_times > trap_edge_time) & (trap_bottom_times < reward_time))[0]):
-                                        trial['trap_bottom'] = [np.min(trap_bottom_times[np.where(
-                                            (trap_bottom_times > trap_edge_time) & (trap_bottom_times < reward_time))[0]])]
-                                    else:
-                                        trial['trap_bottom'] = []
-                                else:
-                                    trial['trap_bottom'] = []
                         elif log_file_task == 'fixation_training':
-                            # Remove extra events
-                            for evt_code in trial.keys():
-                                if not evt_code in visual_trial_events:
-                                    trial[evt_code] = []
+                            trial = filter_fixation_events(trial)
 
-                            # Reliable visual task events
-                            if len(trial['error']):
-                                trial['error'] = [np.min(trial['error'])]
-                            if len(trial['reward']):
-                                trial['reward'] = [np.min(trial['reward'])]
-                            if len(trial['laser_exp_start_center']):
-                                trial['laser_exp_start_center'] = [np.min(trial['laser_exp_start_center'])]
-                            if len(trial['go']):
-                                trial['go'] = [np.min(trial['go'])]
+                        elif log_file_task == 'motor_task_rake' or log_file_task == 'motor_task_rake_catch':
+                            trial = filter_motor_rake_events(trial)
 
                         trial_evts = []
                         evt_times = []
@@ -369,99 +228,24 @@ def run_process_trial_info(subj_name, date):
                                 evt_times.append(time_list[0])
                         sorted_evts = [x[1] for x in sorted(zip(evt_times, trial_evts))]
                         sorted_times = [x[0] for x in sorted(zip(evt_times, trial_evts))]
-                        error = False
-                        if len(sorted_evts) == 0 or not sorted_evts[0] == 'trial_start':
-                            print('Error, trial %d, first event not trial start' % i)
-                            error = True
-                        if (log_file_task == 'visual_task_training' or log_file_task == 'visual_task_stage1-2') and not 'error' in sorted_evts:
-                            start_idx = sorted_evts.index('trial_start')
-                            if not sorted_evts[start_idx + 1] == 'laser_exp_start_center':
-                                print('Error, trial %d, first event after start not laser' % i)
-                                error = True
-                            laser_idx = sorted_evts.index('laser_exp_start_center')
-                            if not sorted_evts[laser_idx + 1] == 'go':
-                                print('Error, trial %d, first event after laser not go' % i)
-                                error = True
-                            if 'go' in sorted_evts:
-                                go_idx = sorted_evts.index('go')
-                                if not sorted_evts[go_idx + 1] == 'exp_start_off':
-                                    print('Error, trial %d, first event after go not s_off' % i)
-                                    error = True
-                            else:
-                                print('Error, trial %d, no go event' % i)
-                                error = True
-                            if 'exp_start_off' in sorted_evts:
-                                s_off_idx = sorted_evts.index('exp_start_off')
-                                if s_off_idx >= len(sorted_evts) - 1 or not sorted_evts[
-                                                                                s_off_idx + 1] == 'exp_grasp_center':
-                                    print('Error, trial %d, first event after s_off not grasp' % i)
-                                    error = True
-                            else:
-                                print('Error, trial %d, no s_off event' % i)
-                                error = True
-                            if 'exp_grasp_center' in sorted_evts:
-                                grasp_idx = sorted_evts.index('exp_grasp_center')
-                                if grasp_idx >= len(sorted_evts) - 1 or not (
-                                        sorted_evts[grasp_idx + 1] == 'exp_place_right' or sorted_evts[
-                                    grasp_idx + 1] == 'exp_place_left'):
-                                    print('Error, trial %d, first event after grasp not place' % i)
-                                    error = True
-                            else:
-                                print('Error, trial %d, no grasp event' % i)
-                                error = True
-                            if not error:
-                                n_correct = n_correct + 1
-                        elif (log_file_task == 'motor_task_training' or log_file_task == 'motor_task_grasp') and not 'error' in sorted_evts:  # and not 'error' in sorted_evts:
-                            if 'trial_start' in sorted_evts:
-                                start_idx = sorted_evts.index('trial_start')
-                                if not sorted_evts[start_idx + 1] == 'go':
-                                    print('Error, trial %d, first event after start not go' % i)
-                                    error = True
-                            if 'go' in sorted_evts:
-                                go_idx = sorted_evts.index('go')
-                                if not sorted_evts[go_idx + 1] == 'monkey_handle_off':
-                                    print('Error, trial %d, first event after go not monkey_handle_off' % i)
-                                    error = True
-                            else:
-                                print('Error, trial %d, no go event' % i)
-                                error = True
-                            if 'monkey_handle_off' in sorted_evts:
-                                s_off_idx = sorted_evts.index('monkey_handle_off')
-                                if s_off_idx >= len(sorted_evts) - 1 or not sorted_evts[s_off_idx + 1] == 'trap_edge':
-                                    print('Error, trial %d, first event after monkey_handle_off not trap_edge' % i)
-                                    error = True
-                            else:
-                                print('Error, trial %d, no monkey_handle_off event' % i)
-                                error = True
-                            if 'trap_edge' in sorted_evts:
-                                grasp_idx = sorted_evts.index('trap_edge')
-                                if grasp_idx >= len(sorted_evts) - 1 or not sorted_evts[grasp_idx + 1] == 'trap_bottom':
-                                    print('Error, trial %d, first event after trap_edge not trap_bottom' % i)
-                                    error = True
-                            else:
-                                print('Error, trial %d, no trap_edge event' % i)
-                                error = True
-                            if not error:
-                                n_correct = n_correct + 1
-                        if (log_file_task == 'fixation_training') and not 'error' in sorted_evts:
-                            start_idx = sorted_evts.index('trial_start')
-                            if not sorted_evts[start_idx + 1] == 'laser_exp_start_center':
-                                print('Error, trial %d, first event after start not laser' % i)
-                                error = True
-                            laser_idx = sorted_evts.index('laser_exp_start_center')
-                            if not sorted_evts[laser_idx + 1] == 'go':
-                                print('Error, trial %d, first event after laser not go' % i)
-                                error = True
-                            if not 'go' in sorted_evts:
-                                print('Error, trial %d, no go event' % i)
-                                error = True
-                            if not error:
-                                n_correct = n_correct + 1
+
+                        error=False
+                        if log_file_task == 'visual_task_training' or log_file_task == 'visual_task_stage1-2':
+                            error=check_visual_trial(i, sorted_evts)
+                        elif log_file_task == 'motor_task_training' or log_file_task == 'motor_task_grasp':
+                            error=check_motor_grasp_trial(i, sorted_evts)
+                        elif log_file_task == 'motor_task_rake' or log_file_task == 'motor_task_rake_catch':
+                            error = check_motor_rake_trial(i, sorted_evts)
+                        elif log_file_task == 'fixation_training':
+                            error=check_fixation_trial(i, sorted_evts)
+
                         if error:
                             print(sorted_evts)
                             # print(sorted_times)
                             print('\n')
-                    print('%d correct trials' % n_correct)
+                        else:
+                            n_correct = n_correct + 1
+                    print('%s: %d correct trials' % (log_file_task, n_correct))
                     trial_event_info.extend(seg_trials)
 
                 block_idx=block_idx+1
@@ -480,6 +264,391 @@ def run_process_trial_info(subj_name, date):
                 if len(trial[evt_code]) > 0:
                     fid.write('%d,%s,%.4f\n' % (trial_idx, evt_code, trial[evt_code][0]))
         fid.close()
+
+
+def read_conditions_from_log(log_dir, log_file_name):
+    log_trial_conditions = []
+    # Read log file
+    f = open(os.path.join(log_dir, log_file_name), 'r')
+    trials_started = False
+    for line in f:
+        # Remove extra characters
+        line = line.strip()
+        # Trial states start after first blank line
+        if len(line) == 0:
+            trials_started = True
+            continue
+
+        if trials_started:
+            # Parse line and get trial number
+            line_parts = line.split(',')
+            # Recording started - parse condition
+            if line_parts[5] == 'CheckHandleStartPosition':
+                # location = line_parts[4]
+                # trial_locs.append(location)
+                log_trial_conditions.append(log_condition_map['%s_%s' % (line_parts[3], line_parts[4])])
+    f.close()
+    return log_trial_conditions
+
+
+def order_log_files(log_dir, recording_date):
+    log_file_tasks = []
+    log_file_names = []
+    log_file_dates = []
+    for x in os.listdir(log_dir):
+        if os.path.splitext(x)[1] == '.csv':
+            fparts = os.path.splitext(x)[0].split('_')
+            try:
+                filedate = datetime.strptime(fparts[-1], '%Y-%d-%m--%H-%M')
+                if filedate.year == recording_date.year and filedate.month == recording_date.month and filedate.day == recording_date.day:
+                    log_file_tasks.append('_'.join(fparts[0:-1]))
+                    log_file_dates.append(filedate)
+                    log_file_names.append(x)
+            except:
+                pass
+    sorted_logs = sorted(zip(log_file_dates, log_file_tasks, log_file_names))
+    log_file_names = [x[2] for x in sorted_logs]
+    log_file_tasks = [x[1] for x in sorted_logs]
+    return log_file_names, log_file_tasks
+
+
+def filter_visual_events(trial):
+    # Remove extra events
+    for evt_code in trial.keys():
+        if not evt_code in visual_trial_events:
+            trial[evt_code] = []
+
+    # Reliable visual task events
+    if len(trial['error']):
+        trial=filter_event(trial, 'error', np.min)
+    if len(trial['reward']):
+        trial = filter_event(trial, 'reward', np.min)
+    if len(trial['laser_exp_start_center']):
+        trial = filter_event(trial, 'laser_exp_start_center', np.min)
+    if len(trial['go']):
+        trial = filter_event(trial, 'go', np.min)
+    if len(trial['exp_grasp_center']):
+        trial = filter_event(trial, 'exp_grasp_center', np.min)
+
+    # Start offset should be between go and grasp
+    if len(trial['exp_start_off']):
+        trial=filter_event(trial, 'exp_start_off', np.max, after_evt='go', before_evt='exp_grasp_center')
+    # Place should be after grasp and before reward
+    if len(trial['exp_place_left']):
+        trial=filter_event(trial, 'exp_place_left', np.min, after_evt='exp_grasp_center', before_evt='reward')
+    # Place should be after grasp
+    if len(trial['exp_place_right']):
+        trial=filter_event(trial, 'exp_place_right', np.min, after_evt='exp_grasp_center', before_evt='reward')
+    return trial
+
+
+def filter_motor_grasp_events(trial):
+    # Remove extra events
+    for evt_code in trial.keys():
+        if not evt_code in motor_grasp_trial_events:
+            trial[evt_code] = []
+
+    # Reliable motor task events
+    if len(trial['error']):
+        trial=filter_event(trial, 'error', np.min)
+    if len(trial['reward']):
+        trial = filter_event(trial, 'reward', np.min)
+    if len(trial['laser_monkey_tool_center']):
+        trial = filter_event(trial, 'laser_monkey_tool_center', np.min)
+    if len(trial['go']):
+        trial = filter_event(trial, 'go', np.min)
+
+    # Handle off should be after go
+    if len(trial['monkey_handle_off']):
+        trial=filter_event(trial, 'monkey_handle_off', np.min, after_evt='go')
+    # Trap edge (grasp) should be after handle off
+    if len(trial['trap_edge']):
+        trial=filter_event(trial, 'trap_edge', np.min, after_evt='monkey_handle_off')
+    # Trap bottom (place) should be between trap edge (grasp) and reward
+    if len(trial['trap_bottom']):
+        trial=filter_event(trial, 'trap_bottom', np.min, after_evt='trap_edge', before_evt='reward')
+    return trial
+
+
+def filter_motor_rake_events(trial):
+    # Remove extra events
+    for evt_code in trial.keys():
+        if not evt_code in motor_grasp_trial_events:
+            trial[evt_code] = []
+
+    # Reliable motor task events
+    if len(trial['error']):
+        trial = filter_event(trial, 'error', np.min)
+    if len(trial['reward']):
+        trial = filter_event(trial, 'reward', np.min)
+    if len(trial['go']):
+        trial = filter_event(trial, 'go', np.min)
+
+    # Handle off should be after go
+    if len(trial['monkey_handle_off']):
+        trial=filter_event(trial, 'monkey_handle_off', np.min, after_evt='go')
+    # Rake handle should be after handle off
+    if len(trial['monkey_rake_handle']):
+        trial=filter_event(trial, 'monkey_rake_handle', np.min, after_evt='monkey_handle_off')
+    # Tocchino should be after rake handle
+    if len(trial['monkey_tool_right']):
+        trial = filter_event(trial, 'monkey_tool_right', np.min, after_evt='monkey_rake_handle')
+    if len(trial['monkey_tool_mid_right']):
+        trial = filter_event(trial, 'monkey_tool_mid_right', np.min, after_evt='monkey_rake_handle')
+    if len(trial['monkey_tool_center']):
+        trial = filter_event(trial, 'monkey_tool_center', np.min, after_evt='monkey_rake_handle')
+    if len(trial['monkey_tool_mid_left']):
+        trial = filter_event(trial, 'monkey_tool_mid_left', np.min, after_evt='monkey_rake_handle')
+    if len(trial['monkey_tool_left']):
+        trial = filter_event(trial, 'monkey_tool_left', np.min, after_evt='monkey_rake_handle')
+    # Rake blade should be after rake handle
+    if len(trial['monkey_rake_blade']):
+        trial=filter_event(trial, 'monkey_rake_blade', np.min, after_evt='monkey_rake_handle')
+    # Trap edge should be after rake blade
+    if len(trial['trap_edge']):
+        trial=filter_event(trial, 'trap_edge', np.min, after_evt='monkey_rake_blade')
+    # Trap bottom should be after trap edge and before reward
+    if len(trial['trap_bottom']):
+        trial=filter_event(trial, 'trap_bottom', np.min, after_evt='trap_edge', before_evt='reward')
+    return trial
+
+
+def filter_fixation_events(trial):
+    # Remove extra events
+    for evt_code in trial.keys():
+        if not evt_code in visual_trial_events:
+            trial[evt_code] = []
+
+    # Reliable visual task events
+    if len(trial['error']):
+        trial = filter_event(trial, 'error', np.min)
+    if len(trial['reward']):
+        trial = filter_event(trial, 'reward', np.min)
+    if len(trial['laser_exp_start_center']):
+        trial = filter_event(trial, 'laser_exp_start_center', np.min)
+    if len(trial['go']):
+        trial = filter_event(trial, 'go', np.min)
+    return trial
+
+
+def filter_event(trial, evt, func, after_evt=None, before_evt=None):
+    evt_times = trial[evt]
+    if after_evt is not None and len(trial[after_evt]) and before_evt is not None and len(trial[before_evt]):
+        after_evt_time = trial[after_evt][0]
+        before_evt_time = trial[before_evt][0]
+        mid_times=evt_times[np.where((evt_times > after_evt_time) & (evt_times < before_evt_time))[0]]
+        if len(mid_times):
+            trial[evt] = [func(mid_times)]
+        else:
+            trial[evt] = [func(evt_times)]
+    elif after_evt is not None and len(trial[after_evt]) and before_evt is None:
+        after_evt_time = trial[after_evt][0]
+        mid_times = evt_times[np.where(evt_times > after_evt_time)[0]]
+        if len(mid_times):
+            trial[evt] = [func(mid_times)]
+        else:
+            trial[evt] = [func(evt_times)]
+    elif after_evt is None and before_evt is not None and len(trial[before_evt]):
+        before_evt_time = trial[before_evt][0]
+        mid_times=evt_times[np.where(evt_times < before_evt_time)[0]]
+        if len(mid_times):
+            trial[evt] = [func(mid_times)]
+        else:
+            trial[evt] = [func(evt_times)]
+    else:
+        trial[evt] = [func(evt_times)]
+    return trial
+
+
+def check_visual_trial(trial_idx, sorted_evts):
+    error = False
+
+    if 'error' in sorted_evts:
+        print('Error, trial %d has error event' % trial_idx)
+        error=True
+
+    if len(sorted_evts) == 0 or not sorted_evts[0] == 'trial_start':
+        print('Error, trial %d, first event not trial start' % trial_idx)
+        error = True
+
+    start_idx = sorted_evts.index('trial_start')
+    if not sorted_evts[start_idx + 1] == 'laser_exp_start_center':
+        print('Error, trial %d, first event after start not laser' % trial_idx)
+        error = True
+
+    if 'laser_exp_start_center' in sorted_evts:
+        laser_idx = sorted_evts.index('laser_exp_start_center')
+        if not sorted_evts[laser_idx + 1] == 'go':
+            print('Error, trial %d, first event after laser not go' % trial_idx)
+            error = True
+    else:
+        print('Error, trial %d, no laser_exp_start_center event' % trial_idx)
+        error=True
+
+    if 'go' in sorted_evts:
+        go_idx = sorted_evts.index('go')
+        if not sorted_evts[go_idx + 1] == 'exp_start_off':
+            print('Error, trial %d, first event after go not s_off' % trial_idx)
+            error = True
+    else:
+        print('Error, trial %d, no go event' % trial_idx)
+        error = True
+
+    if 'exp_start_off' in sorted_evts:
+        s_off_idx = sorted_evts.index('exp_start_off')
+        if s_off_idx >= len(sorted_evts) - 1 or not sorted_evts[s_off_idx + 1] == 'exp_grasp_center':
+            print('Error, trial %d, first event after s_off not grasp' % trial_idx)
+            error = True
+    else:
+        print('Error, trial %d, no s_off event' % trial_idx)
+        error = True
+
+    if 'exp_grasp_center' in sorted_evts:
+        grasp_idx = sorted_evts.index('exp_grasp_center')
+        if grasp_idx >= len(sorted_evts) - 1 or not (sorted_evts[grasp_idx + 1] == 'exp_place_right' or sorted_evts[grasp_idx + 1] == 'exp_place_left'):
+            print('Error, trial %d, first event after grasp not place' % trial_idx)
+            error = True
+    else:
+        print('Error, trial %d, no grasp event' % trial_idx)
+        error = True
+    return error
+
+
+def check_motor_grasp_trial(trial_idx, sorted_evts):
+    error = False
+
+    if 'error' in sorted_evts:
+        print('Error, trial %d has error event' % trial_idx)
+        error=True
+
+    if len(sorted_evts) == 0 or not sorted_evts[0] == 'trial_start':
+        print('Error, trial %d, first event not trial start' % trial_idx)
+        error = True
+
+    if 'trial_start' in sorted_evts:
+        start_idx = sorted_evts.index('trial_start')
+        if not sorted_evts[start_idx + 1] == 'go':
+            print('Error, trial %d, first event after start not go' % trial_idx)
+            error = True
+
+    if 'go' in sorted_evts:
+        go_idx = sorted_evts.index('go')
+        if not sorted_evts[go_idx + 1] == 'monkey_handle_off':
+            print('Error, trial %d, first event after go not monkey_handle_off' % trial_idx)
+            error = True
+    else:
+        print('Error, trial %d, no go event' % trial_idx)
+        error = True
+
+    if 'monkey_handle_off' in sorted_evts:
+        s_off_idx = sorted_evts.index('monkey_handle_off')
+        if s_off_idx >= len(sorted_evts) - 1 or not sorted_evts[s_off_idx + 1] == 'trap_edge':
+            print('Error, trial %d, first event after monkey_handle_off not trap_edge' % trial_idx)
+            error = True
+    else:
+        print('Error, trial %d, no monkey_handle_off event' % trial_idx)
+        error = True
+
+    if 'trap_edge' in sorted_evts:
+        grasp_idx = sorted_evts.index('trap_edge')
+        if grasp_idx >= len(sorted_evts) - 1 or not sorted_evts[grasp_idx + 1] == 'trap_bottom':
+            print('Error, trial %d, first event after trap_edge not trap_bottom' % trial_idx)
+            error = True
+    else:
+        print('Error, trial %d, no trap_edge event' % trial_idx)
+        error = True
+
+    return error
+
+
+def check_motor_rake_trial(trial_idx, sorted_evts):
+    error = False
+
+    if 'error' in sorted_evts:
+        print('Error, trial %d has error event' % trial_idx)
+        error = True
+
+    if len(sorted_evts) == 0 or not sorted_evts[0] == 'trial_start':
+        print('Error, trial %d, first event not trial start' % trial_idx)
+        error = True
+
+    if 'trial_start' in sorted_evts:
+        start_idx = sorted_evts.index('trial_start')
+        if not sorted_evts[start_idx + 1] == 'go':
+            print('Error, trial %d, first event after start not go' % trial_idx)
+            error = True
+
+    if 'go' in sorted_evts:
+        go_idx = sorted_evts.index('go')
+        if not sorted_evts[go_idx + 1] == 'monkey_handle_off':
+            print('Error, trial %d, first event after go not monkey_handle_off' % trial_idx)
+            error = True
+    else:
+        print('Error, trial %d, no go event' % trial_idx)
+        error = True
+
+    if 'monkey_handle_off' in sorted_evts:
+        s_off_idx = sorted_evts.index('monkey_handle_off')
+        if s_off_idx >= len(sorted_evts) - 1 or not sorted_evts[s_off_idx + 1] == 'monkey_rake_handle':
+            print('Error, trial %d, first event after monkey_handle_off not monkey_rake_handle' % trial_idx)
+            error = True
+    else:
+        print('Error, trial %d, no monkey_handle_off event' % trial_idx)
+        error = True
+
+    if not 'monkey_rake_handle' in sorted_evts:
+        print('Error, trial %d, no monkey_rake_handle event' % trial_idx)
+        error = True
+
+    # if not ('monkey_tool_right' in sorted_evts or 'monkey_tool_mid_right' in sorted_evts or 'monkey_tool_center' in sorted_evts or
+    #         'monkey_tool_mid_left' in sorted_evts or 'monkey_tool_left' in sorted_evts):
+    #     print('Error, trial %d, no tool/object contact event' % trial_idx)
+    #     error = True
+
+    # if not 'monkey_rake_blade' in sorted_evts:
+    #     print('Error, trial %d, no monkey_rake_blade event' % trial_idx)
+    #     error = True
+
+    if 'trap_edge' in sorted_evts:
+        grasp_idx = sorted_evts.index('trap_edge')
+        if grasp_idx >= len(sorted_evts) - 1 or not sorted_evts[grasp_idx + 1] == 'trap_bottom':
+            print('Error, trial %d, first event after trap_edge not trap_bottom' % trial_idx)
+            error = True
+    else:
+        print('Error, trial %d, no trap_edge event' % trial_idx)
+        error = True
+
+    return error
+
+
+def check_fixation_trial(trial_idx, sorted_evts):
+    error = False
+
+    if 'error' in sorted_evts:
+        print('Error, trial %d has error event' % trial_idx)
+        error=True
+
+    if len(sorted_evts) == 0 or not sorted_evts[0] == 'trial_start':
+        print('Error, trial %d, first event not trial start' % trial_idx)
+        error = True
+    start_idx = sorted_evts.index('trial_start')
+    if not sorted_evts[start_idx + 1] == 'laser_exp_start_center':
+        print('Error, trial %d, first event after start not laser' % trial_idx)
+        error = True
+
+    if 'laser_exp_start_center' in sorted_evts:
+        laser_idx = sorted_evts.index('laser_exp_start_center')
+        if not sorted_evts[laser_idx + 1] == 'go':
+            print('Error, trial %d, first event after laser not go' % trial_idx)
+            error = True
+    else:
+        print('Error, trial %d, no laser_exp_start_center event' % trial_idx)
+        error=True
+
+    if not 'go' in sorted_evts:
+        print('Error, trial %d, no go event' % trial_idx)
+        error = True
+    return error
 
 if __name__=='__main__':
     subject = sys.argv[1]
