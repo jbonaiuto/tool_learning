@@ -6,6 +6,7 @@ import sys
 import time
 import pyqtgraph as pg
 import numpy as np
+import gc
 import pandas as pd
 from tridesclous import DataIO, Peeler, PeelerWindow
 
@@ -89,5 +90,6 @@ if __name__ == '__main__':
                 if display_peeler:
                     open_PeelerWindow(output_dir, ch_grp)
                 export_spikes(output_dir, array_idx, ch_grp)
+                gc.collect()
 
 
