@@ -14,6 +14,7 @@ import pyqtgraph as pg
 import matplotlib.pyplot as plt
 plt.ioff()
 import numpy as np
+import gc
 
 import tridesclous as tdc
 from neo.rawio import IntanRawIO, RawBinarySignalRawIO
@@ -118,11 +119,7 @@ def compute_catalogue(subject, recording_date, n_segments, total_duration, clust
 
             for ch_grp in range(n_channels_per_array):
                 print(ch_grp)
-                cc = CatalogueConstructor(dataio=dataio, chan_grp=ch_grp)
-
-                channel_result = {'array': array_idx, 'channel': ch_grp, 'init_waveforms': '', 'clean_waveforms': '',
-                                  'noise': '', 'init_clusters': '', 'merge_clusters': [], 'final_clusters': [],
-                                  'all_clusters': ''}
+                cc = CatalogueConstructor(dataio=DataIO(dirname=output_dir, ch_grp=ch_grp), chan_grp=ch_grp)
 
                 fullchain_kargs = {
                     'duration': total_duration,
@@ -133,7 +130,7 @@ def compute_catalogue(subject, recording_date, n_segments, total_duration, clust
                         'common_ref_removal': False,
                         'chunksize': 32768,
                         'lostfront_chunksize': 0,
-                        'signalpreprocessor_engine': 'numpy',
+                        'signalpreprocessor_engine': 'opencl',
                     },
                     'peak_detector': {
                         'peakdetector_engine': 'opencl',
@@ -247,6 +244,7 @@ def compute_catalogue(subject, recording_date, n_segments, total_duration, clust
                 fig.savefig(os.path.join(figure_out_dir, fname))
                 plt.close(fig)
 
+                t1 = time.perf_counter()
                 if len(np.where(cc.cluster_labels>-1)[0]):
                     # Auto-merge clusters
                     cluster_removed=True
@@ -282,6 +280,8 @@ def compute_catalogue(subject, recording_date, n_segments, total_duration, clust
                             cc.remove_one_cluster(k2)
                         else:
                             cluster_removed=False
+                t2 = time.perf_counter()
+                print('merge_clusters', t2 - t1)
 
                 # order cluster by waveforms rms
                 cc.order_clusters(by='waveforms_rms')
@@ -293,6 +293,8 @@ def compute_catalogue(subject, recording_date, n_segments, total_duration, clust
 
                 # save the catalogue
                 cc.make_catalogue_for_peeler()
+
+                gc.collect()
 
 
 
@@ -326,6 +328,7 @@ def read_and_sort_data_files(data_dir):
     data_file_names = [x for _, x in sorted(zip(data_file_times, data_file_names))]
     return (data_file_names,total_duration)
 
+
 if __name__=='__main__':
     subject=sys.argv[1]
     recording_date=sys.argv[2]
@@ -341,7 +344,6 @@ if __name__=='__main__':
         (data_file_names,total_duration)=read_and_sort_data_files(data_dir)
 
         if os.path.exists(data_dir) and len(data_file_names) > 0:
-
 
             if preprocess:
                 preprocess_data(subject, recording_date, data_file_names, total_duration)
