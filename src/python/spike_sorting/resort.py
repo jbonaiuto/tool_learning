@@ -1,8 +1,7 @@
-import glob
 from datetime import datetime, timedelta
 
-import transplant
 import os
+import sys
 
 from process_spikes import run_process_spikes
 from process_trial_info import run_process_trial_info
@@ -58,4 +57,7 @@ def resort(subject, date_start_str, date_end_str):
     generate_longitudinal_report(subject, '29.01.19', date_end_str)
 
 if __name__=='__main__':
-    resort('betta','01.02.19','20.04.19')
+    subject = sys.argv[1]
+    start_date = sys.argv[2]
+    end_date = sys.argv[3]
+    resort(subject,start_date,end_date)
