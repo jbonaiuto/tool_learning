@@ -176,8 +176,8 @@ def plot_clusters_summary(dataio, catalogueconstructor, chan_grp, bin_min = 0, b
     ax = axs[1, 0]
     if len(cluster_labels):
         catalogueconstructor.compute_cluster_similarity()
-        im, cbar = heatmap(catalogueconstructor.cluster_similarity, ['%d' % x for x in range(len(cluster_labels))],
-                           ['%d' % x for x in range(len(cluster_labels))], ax=ax, cbarlabel='cluster similarity')
+        im, cbar = heatmap(catalogueconstructor.cluster_similarity, ['%d:%d' % (x,y) for x,y in zip(cluster_labels,cell_labels)],
+                           ['%d:%d' % (x,y) for x,y in zip(cluster_labels,cell_labels)], ax=ax, cbarlabel='cluster similarity')
         texts = annotate_heatmap(im, valfmt='{x:.2f}', textcolors=['white','black'])
 
     ax = axs[1, 1]

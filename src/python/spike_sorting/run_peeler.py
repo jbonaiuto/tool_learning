@@ -6,6 +6,7 @@ import sys
 import time
 import pyqtgraph as pg
 import numpy as np
+import gc
 import pandas as pd
 from tridesclous import DataIO, Peeler, PeelerWindow
 
@@ -81,6 +82,8 @@ if __name__ == '__main__':
     subject=sys.argv[1]
     recording_date=sys.argv[2]
     display_peeler = sys.argv[3] in ['true', 'True','1']
+    export = sys.argv[4] in ['true', 'True', '1']
+
     for array_idx in range(len(arrays)):
         output_dir = os.path.join('/data/tool_learning/spike_sorting/', subject, recording_date, 'array_%d' % array_idx)
         if os.path.exists(output_dir):
@@ -88,6 +91,8 @@ if __name__ == '__main__':
                 run_peeler(output_dir, chan_grp=ch_grp)
                 if display_peeler:
                     open_PeelerWindow(output_dir, ch_grp)
-                export_spikes(output_dir, array_idx, ch_grp)
+                if export:
+                    export_spikes(output_dir, array_idx, ch_grp)
+                gc.collect()
 
 

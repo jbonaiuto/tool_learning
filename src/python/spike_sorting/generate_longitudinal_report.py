@@ -22,12 +22,17 @@ condition_map={'visual_grasp_right':'visual_grasp',
                'visual_grasp_left':'visual_grasp',
                'motor_grasp_left': 'motor_grasp',
                'motor_grasp_right': 'motor_grasp',
-               'motor_grasp_center': 'motor_grasp'}
+               'motor_grasp_center': 'motor_grasp',
+               'motor_grasp': 'motor_grasp'}
 def generate_longitudinal_report(subject, date_start_str, date_end_str):
     date_start = datetime.strptime(date_start_str, '%d.%m.%y')
     date_end = datetime.strptime(date_end_str, '%d.%m.%y')
 
-    report_output_dir=os.path.join('/home/bonaiuto/Projects/tool_learning/data/spike_sorting',subject)
+    report_output_dir=os.path.join('/data/tool_learning/spike_sorting',subject)
+    if not os.path.exists(report_output_dir):
+        os.mkdir(report_output_dir)
+    if not os.path.exists(os.path.join(report_output_dir,'img')):
+        os.mkdir(os.path.join(report_output_dir,'img'))
 
     array_results=[]
     date_results=[]
@@ -41,14 +46,13 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
             print(current_date)
             current_date_str = datetime.strftime(current_date, '%d.%m.%y')
 
-            trial_info_fname=os.path.join('/home/bonaiuto/Projects/tool_learning/data/preprocessed_data',subject,current_date_str,'trial_info.csv')
+            trial_info_fname=os.path.join('/data/tool_learning/preprocessed_data',subject,current_date_str,'trial_info.csv')
             if os.path.exists(trial_info_fname):
                 trial_info=pd.read_csv(trial_info_fname)
 
                 trial_durations = []
                 srate = 30000.0
-                rec_data_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/data/recordings/rhd2000', subject,
-                                            current_date_str)
+                rec_data_dir = os.path.join('/data/tool_learning/recordings/rhd2000', subject, current_date_str)
                 rec_fnames = glob(os.path.join(rec_data_dir, '*rec_signal.mat'))
                 rec_fdates = []
                 for rec_fname in rec_fnames:
@@ -64,33 +68,34 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
                     rec_signal = mat['rec_signal'][0, :]
                     trial_durations.append(rec_signal.size/srate)
 
-                spike_data_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/data/preprocessed_data/', subject, datetime.strftime(current_date,'%d.%m.%y'))
+                spike_data_dir = os.path.join('/data/tool_learning/preprocessed_data/', subject, datetime.strftime(current_date,'%d.%m.%y'))
 
                 fnames = glob(os.path.join(spike_data_dir, '%s*spikes.csv' % array))
                 for fname in fnames:
                     electrode_df = pd.read_csv(fname)
-                    electrode=np.unique(electrode_df.electrode)[0]
-                    if not electrode in electrode_data:
-                        electrode_data[electrode]={}
-                    for cell in np.unique(electrode_df.cell):
-                        if cell>=0:
-                            if not cell in electrode_data[electrode]:
-                                electrode_data[electrode][cell]={}
-                            trial_rates={}
-                            for trial in np.unique(electrode_df.trial):
-                                condition=condition_map[trial_info.condition[trial]]
-                                rows=np.where((electrode_df.cell==cell) & (electrode_df.trial==trial))[0]
-                                n_spikes = float(len(rows))
-                                time=trial_durations[trial]
-                                if not condition in trial_rates:
-                                    trial_rates[condition]=[]
-                                trial_rates[condition].append(n_spikes/time)
-                            for condition in trial_rates:
-                                if not condition in electrode_data[electrode][cell]:
-                                    electrode_data[electrode][cell][condition] = []
-                                    for x in range(len(dates)):
-                                        electrode_data[electrode][cell][condition].append(0)
-                                electrode_data[electrode][cell][condition].append(np.mean(trial_rates[condition]))
+                    if len(electrode_df):
+                        electrode=np.unique(electrode_df.electrode)[0]
+                        if not electrode in electrode_data:
+                            electrode_data[electrode]={}
+                        for cell in np.unique(electrode_df.cell):
+                            if cell>=0:
+                                if not cell in electrode_data[electrode]:
+                                    electrode_data[electrode][cell]={}
+                                trial_rates={}
+                                for trial in np.unique(electrode_df.trial):
+                                    condition=condition_map[trial_info.condition[trial]]
+                                    rows=np.where((electrode_df.cell==cell) & (electrode_df.trial==trial))[0]
+                                    n_spikes = float(len(rows))
+                                    time=trial_durations[trial]
+                                    if not condition in trial_rates:
+                                        trial_rates[condition]=[]
+                                    trial_rates[condition].append(n_spikes/time)
+                                for condition in trial_rates:
+                                    if not condition in electrode_data[electrode][cell]:
+                                        electrode_data[electrode][cell][condition] = []
+                                        for x in range(len(dates)):
+                                            electrode_data[electrode][cell][condition].append(0)
+                                    electrode_data[electrode][cell][condition].append(np.mean(trial_rates[condition]))
                 if len(fnames):
                     dates.append(current_date)
                     if not current_date_str in date_results:
@@ -121,7 +126,7 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
                                   'impedance_img': os.path.join('img','%s_%d_impedances.png' % (array,electrode))})
             plt.close('all')
 
-    recording_base_path = os.path.join('/home/bonaiuto/Projects/tool_learning/data/recordings/rhd2000/', subject)
+    recording_base_path = os.path.join('/data/tool_learning/recordings/rhd2000/', subject)
     array_impedances = {}
     for date in date_results:
         if os.path.isdir(os.path.join(recording_base_path, date)):
@@ -151,7 +156,7 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
             plt.savefig(os.path.join(report_output_dir, 'img','%s_%d_impedances.png' % (array,electrode)))
             plt.close('all')
 
-    template_dir = '/home/bonaiuto/Projects/tool_learning/src/templates'
+    template_dir = '/home/ferrarilab/tool_learning/src/templates'
     env = Environment(loader=FileSystemLoader(template_dir))
     template = env.get_template('spike_sorting_longitudinal_template.html')
     template_output = template.render(subject=subject, array_results=array_results, date_results=date_results)

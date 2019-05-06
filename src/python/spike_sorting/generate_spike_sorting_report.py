@@ -36,6 +36,7 @@ def generate_spike_sorting_report(subject, recording_date):
             print(chan_grp)
 
             dataio = DataIO(array_data_dir, ch_grp=chan_grp)
+            dataio.datasource.bit_to_microVolt = 0.195
             catalogueconstructor = CatalogueConstructor(dataio=dataio, chan_grp=chan_grp)
             catalogueconstructor.refresh_colors()
             catalogue = dataio.load_catalogue(chan_grp=chan_grp)
