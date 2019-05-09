@@ -11,5 +11,10 @@ exp_info.event_types={'exp_place_right', 'exp_grasp_center', 'exp_place_left',..
     'trial_start', 'trial_stop'};
 
 exp_info.array_names={'F1','F5hand','F5mouth','46v12r', '45a', 'F2'};
+exp_info.ch_per_array=32;
+
 exp_info.conditions={'visual_grasp_left','visual_grasp_right','motor_grasp_left',...
     'motor_grasp_center','motor_grasp_right'};
+
+exp_info.base_data_dir='/home/bonaiuto/Dropbox/Projects/inProgress/tool_learning/data';
+exp_info.base_output_dir='/home/bonaiuto/Dropbox/Projects/inProgress/tool_learning/output';
