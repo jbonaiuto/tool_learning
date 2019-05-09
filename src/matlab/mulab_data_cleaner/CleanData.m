@@ -1,4 +1,4 @@
-function out = CleanData(action, tdata);
+function out = CleanData(action, tdata, ptspercut);
 %
 % to use call:
 %
@@ -27,7 +27,7 @@ global ptitle;				% internal use only
 global replacearray;		% internal use only
 global orig;				% internal use only
 global showData;			% internal use only
-global ptspercut;			% number of points in a 'chunk' of data
+%global ptspercut;			% number of points in a 'chunk' of data
 global useSD;				% chooses method for spike detection 
 global xsd;					% if using sd, this is the detection threshold
 global highthresh;		% if not using sd, this is the high threshold
@@ -66,7 +66,7 @@ case('init')
 %
 % We recommend analyzing in 1 second chunks to start; if necessary adjust the 
 % ptspercut value to correspond with your sampling rate:
-ptspercut = 30000;
+%ptspercut = 30000;
 
 %useSD is a boolean to select the method by which spike events are initially
 % determined.  If 'true', then the standard deviation of the analog signal will
