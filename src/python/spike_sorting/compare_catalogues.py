@@ -79,7 +79,7 @@ def run_compare_catalogues(subject, date, similarity_threshold=0.7):
                 for old_date,old_file in zip(sorted_dates,sorted_files):
                     if old_date<new_date:
                         old_output_dir = os.path.join('/data/tool_learning/spike_sorting/', subject, old_file, 'array_%d' % array_idx)
-                        old_dataio = DataIO(dirname=old_output_dir, ch_grp=ch_grp)
+                        old_dataio = DataIO(dirname=old_output_dir, ch_grp=ch_grp, reload_data_source=False)
 
                         old_catalogueconstructor = CatalogueConstructor(dataio=old_dataio, chan_grp=ch_grp, load_persistent_arrays=False)
                         old_catalogueconstructor.arrays.load_if_exists('clusters')
@@ -206,7 +206,7 @@ def plot_cluster_new(all_old_cluster_labels, all_old_cell_labels, all_old_isis, 
     axs[0, 0].remove()
     # centroids
     ax = axs[0, 1]
-    ax.plot(time_range, new_wfs, 'r', label='new: %d' % new_cell_label)
+    ax.plot(time_range, new_wfs, 'r', label='new: %d:%d' % (new_cluster_label,new_cell_label))
     ax.fill_between(time_range, new_wfs - new_wfs_stds, new_wfs + new_wfs_stds, alpha=0.2, edgecolor='r', facecolor='r')
     for i in range(new_old_cluster_similarity.shape[1]):
         ln = ax.plot(time_range, all_old_wfs[i, :], '--', label='old: %d:%d=%.2f' % (
