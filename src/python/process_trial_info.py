@@ -21,12 +21,12 @@ condition_pulse_codes={
     25:'motor_rake'
 }
 log_condition_map={
-    'motor-grasp_left': 'motor_grasp',
-    'motor-grasp_center': 'motor_grasp',
-    'motor-grasp_right': 'motor_grasp',
-    'motor-rake_center' : 'motor_rake',
-    'motor-rake_center with cube': 'motor_rake',
-    'motor-rake_center catch': 'motor_rake_catch',
+    'motor-grasp_left': 'motor_grasp_left',
+    'motor-grasp_center': 'motor_grasp_center',
+    'motor-grasp_right': 'motor_grasp_right',
+    'motor-rake_center' : 'motor_rake_center',
+    'motor-rake_center with cube': 'motor_rake_center',
+    'motor-rake_center catch': 'motor_rake_center_catch',
     'Rake pull_right': 'visual_rake_pull_right',
     'Rake pull_left': 'visual_rake_pull_left',
     'Pliers_right': 'visual_pliers_right',
