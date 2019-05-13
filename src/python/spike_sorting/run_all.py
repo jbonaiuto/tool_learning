@@ -12,12 +12,12 @@ from spike_sorting.generate_spike_sorting_report import generate_spike_sorting_r
 from spike_sorting.run_peeler import run_peeler, export_spikes
 
 
-def resort(subject, date_start_str, date_end_str):
+def run_all(subject, date_start_str):
     date_start = datetime.strptime(date_start_str, '%d.%m.%y')
-    date_end = datetime.strptime(date_end_str, '%d.%m.%y')
+    date_now = datetime.now()
 
     current_date=date_start
-    while current_date<=date_end:
+    while current_date<=date_now:
         date_str=datetime.strftime(current_date, '%d.%m.%y')
         recording_path=os.path.join('/data/tool_learning/recordings/rhd2000',subject,date_str)
         if os.path.exists(recording_path):
@@ -52,12 +52,12 @@ def resort(subject, date_start_str, date_end_str):
                 run_process_trial_info(subject, date_str)
                 run_process_spikes(subject, date_str)
 
-
         current_date=current_date+timedelta(days=1)
-    generate_longitudinal_report(subject, '29.01.19', date_end_str)
+        date_now = datetime.now()
+
+    generate_longitudinal_report(subject, '29.01.19', datetime.strftime(date_now, '%d.%m.%y'))
 
 if __name__=='__main__':
     subject = sys.argv[1]
     start_date = sys.argv[2]
-    end_date = sys.argv[3]
-    resort(subject,start_date,end_date)
+    run_all(subject,start_date)
