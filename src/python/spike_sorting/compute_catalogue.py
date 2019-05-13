@@ -23,9 +23,9 @@ from tridesclous import DataIO, CatalogueConstructor, CatalogueWindow
 from spike_sorting.plot import plot_noise, plot_waveforms, plot_cluster_waveforms
 
 # This is for selecting a GPU
-for e in tdc.get_cl_device_list():
-    print(e)
-tdc.set_default_cl_device(platform_index=0, device_index=0)
+#for e in tdc.get_cl_device_list():
+#    print(e)
+#tdc.set_default_cl_device(platform_index=0, device_index=0)
 
 arrays = ['F1', 'F5hand', 'F5mouth', '46v/12r', '45a', 'F2']
 n_channels_per_array=32
@@ -130,10 +130,12 @@ def compute_catalogue(subject, recording_date, n_segments, total_duration, clust
                         'common_ref_removal': False,
                         'chunksize': 32768,
                         'lostfront_chunksize': 0,
-                        'signalpreprocessor_engine': 'opencl',
+                        #'signalpreprocessor_engine': 'opencl',
+                        'signalpreprocessor_engine': 'numpy',
                     },
                     'peak_detector': {
-                        'peakdetector_engine': 'opencl',
+                        #'peakdetector_engine': 'opencl',
+                        'signalpreprocessor_engine': 'numpy',
                         'peak_sign': '-',
                         'relative_threshold': 2.,
                         'peak_span': 0.0002,
@@ -313,12 +315,13 @@ def read_and_sort_data_files(data_dir):
     data_file_names = []
     for x in os.listdir(data_dir):
         if os.path.splitext(x)[1] == '.rhd':
-            data_file_names.append(os.path.join(data_dir, x))
-            # data = RawBinarySignalRawIO(os.path.join(data_dir, x),dtype='float32',sampling_rate=30000,nb_channel=192)
-            data = IntanRawIO(os.path.join(data_dir, x))
-            data.parse_header()
-            # Add duration of this trial to total duration
-            total_duration += data.get_signal_size(0, 0, [0]) * 1 / data.get_signal_sampling_rate([0])
+            if os.path.exists(os.path.join(data_dir, '%s_rec_signal.mat' % os.path.splitext(x)[0])):
+                data_file_names.append(os.path.join(data_dir, x))
+                # data = RawBinarySignalRawIO(os.path.join(data_dir, x),dtype='float32',sampling_rate=30000,nb_channel=192)
+                data = IntanRawIO(os.path.join(data_dir, x))
+                data.parse_header()
+                # Add duration of this trial to total duration
+                total_duration += data.get_signal_size(0, 0, [0]) * 1 / data.get_signal_sampling_rate([0])
     data_file_times = []
     for idx, evt_file in enumerate(data_file_names):
         fname = os.path.split(evt_file)[-1]
@@ -346,6 +349,7 @@ if __name__=='__main__':
         if os.path.exists(data_dir) and len(data_file_names) > 0:
 
             if preprocess:
+                print('Preprocessing')
                 preprocess_data(subject, recording_date, data_file_names, total_duration)
 
             compute_catalogue(subject, recording_date, len(data_file_names), total_duration)
