@@ -34,7 +34,9 @@ log_condition_map={
     'Grasping_right': 'visual_grasp_right',
     'Grasping_left': 'visual_grasp_left',
     'Fixation_': 'fixation',
-    'Fixation_Center': 'fixation'
+    'Fixation_Center': 'fixation',
+    'motor-rake_right': 'motor_rake_right',
+    'motor-rake_left': 'motor_rake_left'
 }
 event_channels={
     #'exp_start_on': 0,
@@ -184,7 +186,7 @@ def run_process_trial_info(subj_name, date):
                         #         pulse_codes=pulse_codes[big_diff:]
                         # if not len(pulse_codes) % 2 == 1 or len(pulse_codes)>np.max(np.array(list(condition_pulse_codes.keys()))):
                         if date=='16.04.19' and log_file_task=='motor_task_rake':
-                            condition='motor_rake'
+                            condition='motor_rake_center'
                         else:
                             assert (loc_trial_idx < len(log_trial_conditions))
                             condition=log_trial_conditions[loc_trial_idx]
