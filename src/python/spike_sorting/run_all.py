@@ -11,6 +11,29 @@ from spike_sorting.generate_longitudinal_report import generate_longitudinal_rep
 from spike_sorting.generate_spike_sorting_report import generate_spike_sorting_report
 from spike_sorting.run_peeler import run_peeler, export_spikes
 
+from pathos.multiprocessing import ProcessingPool as Pool
+
+arrays = ['F1', 'F5hand', 'F5mouth', '46v/12r', '45a', 'F2']
+
+def array_peeler(array_idx, subject, date_str):
+    output_dir = os.path.join('/data/tool_learning/spike_sorting/', subject, date_str,
+                              'array_%d' % array_idx)
+    if os.path.exists(output_dir):
+        for ch_grp in range(32):
+            run_peeler(output_dir, chan_grp=ch_grp)
+
+
+def array_export_spikes(array_idx, subject, date_str):
+    output_dir = os.path.join('/data/tool_learning/spike_sorting/', subject, date_str,
+                              'array_%d' % array_idx)
+    if os.path.exists(output_dir):
+        for ch_grp in range(32):
+            run_peeler(output_dir, chan_grp=ch_grp)
+            export_spikes(output_dir, array_idx, ch_grp)
+
+
+# p = Pool(ncpus=4)
+
 
 def run_all(subject, date_start_str):
     date_start = datetime.strptime(date_start_str, '%d.%m.%y')
@@ -23,31 +46,30 @@ def run_all(subject, date_start_str):
         if os.path.exists(recording_path):
 
             # Compute total duration (want to use all data for clustering)
-            (data_file_names, total_duration) = read_and_sort_data_files(recording_path)
+            (data_file_names, total_duration) = read_and_sort_data_files(recording_path, preprocessed=False)
 
             if os.path.exists(recording_path) and len(data_file_names) > 0:
 
-                preprocess_data(subject, date_str, data_file_names, total_duration)
+                preprocess_data(subject, date_str)
+                (data_file_names, total_duration) = read_and_sort_data_files(recording_path, preprocessed=True)
 
                 compute_catalogue(subject, date_str, len(data_file_names), total_duration)
 
+                # arg1 = range(len(arrays))
+                # arg2 = [subject for array_idx in range(len(arrays))]
+                # arg3 = [date_str for array_idx in range(len(arrays))]
+                # p.map(array_peeler, arg1, arg2, arg3)
+
                 for array_idx in range(6):
-                    output_dir = os.path.join('/data/tool_learning/spike_sorting/', subject, date_str,
-                                              'array_%d' % array_idx)
-                    if os.path.exists(output_dir):
-                        for ch_grp in range(32):
-                            run_peeler(output_dir, chan_grp=ch_grp)
+                    array_peeler(array_idx, subject, date_str)
 
                 generate_spike_sorting_report(subject, date_str)
 
                 run_compare_catalogues(subject, date_str)
+
                 for array_idx in range(6):
-                    output_dir = os.path.join('/data/tool_learning/spike_sorting/', subject, date_str,
-                                              'array_%d' % array_idx)
-                    if os.path.exists(output_dir):
-                        for ch_grp in range(32):
-                            run_peeler(output_dir, chan_grp=ch_grp)
-                            export_spikes(output_dir, array_idx, ch_grp)
+                    array_export_spikes(array_idx, subject, date_str)
+                # p.map(array_export_spikes, arg1, arg2, arg3)
 
                 run_process_trial_info(subject, date_str)
                 run_process_spikes(subject, date_str)
@@ -56,6 +78,7 @@ def run_all(subject, date_start_str):
         date_now = datetime.now()
 
     generate_longitudinal_report(subject, '29.01.19', datetime.strftime(date_now, '%d.%m.%y'))
+
 
 if __name__=='__main__':
     subject = sys.argv[1]
