@@ -76,6 +76,8 @@ motor_rake_trial_events=['trial_start', 'trial_stop', 'error', 'go', 'laser_monk
                          'monkey_tool_right', 'monkey_tool_mid_right', 'monkey_tool_center', 'monkey_tool_mid_left',
                          'monkey_tool_left', 'trap_edge', 'trap_bottom', 'monkey_rake_handle', 'monkey_rake_blade']
 
+DATA_DIR='/data/tool_learning/'
+
 def str_to_bool(s):
     if s == 'True' or s=='true' or s=='t' or s=='T' or s=='1':
          return True
@@ -91,12 +93,12 @@ def run_process_trial_info(subj_name, date):
 
 
     # Directories containing logs and plexon data (events)
-    log_dir = os.path.join('/data/tool_learning/logs/', subj_name)
-    plx_data_dir = os.path.join('/data/tool_learning/recordings/plexon/%s/%s' % (subj_name, date))
+    log_dir = os.path.join(DATA_DIR, 'logs', subj_name)
+    plx_data_dir = os.path.join(DATA_DIR, 'recordings/plexon/%s/%s' % (subj_name, date))
 
     if os.path.exists(plx_data_dir):
         # Create output dir
-        out_dir = os.path.join('/data/tool_learning/preprocessed_data/', subj_name, date)
+        out_dir = os.path.join(DATA_DIR, 'preprocessed_data/', subj_name, date)
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
 
