@@ -164,7 +164,7 @@ def run_process_trial_info(subj_name, date):
 
                     seg_trials = []
                     # Get time of events in each trial
-                    loc_trial_idx=0
+                    log_trial_idx=0
                     for i in range(len(start_times)):
                         trial_events = {}
                         trial_start = start_times[i]
@@ -183,20 +183,20 @@ def run_process_trial_info(subj_name, date):
                         #     pulse_code_time_diff=np.diff(condition_pulses[pulse_codes])
                         #     big_diff=np.where(pulse_code_time_diff>100)[0]
                         #     if len(big_diff):
-                        #         loc_trial_idx=loc_trial_idx+len(big_diff)
+                        #         log_trial_idx=log_trial_idx+len(big_diff)
                         #         big_diff=big_diff[-1]+1
                         #         pulse_codes=pulse_codes[big_diff:]
                         # if not len(pulse_codes) % 2 == 1 or len(pulse_codes)>np.max(np.array(list(condition_pulse_codes.keys()))):
                         if date=='16.04.19' and log_file_task=='motor_task_rake':
                             condition='motor_rake_center'
                         else:
-                            assert (loc_trial_idx < len(log_trial_conditions))
-                            condition=log_trial_conditions[loc_trial_idx]
+                            assert (log_trial_idx < len(log_trial_conditions))
+                            condition=log_trial_conditions[log_trial_idx]
                         # else:
                         #     condition = condition_pulse_codes[len(pulse_codes) - 2]
                         #     if condition == 'motor_grasp' or condition == 'motor_rake':
-                        #         assert (loc_trial_idx < len(trial_locs))
-                        #         condition = '%s_%s' % (condition, trial_locs[loc_trial_idx])
+                        #         assert (log_trial_idx < len(trial_locs))
+                        #         condition = '%s_%s' % (condition, trial_locs[log_trial_idx])
                         trial_info['block'].append(block_idx)
 
                         trial_info['condition'].append(condition)
@@ -205,7 +205,7 @@ def run_process_trial_info(subj_name, date):
                             trial_info['correct'].append(True)
                         else:
                             trial_info['correct'].append(False)
-                        loc_trial_idx=loc_trial_idx+1
+                        log_trial_idx=log_trial_idx+1
 
 
                     # Clean trials
