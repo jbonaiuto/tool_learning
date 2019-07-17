@@ -1,0 +1,108 @@
+import os
+import sys
+from datetime import datetime, timedelta
+from shutil import copyfile
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from jinja2 import Environment, FileSystemLoader
+
+
+def generate_trial_info_report(subject, date_start_str):
+
+    report_output_dir = os.path.join('/data/tool_learning/preprocessed_data', subject)
+    if not os.path.exists(report_output_dir):
+        os.mkdir(report_output_dir)
+    if not os.path.exists(os.path.join(report_output_dir, 'img')):
+        os.mkdir(os.path.join(report_output_dir, 'img'))
+
+    date_start = datetime.strptime(date_start_str, '%d.%m.%y')
+    date_now = datetime.now()
+
+    stage1_start=datetime.strptime('12.02.19', '%d.%m.%y')
+    stage2_start = datetime.strptime('27.03.19', '%d.%m.%y')
+
+    # All possible conditions
+    all_conditions=['motor_grasp_left', 'motor_grasp_center', 'motor_grasp_right', 'motor_rake_center',
+                    'visual_rake_pull_right', 'visual_rake_pull_left', 'visual_pliers_right', 'visual_pliers_left',
+                    'visual_grasp_right', 'visual_grasp_left', 'fixation', 'motor_rake_right', 'motor_rake_left']
+    collapsed_conditions = ['motor_grasp', 'motor_rake', 'visual_rake_pull', 'visual_pliers', 'visual_grasp',
+                            'fixation']
+
+    current_date = date_start
+    condition_trial_numbers={}
+
+    date_index=[]
+    weekly_condition_trial_numbers={}
+    for condition in all_conditions:
+        weekly_condition_trial_numbers[condition]=[]
+
+    while current_date <= date_now:
+        date_str = datetime.strftime(current_date, '%d.%m.%y')
+        info_dir = os.path.join('/data/tool_learning/preprocessed_data/', subject, date_str)
+        if os.path.exists(info_dir) and date_str!='05.04.19':
+            df=pd.read_csv(os.path.join(info_dir, 'trial_numbers.csv'))
+            if current_date.weekday()==0:
+                condition_trial_numbers={}
+            for condition,num_trials in zip(df['condition'].values, df['trials'].values):
+                if condition in all_conditions:
+                    if not condition in condition_trial_numbers:
+                        condition_trial_numbers[condition]=0
+                    condition_trial_numbers[condition]=condition_trial_numbers[condition]+num_trials
+            if current_date.weekday()==4:
+                date_index.append(current_date)
+                for condition in all_conditions:
+                    if condition in condition_trial_numbers:
+                        weekly_condition_trial_numbers[condition].append(condition_trial_numbers[condition])
+                    else:
+                        weekly_condition_trial_numbers[condition].append(0)
+        current_date = current_date + timedelta(days=1)
+        date_now = datetime.now()
+
+    collapsed_weekly_condition_trial_numbers={}
+    for collapsed_condition in collapsed_conditions:
+        collapsed_weekly_condition_trial_numbers[collapsed_condition]=[]
+        for condition in all_conditions:
+            if condition.startswith(collapsed_condition):
+                if len(collapsed_weekly_condition_trial_numbers[collapsed_condition])==0:
+                    collapsed_weekly_condition_trial_numbers[collapsed_condition]=weekly_condition_trial_numbers[condition]
+                else:
+                    for idx, val in enumerate(weekly_condition_trial_numbers[condition]):
+                        collapsed_weekly_condition_trial_numbers[collapsed_condition][idx]=collapsed_weekly_condition_trial_numbers[collapsed_condition][idx]+val
+
+    df=pd.DataFrame(collapsed_weekly_condition_trial_numbers, index=date_index)
+    ax=df.plot(figsize=(9,4))
+    max_val=np.max(df.values)
+    ax.plot([stage1_start, stage1_start], [0, max_val], 'r--')
+    plt.text(stage1_start, max_val, 'Stage 1')
+    ax.plot([stage2_start, stage2_start], [0, max_val], 'r--')
+    plt.text(stage2_start, max_val, 'Stage 2')
+    plt.savefig(os.path.join(report_output_dir,'img','collapsed_weekly_condition_trial_numbers.png'))
+
+    df=pd.DataFrame(weekly_condition_trial_numbers, index=date_index)
+    ax=df.plot(figsize=(9,4))
+    max_val = np.max(df.values)
+    ax.plot([stage1_start, stage1_start], [0, max_val], 'r--')
+    plt.text(stage1_start, max_val, 'Stage 1')
+    ax.plot([stage2_start, stage2_start], [0, max_val], 'r--')
+    plt.text(stage2_start, max_val, 'Stage 2')
+    plt.savefig(os.path.join(report_output_dir,'img','weekly_condition_trial_numbers.png'))
+
+    template_dir = '/home/ferrarilab/tool_learning/src/templates'
+    env = Environment(loader=FileSystemLoader(template_dir))
+    template = env.get_template('trial_info_template.html')
+    template_output = template.render(subject=subject)
+
+    out_filename = os.path.join(report_output_dir, 'trial_info_report.html')
+    with open(out_filename, 'w') as fh:
+        fh.write(template_output)
+
+    copyfile(os.path.join(template_dir, 'style.css'), os.path.join(report_output_dir, 'style.css'))
+
+
+if __name__=='__main__':
+    subject=sys.argv[1]
+    start_date=sys.argv[2]
+    generate_trial_info_report(subject, start_date)
+
