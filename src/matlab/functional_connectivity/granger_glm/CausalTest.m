@@ -18,12 +18,8 @@ ht=[];
 for i=1:CHN
     min_aic=min(aic(3:3:60,i));
     optim_h=find(aic(3:3:60,i)==min_aic);
-    %optim_h=min(find(abs(diff(aic(3:3:60,i)))<100));
     ht(i)=optim_h;
 end
-
-%ch_to_include=find(ht<19);
-%X=X(ch_to_include,:,:);
 
 % Re-optimizing a model after excluding a trigger neuron's effect and then
 % Estimating causality matrices based on the likelihood ratio
@@ -63,6 +59,7 @@ fdrv = 0.01;
 temp2 = FDR(D,fdrv,ht);
 Psi2 = SGN.*temp2;
 
+causal_results=[];
 causal_results.ht=ht;
 causal_results.LK0=LLK0;
 causal_results.bhatc=bhatc;
