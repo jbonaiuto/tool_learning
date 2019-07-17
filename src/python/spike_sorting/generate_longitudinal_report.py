@@ -50,25 +50,9 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
             if os.path.exists(trial_info_fname):
                 trial_info=pd.read_csv(trial_info_fname)
 
-                trial_durations = []
-                srate = 30000.0
-                rec_data_dir = os.path.join('/data/tool_learning/recordings/rhd2000', subject, current_date_str)
-                rec_fnames = glob(os.path.join(rec_data_dir, '*rec_signal.mat'))
-                rec_fdates = []
-                for rec_fname in rec_fnames:
-                    fparts = os.path.splitext(rec_fname)[0].split('_')
-                    try:
-                        filedate = datetime.strptime('%s.%s' % (fparts[-4], fparts[-3]), '%d%m%y.%H%M%S')
-                        rec_fdates.append(filedate)
-                    except:
-                        pass
-                rec_fnames = [x[1] for x in sorted(zip(rec_fdates, rec_fnames))]
-                for rec_fname in rec_fnames:
-                    mat = scipy.io.matlab.loadmat(rec_fname)
-                    rec_signal = mat['rec_signal'][0, :]
-                    trial_durations.append(rec_signal.size/srate)
+                trial_durations = trial_info['intan_duration'].values
 
-                spike_data_dir = os.path.join('/data/tool_learning/preprocessed_data/', subject, datetime.strftime(current_date,'%d.%m.%y'))
+                spike_data_dir = os.path.join('/data/tool_learning/preprocessed_data/', subject, datetime.strftime(current_date,'%d.%m.%y'),'spikes')
 
                 fnames = glob(os.path.join(spike_data_dir, '%s*spikes.csv' % array))
                 for fname in fnames:
@@ -83,13 +67,16 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
                                     electrode_data[electrode][cell]={}
                                 trial_rates={}
                                 for trial in np.unique(electrode_df.trial):
-                                    condition=condition_map[trial_info.condition[trial]]
-                                    rows=np.where((electrode_df.cell==cell) & (electrode_df.trial==trial))[0]
-                                    n_spikes = float(len(rows))
-                                    time=trial_durations[trial]
-                                    if not condition in trial_rates:
-                                        trial_rates[condition]=[]
-                                    trial_rates[condition].append(n_spikes/time)
+                                    if not np.isnan(trial):
+                                        trial_condition=trial_info.condition[trial]
+                                        if isinstance(trial_condition,str):
+                                            condition=condition_map[trial_condition]
+                                            rows=np.where((electrode_df.cell==cell) & (electrode_df.trial==trial))[0]
+                                            n_spikes = float(len(rows))
+                                            time=trial_durations[int(trial)]
+                                            if not condition in trial_rates:
+                                                trial_rates[condition]=[]
+                                            trial_rates[condition].append(n_spikes/time)
                                 for condition in trial_rates:
                                     if not condition in electrode_data[electrode][cell]:
                                         electrode_data[electrode][cell][condition] = []
@@ -170,5 +157,5 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
 if __name__=='__main__':
     subject=sys.argv[1]
     end_date=sys.argv[2]
-    generate_longitudinal_report('betta','29.01.19',end_date)
+    generate_longitudinal_report('betta','01.02.19',end_date)
 
