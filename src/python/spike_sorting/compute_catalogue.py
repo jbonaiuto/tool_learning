@@ -21,8 +21,6 @@ from tridesclous import DataIO, CatalogueConstructor, CatalogueWindow
 
 from spike_sorting.plot import plot_noise, plot_waveforms, plot_cluster_waveforms
 
-from pathos.multiprocessing import ProcessingPool as Pool
-
 # This is for selecting a GPU
 for e in tdc.get_cl_device_list():
     print(e)
@@ -265,11 +263,6 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
 # p = Pool(ncpus=4)
 
 def preprocess_data(subject, recording_date):
-    matlab = transplant.Matlab()
-    matlab.addpath('/home/ferrarilab/tool_learning/src/matlab')
-    matlab.preprocessSpikeData(subject, recording_date)
-    matlab.exit()
-
     base_path=os.path.join('/data/tool_learning/spike_sorting/', subject, recording_date)
     if not os.path.exists(base_path):
         os.mkdir(base_path)
@@ -279,7 +272,7 @@ def preprocess_data(subject, recording_date):
         shutil.rmtree(output_dir)
 
     data_dir = os.path.join('/data/tool_learning/recordings/rhd2000/', subject, recording_date)
-    (data_file_names, total_duration) = read_and_sort_data_files(data_dir, preprocessed=True)
+    (data_file_names, total_duration) = read_and_sort_data_files(data_dir)
 
     ## Setup DataIO
     dataio = DataIO(dirname=output_dir)
@@ -292,11 +285,6 @@ def preprocess_data(subject, recording_date):
 
     print(dataio)
 
-    # arg1 = range(len(arrays))
-    # arg2 = [output_dir for array_idx in range(len(arrays))]
-    # arg3 = [total_duration for array_idx in range(len(arrays))]
-    # p.map(preprocess_array, arg1, arg2, arg3)
-
     for array_idx in range(len(arrays)):
         print(array_idx)
         preprocess_array(array_idx, output_dir, total_duration)
@@ -306,15 +294,6 @@ def compute_catalogue(subject, recording_date, n_segments, total_duration, clust
 
     preprocess_dir=os.path.join('/data/tool_learning/spike_sorting/', subject, recording_date,'preprocess')
     if os.path.exists(preprocess_dir):
-
-        # arg1=range(len(arrays))
-        # arg2=[preprocess_dir for array_idx in range(len(arrays))]
-        # arg3 = [subject for array_idx in range(len(arrays))]
-        # arg4 = [recording_date for array_idx in range(len(arrays))]
-        # arg5 = [n_segments for array_idx in range(len(arrays))]
-        # arg6 = [total_duration for array_idx in range(len(arrays))]
-        # arg7 = [cluster_merge_threshold for array_idx in range(len(arrays))]
-        # p.map(compute_array_catalogue, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 
         for array_idx in range(len(arrays)):
             compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, n_segments, total_duration,
@@ -331,18 +310,17 @@ def open_cataloguewindow(dataio, chan_grp):
     app.exec_()
 
 
-def read_and_sort_data_files(data_dir, preprocessed=False):
+def read_and_sort_data_files(data_dir):
     total_duration = 0.0
     data_file_names = []
     for x in os.listdir(data_dir):
         if os.path.splitext(x)[1] == '.rhd':
-            if not preprocessed or os.path.exists(os.path.join(data_dir, '%s_rec_signal.mat' % os.path.splitext(x)[0])):
-                data_file_names.append(os.path.join(data_dir, x))
-                # data = RawBinarySignalRawIO(os.path.join(data_dir, x),dtype='float32',sampling_rate=30000,nb_channel=192)
-                data = IntanRawIO(os.path.join(data_dir, x))
-                data.parse_header()
-                # Add duration of this trial to total duration
-                total_duration += data.get_signal_size(0, 0, [0]) * 1 / data.get_signal_sampling_rate([0])
+            data_file_names.append(os.path.join(data_dir, x))
+            # data = RawBinarySignalRawIO(os.path.join(data_dir, x),dtype='float32',sampling_rate=30000,nb_channel=192)
+            data = IntanRawIO(os.path.join(data_dir, x))
+            data.parse_header()
+            # Add duration of this trial to total duration
+            total_duration += data.get_signal_size(0, 0, [0]) * 1 / data.get_signal_sampling_rate([0])
     data_file_times = []
     for idx, evt_file in enumerate(data_file_names):
         fname = os.path.split(evt_file)[-1]
@@ -365,7 +343,7 @@ if __name__=='__main__':
     print(data_dir)
     if os.path.exists(data_dir):
         # Compute total duration (want to use all data for clustering)
-        (data_file_names,total_duration)=read_and_sort_data_files(data_dir, preprocessed=False)
+        (data_file_names,total_duration)=read_and_sort_data_files(data_dir)
 
         if os.path.exists(data_dir) and len(data_file_names) > 0:
 
@@ -373,6 +351,6 @@ if __name__=='__main__':
                 print('Preprocessing')
                 preprocess_data(subject, recording_date)
 
-            (data_file_names, total_duration) = read_and_sort_data_files(data_dir, preprocessed=True)
+            (data_file_names, total_duration) = read_and_sort_data_files(data_dir)
 
             compute_catalogue(subject, recording_date, len(data_file_names), total_duration)

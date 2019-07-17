@@ -11,8 +11,6 @@ from spike_sorting.generate_longitudinal_report import generate_longitudinal_rep
 from spike_sorting.generate_spike_sorting_report import generate_spike_sorting_report
 from spike_sorting.run_peeler import run_peeler, export_spikes
 
-from pathos.multiprocessing import ProcessingPool as Pool
-
 arrays = ['F1', 'F5hand', 'F5mouth', '46v/12r', '45a', 'F2']
 
 def array_peeler(array_idx, subject, date_str):
@@ -32,9 +30,6 @@ def array_export_spikes(array_idx, subject, date_str):
             export_spikes(output_dir, array_idx, ch_grp)
 
 
-# p = Pool(ncpus=4)
-
-
 def run_all(subject, date_start_str):
     date_start = datetime.strptime(date_start_str, '%d.%m.%y')
     date_now = datetime.now()
@@ -46,19 +41,16 @@ def run_all(subject, date_start_str):
         if os.path.exists(recording_path):
 
             # Compute total duration (want to use all data for clustering)
-            (data_file_names, total_duration) = read_and_sort_data_files(recording_path, preprocessed=False)
+            (data_file_names, total_duration) = read_and_sort_data_files(recording_path)
 
             if os.path.exists(recording_path) and len(data_file_names) > 0:
 
+                run_process_trial_info(subject, date_str)
+
                 preprocess_data(subject, date_str)
-                (data_file_names, total_duration) = read_and_sort_data_files(recording_path, preprocessed=True)
+                (data_file_names, total_duration) = read_and_sort_data_files(recording_path)
 
                 compute_catalogue(subject, date_str, len(data_file_names), total_duration)
-
-                # arg1 = range(len(arrays))
-                # arg2 = [subject for array_idx in range(len(arrays))]
-                # arg3 = [date_str for array_idx in range(len(arrays))]
-                # p.map(array_peeler, arg1, arg2, arg3)
 
                 for array_idx in range(6):
                     array_peeler(array_idx, subject, date_str)
@@ -69,9 +61,7 @@ def run_all(subject, date_start_str):
 
                 for array_idx in range(6):
                     array_export_spikes(array_idx, subject, date_str)
-                # p.map(array_export_spikes, arg1, arg2, arg3)
 
-                run_process_trial_info(subject, date_str)
                 run_process_spikes(subject, date_str)
 
         current_date=current_date+timedelta(days=1)
