@@ -65,7 +65,21 @@ for array_idx=1:length(arrays)
 end
 granger_glm_results.cell_idx=cell_idx;
 
-X=[];
+% Figure out total number of trials (to initialize X with the right size)
+num_trials=0;
+for date_idx=1:length(dates)
+    date=dates{date_idx};
+    trial_data=readtable(fullfile(data_dir,date,'trial_info.csv'));  
+
+    idx_true=find(not(strcmp(trial_data.correct,'False')));             %Index of correct trials
+    idx_motor=find(strcmp(trial_data.condition,'motor_grasp_right')...  %Index of motor trials
+        | strcmp(trial_data.condition,'motor_grasp_left')...
+        | strcmp(trial_data.condition,'motor_grasp_center'));
+    idx_correct=intersect(idx_motor,idx_true);
+    num_trials=num_trials+length(idx_correct);
+end
+
+X=zeros(idx-1,length(bins),num_trials);
 trial_idx=1;
 for date_idx=1:length(dates)
     date=dates{date_idx};
