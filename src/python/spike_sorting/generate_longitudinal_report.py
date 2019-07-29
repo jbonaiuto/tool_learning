@@ -23,7 +23,11 @@ condition_map={'visual_grasp_right':'visual_grasp',
                'motor_grasp_left': 'motor_grasp',
                'motor_grasp_right': 'motor_grasp',
                'motor_grasp_center': 'motor_grasp',
-               'motor_grasp': 'motor_grasp'}
+               'motor_grasp': 'motor_grasp',
+               'visual_pliers_right': 'visual_pliers',
+               'visual_pliers_left': 'visual_pliers',
+               'visual_rake_pull_left': 'visual_rake_pull',
+               'visual_rake_pull_right': 'visual_rake_pull'}
 def generate_longitudinal_report(subject, date_start_str, date_end_str):
     date_start = datetime.strptime(date_start_str, '%d.%m.%y')
     date_end = datetime.strptime(date_end_str, '%d.%m.%y')
@@ -55,7 +59,7 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
                 spike_data_dir = os.path.join('/data/tool_learning/preprocessed_data/', subject, datetime.strftime(current_date,'%d.%m.%y'),'spikes')
 
                 fnames = glob(os.path.join(spike_data_dir, '%s*spikes.csv' % array))
-                for fname in fnames:
+                for fname in sorted(fnames):
                     electrode_df = pd.read_csv(fname)
                     if len(electrode_df):
                         electrode=np.unique(electrode_df.electrode)[0]
@@ -73,7 +77,7 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
                                             condition=condition_map[trial_condition]
                                             rows=np.where((electrode_df.cell==cell) & (electrode_df.trial==trial))[0]
                                             n_spikes = float(len(rows))
-                                            time=trial_durations[int(trial)]
+                                            time=float(trial_durations[int(trial)])
                                             if not condition in trial_rates:
                                                 trial_rates[condition]=[]
                                             trial_rates[condition].append(n_spikes/time)
@@ -102,7 +106,8 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
             for idx,condition in enumerate(conditions):
                 condition_data = {}
                 for cell in electrode_data[electrode]:
-                    condition_data[str(cell)]=pd.Series(electrode_data[electrode][cell][condition], index=dates)
+                    if condition in electrode_data[electrode][cell]:
+                        condition_data[str(cell)]=pd.Series(electrode_data[electrode][cell][condition], index=dates)
                 condition_df=pd.DataFrame(condition_data, index=dates)
                 ax=plt.subplot(len(conditions),1,idx+1)
                 condition_df.plot(ax=ax)
@@ -113,7 +118,7 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
                                   'impedance_img': os.path.join('img','%s_%d_impedances.png' % (array,electrode))})
             plt.close('all')
 
-    recording_base_path = os.path.join('/data/tool_learning/recordings/rhd2000/', subject)
+    recording_base_path = os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/rhd2000/', subject)
     array_impedances = {}
     for date in date_results:
         if os.path.isdir(os.path.join(recording_base_path, date)):
@@ -127,7 +132,7 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
                         if idx > 0:
                             chan_name = row[1]
                             array = array_map[chan_name.split('-')[0]]
-                            electrode = int(chan_name.split('-')[1])-1+arrays.index(array)*32
+                            electrode = int(chan_name.split('-')[1])-1#+arrays.index(array)*32
                             impedance = float(row[4])
                             if not array in array_impedances:
                                 array_impedances[array] = {}
