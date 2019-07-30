@@ -13,7 +13,7 @@ end
 spm('defaults','eeg');
 
 % Directory where raw data is stored
-raw_data_dir=fullfile(exp_info.base_data_dir, 'recordings/rhd2000', subject,...
+raw_data_dir=fullfile('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/rhd2000', subject,...
     recording_date);
 
 % Read and sort raw data files
@@ -73,17 +73,9 @@ if length(files)>0
         data_fname=fullfile(raw_data_dir,fname);
         [ampl_data,dig_in_data,srate]=read_Intan_RHD2000_file(data_fname,...
             false);
-
-        % Number of samples to remove from beginning and end
-        window=cutoff_window*srate;
-
-        % Remove window from beginning and end of trial
-        ampl_data=ampl_data(:,window+1:end-window);
-
+        
         % Get recording signal
         rec_signal=dig_in_data(3,:);
-        % Remove window from beginning and end of recording_signal
-        rec_signal=rec_signal(window+1:end-window);
 
         % PCA-based cleaning
         cleaned_data=zeros(size(ampl_data));
@@ -180,8 +172,8 @@ if length(files)>0
             condition=trialinfo.condition{trialinfo.overall_trial==(trial_idx-1)};
 
             % Center times on trial start time
-            times=times-trial_start_times(start_idx);
-            idx=intersect(find(times>=-1),find(times<=trial_end_times(start_idx)-trial_start_times(start_idx)+1));
+            trial_times=times-trial_start_times(start_idx);
+            idx=intersect(find(trial_times>=-1),find(trial_times<=trial_end_times(start_idx)-trial_start_times(start_idx)+1));
 
             % Data structure to hold trial data
             trial_data.label={};
@@ -191,8 +183,20 @@ if length(files)>0
                 end
             end
             trial_data.fsample=srate;
-            trial_data.trial={cleaned_data(:,idx)};
-            trial_data.time={times(idx)};        
+            
+            % Cut off beginning and end (because of amplifier ringing)            
+            clean_trial_data=cleaned_data(:,idx);
+            clean_trial_times=times(idx);
+            % Number of samples to remove from beginning and end
+            window=cutoff_window*srate;
+            if length(clean_trial_data)>2*window
+                % Remove window from beginning and end of trial
+                clean_trial_data=clean_trial_data(:,window+1:end-window);
+                clean_trial_times=clean_trial_times(window+1:end-window);
+            end
+            
+            trial_data.trial={clean_trial_data};
+            trial_data.time={clean_trial_times};        
             % Trial info - first column is condition index, second is
             % good trial or not, remaining are time of each event or NaN if event does not
             % occur in this trial
