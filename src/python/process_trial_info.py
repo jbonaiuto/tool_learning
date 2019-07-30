@@ -416,7 +416,7 @@ class PlexonRecording:
             elif self.task == 'motor_task_training' or self.task == 'motor_task_grasp':
                 self.trial_events[t_idx] = filter_motor_grasp_events(self.trial_events[t_idx])
 
-            elif self.task == 'fixation_training':
+            elif self.task == 'fixation_training' or self.task=='fixation':
                 self.trial_events[t_idx] = filter_fixation_events(self.trial_events[t_idx])
 
             elif self.task == 'motor_task_rake' or self.task == 'motor_task_rake_catch':
@@ -474,7 +474,10 @@ class IntanRecordingSet:
             else:
                 # Read recording signal
                 data=rhd.read_data(file, no_floats=True)
-                rec_signal=data['board_dig_in_data'][2,:]
+                if data['board_dig_in_data'].shape[0]>1:
+                    rec_signal=data['board_dig_in_data'][2,:]
+                else:
+                    rec_signal = data['board_dig_in_data'][0, :]
                 rec_signal=rec_signal.astype(int)
 
                 # Write recording signal to output
@@ -572,10 +575,10 @@ class IntanRecordingSet:
 
 def run_process_trial_info(subj_name, date):
     log_dir = os.path.join('/data/tool_learning/logs/', subj_name)
-    plx_data_dir = os.path.join('/data/tool_learning/recordings/plexon/%s/%s' % (subj_name, date))
-    intan_data_dir = os.path.join('/data/tool_learning/recordings/rhd2000/%s/%s' % (subj_name, date))
+    plx_data_dir = os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/plexon/%s/%s' % (subj_name, date))
+    intan_data_dir = os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/rhd2000/%s/%s' % (subj_name, date))
 
-    if os.path.exists(plx_data_dir):
+    if os.path.exists(plx_data_dir) and os.path.exists(intan_data_dir):
         # Create output dir
         out_dir = os.path.join('/data/tool_learning/preprocessed_data/', subj_name, date)
         if not os.path.exists(out_dir):
@@ -689,12 +692,16 @@ def run_process_trial_info(subj_name, date):
             if not matched:
                 trial_info['overall_trial'].append(t_idx)
                 # Try to figure out block number
-                if intan_task==trial_info['task'][-1]:
-                    trial_info['block'].append(trial_info['block'][-1])
+                if len(trial_info['task'])>0:
+                    if intan_task==trial_info['task'][-1]:
+                        trial_info['block'].append(trial_info['block'][-1])
+                    else:
+                        trial_info['block'].append(trial_info['block'][-1]+1)
+                    if trial_info['block'][-1] != last_block:
+                        curr_trial_num = 0
                 else:
-                    trial_info['block'].append(trial_info['block'][-1]+1)
-                if trial_info['block'][-1] != last_block:
-                    curr_trial_num = 0
+                    trial_info['block'].append(0)
+                    curr_trial_num=0
                 trial_info['trial'].append(curr_trial_num)
                 trial_info['task'].append(intan_task)
                 trial_info['condition'].append('')
@@ -712,7 +719,7 @@ def run_process_trial_info(subj_name, date):
             curr_trial_num = curr_trial_num + 1
 
         # Check that trial durations match
-        assert(np.nanmax(np.abs(np.array(trial_info['intan_duration'])-np.array(trial_info['plexon_duration'])))<2)
+        assert(np.all(np.isnan(np.array(trial_info['plexon_duration']))) or np.nanmax(np.abs(np.array(trial_info['intan_duration'])-np.array(trial_info['plexon_duration'])))<2)
 
         print('Total num trials: log=%d, plexon=%d, intan=%d' % (log_set.total_trials(), plexon_set.total_trials(),
                                                                  len(trial_info['block'])))
@@ -1191,7 +1198,7 @@ def rerun(subject, date_start_str):
     current_date = date_start
     while current_date <= date_now:
         date_str = datetime.strftime(current_date, '%d.%m.%y')
-        recording_path = os.path.join('/data/tool_learning/recordings/rhd2000', subject, date_str)
+        recording_path = os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/rhd2000', subject, date_str)
         if os.path.exists(recording_path):
 
             run_process_trial_info(subject, date_str)
