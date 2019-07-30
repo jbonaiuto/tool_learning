@@ -145,66 +145,9 @@ def run_process_spikes(subj_name, date):
                     new_data['cell'].extend(electrode_df.cell[seg_rows[trial_rows]])
                     new_data['trial'].extend((trial_idx*np.ones(len(trial_rows))).tolist())
                     new_data['time'].extend(spike_times)
-                    #for idx in range(len(trial_rows)):
-                    #    new_data['array'].append(electrode_df.array[seg_rows[trial_rows[idx]]])
-                    #    new_data['electrode'].append(electrode_df.electrode[seg_rows[trial_rows[idx]]])
-                        #new_data['cell'].append(electrode_df.cell[seg_rows[trial_rows[idx]]])
-                        #new_data['trial'].append(trial_idx)
-                        #new_data['time'].append(spike_times[idx])
                     trial_idx=trial_idx+1
             df = pd.DataFrame(new_data, columns=['array', 'electrode', 'cell', 'trial', 'time'])
             df.to_csv(os.path.join(out_dir,os.path.split(fname)[1]),index=False)
-
-
-
-
-
-    # # Get times and recording start times
-    # # trial_times = []
-    # trial_start_times = []
-    # srate = 30000.0
-    # rec_data_dir = os.path.join('/data/tool_learning/recordings/rhd2000', subj_name, date)
-    # rec_fnames = glob(os.path.join(rec_data_dir, '*rec_signal.mat'))
-    # rec_fdates = []
-    # for rec_fname in rec_fnames:
-    #     fparts = os.path.splitext(rec_fname)[0].split('_')
-    #     try:
-    #         filedate = datetime.strptime('%s.%s' % (fparts[-4], fparts[-3]), '%d%m%y.%H%M%S')
-    #         rec_fdates.append(filedate)
-    #     except:
-    #         pass
-    # rec_fnames = [x[1] for x in sorted(zip(rec_fdates, rec_fnames))]
-    # for rec_fname in rec_fnames:
-    #     mat = scipy.io.matlab.loadmat(rec_fname)
-    #     rec_signal = mat['rec_signal'][0, :]
-    #     times = np.linspace(1 / srate, rec_signal.size / srate, rec_signal.size)
-    #     recording_signal_diff = np.diff(rec_signal)
-    #     trial_start_idx = np.where(recording_signal_diff == 1)[0][0]
-    #     trial_start_time = times[trial_start_idx]
-    #     trial_times.append(times)
-    #     trial_start_times.append(trial_start_time)
-    #
-    # assert(len(trial_start_times)==len(trial_info.trial))
-    #
-    # out_dir = os.path.join('/data/tool_learning/preprocessed_data/', subj_name, date, 'spikes')
-    # if not os.path.exists(out_dir):
-    #     os.mkdir(out_dir)
-    #
-    # spike_data_dir = os.path.join('/data/tool_learning/spike_sorting', subj_name, date)
-    #
-    # # Import spikes
-    # for array_idx, region in enumerate(arrays):
-    #
-    #     fnames = glob(os.path.join(spike_data_dir, 'array_%d' % array_idx, '%s*.csv' % region))
-    #     for fname in fnames:
-    #         electrode_df = pd.read_csv(fname)
-    #         for trial_idx in np.unique(electrode_df.segment):
-    #             trial_rows = np.where(electrode_df.segment == trial_idx)[0]
-    #             trial_spike_idx = np.int64(electrode_df.time[trial_rows])
-    #             trial_spike_times = (trial_times[trial_idx][trial_spike_idx] - trial_start_times[trial_idx])*1000.0
-    #             electrode_df.time.update(pd.Series(trial_spike_times, index=trial_rows))
-    #         electrode_df.rename(columns={"segment": "trial"},inplace=True)
-    #         electrode_df.to_csv(os.path.join(out_dir,os.path.split(fname)[1]),index=False)
 
 
 def rerun(subject, date_start_str):
@@ -214,7 +157,7 @@ def rerun(subject, date_start_str):
     current_date = date_start
     while current_date <= date_now:
         date_str = datetime.strftime(current_date, '%d.%m.%y')
-        recording_path = os.path.join('/data/tool_learning/recordings/rhd2000', subject, date_str)
+        recording_path = os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/rhd2000', subject, date_str)
         if os.path.exists(recording_path):
 
             run_process_spikes(subject, date_str)
