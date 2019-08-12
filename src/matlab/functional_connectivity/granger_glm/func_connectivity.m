@@ -45,7 +45,7 @@ if ~params.mua
             for elec_idx=1:length(electrodes)
                 electrode=electrodes(elec_idx);
 
-                spike_data=readtable(fullfile(data_dir,date, sprintf('%s_%d_spikes.csv', array, electrode)));
+                spike_data=readtable(fullfile(data_dir,date, 'spikes',sprintf('%s_%d_spikes.csv', array, electrode)));
                 cells=unique(spike_data.cell);
                 if date_idx==1
                     cells_to_use{array_idx,elec_idx}=cells;
@@ -110,7 +110,7 @@ for date_idx=1:length(dates)
             array=arrays{array_idx};
             for elec_idx=1:length(electrodes)
                 electrode=electrodes(elec_idx);
-                spike_data=readtable(fullfile(data_dir,date, sprintf('%s_%d_spikes.csv', array, electrode)));
+                spike_data=readtable(fullfile(data_dir,date,'spikes',sprintf('%s_%d_spikes.csv', array, electrode)));
                 
                 if ~params.mua
                     electrode_cells_to_use=cells_to_use{array_idx,elec_idx};
@@ -182,7 +182,9 @@ granger_glm_results.causal_results=causal_results;
 % Plot the results
 fig=figure();
 colormap('parula');
-imagesc(causal_results.Phi);xlabel('Triggers');ylabel('Targets');
+imagesc(causal_results.Phi);
+xlabel('Source');
+ylabel('Target');
 colorbar();
 title('Granger causality matrix');
 saveas(fig, fullfile(params.output_path, 'phi.png'));
