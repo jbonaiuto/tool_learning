@@ -168,8 +168,11 @@ if length(files)>0
 
         for start_idx=1:length(trial_start_times)
 
+            t_info_idxs=find(strcmp(trialinfo.intan_file,fname));
+            t_info_idx=t_info_idxs(start_idx);
+            
             % Get this trial's condition
-            condition=trialinfo.condition{trialinfo.overall_trial==(trial_idx-1)};
+            condition=trialinfo.condition{t_info_idx};
 
             % Center times on trial start time
             trial_times=times-trial_start_times(start_idx);
@@ -202,8 +205,8 @@ if length(files)>0
             % occur in this trial
             trial_data.trialinfo=ones(1,2+length(exp_info.event_types)).*nan;
             trial_data.trialinfo(1)=find(strcmp(exp_info.conditions,condition));
-            trial_data.trialinfo(2)=strcmp(trialinfo.status{trialinfo.overall_trial==(trial_idx-1)},'good');
-            trial_rows=find(events.trial==(trial_idx-1));
+            trial_data.trialinfo(2)=strcmp(trialinfo.status{t_info_idx},'good');
+            trial_rows=find(events.trial==t_info_idx);
             for j=1:length(trial_rows)
                 evt_idx=find(strcmp(exp_info.event_types,events.event(trial_rows(j))));
                 if events.time(trial_rows(j))>=0 && events.time(trial_rows(j))/1000.0<=trial_end_times(start_idx)-trial_start_times(start_idx)+1

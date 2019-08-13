@@ -67,13 +67,15 @@ def generate_spike_sorting_report(subject, recording_date):
                 fig = plot_cluster_summary(dataio, catalogue, chan_grp, cluster_label)
                 fname = 'chan_%d_cluster_%d.png' % (chan_grp, cluster_label)
                 fig.savefig(os.path.join(export_path, fname))
-                plt.close(fig)
+                fig.clf()
+                plt.close()
                 channel_result['final_clusters'].append(os.path.join('array_%d' % array_idx, 'figures', fname))
 
             fig = plot_clusters_summary(dataio, catalogueconstructor, chan_grp)
             fname = 'chan_%d_clusters.png' % chan_grp
             fig.savefig(os.path.join(export_path, fname))
-            plt.close(fig)
+            fig.clf()
+            plt.close()
             channel_result['all_clusters'] = os.path.join('array_%d' % array_idx, 'figures', fname)
 
             channel_results.append(channel_result)

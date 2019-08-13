@@ -181,7 +181,8 @@ def run_compare_catalogues(subject, date, similarity_threshold=0.7):
                 fig=plot_clusters_summary(new_dataio, catalogueconstructor, ch_grp)
                 fname='chan_%d_final_clusters.png' % ch_grp
                 fig.savefig(os.path.join(plot_output_dir, fname))
-                plt.close(fig)
+                fig.clf()
+                plt.close()
                 channel_result['final']=os.path.join('array_%d' % array_idx, 'figures','catalogue_comparison',fname)
 
             channel_results.append(channel_result)
@@ -228,7 +229,8 @@ def plot_cluster_new(all_old_cluster_labels, all_old_cell_labels, all_old_isis, 
         texts = annotate_heatmap(im, valfmt='{x:.2f}', textcolors=['white', 'black'])
     plt.xlabel('Old cells')
     fig.savefig(os.path.join(plot_output_dir, fname))
-    plt.close(fig)
+    fig.clf()
+    plt.close()
 
 
 def plot_cluster_merge(old_cell_label, old_cluster_label, old_isis, old_wfs, old_wfs_stds,
@@ -258,7 +260,8 @@ def plot_cluster_merge(old_cell_label, old_cluster_label, old_isis, old_wfs, old
     ax.figure.text(.05, .75, text, va='center')  # , ha='center')
     fig.tight_layout()
     fig.savefig(os.path.join(plot_output_dir, fname))
-    plt.close(fig)
+    fig.clf()
+    plt.close()
 
 
 def plot_new_old_cluster_similarity(all_old_cluster_labels, all_old_cell_labels, new_cluster_labels, new_cell_labels, new_old_cluster_similarity, plot_output_dir,
@@ -270,7 +273,8 @@ def plot_new_old_cluster_similarity(all_old_cluster_labels, all_old_cell_labels,
     plt.xlabel('Old cells')
     plt.ylabel('New cells')
     fig.savefig(os.path.join(plot_output_dir, fname))
-    plt.close(fig)
+    fig.clf()
+    plt.close()
 
 
 def get_cluster_info(catalogueconstructor, new_dataio, ch_grp, bins, nn_idx):

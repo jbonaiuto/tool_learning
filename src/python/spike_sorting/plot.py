@@ -8,7 +8,7 @@ from tridesclous import plot_centroids, plot_waveforms_histogram, plot_isi, medi
 def plot_waveforms(wave_forms):
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
-    ax.plot(wave_forms, color='blue', alpha=0.1)
+    ax.plot(wave_forms[:,0:np.min([30000,wave_forms.shape[1]])], color='blue', alpha=0.1)
     ax.set_ylabel('MAD')
     return fig
 

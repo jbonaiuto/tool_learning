@@ -114,6 +114,10 @@ def run_process_spikes(subj_name, date):
                 seg_trial_start_idx.append([0])
                 seg_trial_end_idx.append([np.min([len(rec_signal)-1, trial_end[0]+srate])])
                 seg_trial_start_evt_idx.append([0])
+        else:
+            seg_trial_start_idx.append([])
+            seg_trial_end_idx.append([])
+            seg_trial_start_evt_idx.append([])
 
     # Import spikes
     for array_idx, region in enumerate(arrays):

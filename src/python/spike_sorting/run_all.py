@@ -37,7 +37,7 @@ def run_all(subject, date_start_str):
     current_date=date_start
     while current_date<=date_now:
         date_str=datetime.strftime(current_date, '%d.%m.%y')
-        recording_path=os.path.join('/data/tool_learning/recordings/rhd2000',subject,date_str)
+        recording_path=os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/rhd2000',subject,date_str)
         if os.path.exists(recording_path):
 
             # Compute total duration (want to use all data for clustering)
@@ -48,7 +48,6 @@ def run_all(subject, date_start_str):
                 run_process_trial_info(subject, date_str)
 
                 preprocess_data(subject, date_str)
-                (data_file_names, total_duration) = read_and_sort_data_files(recording_path)
 
                 compute_catalogue(subject, date_str, len(data_file_names), total_duration)
 

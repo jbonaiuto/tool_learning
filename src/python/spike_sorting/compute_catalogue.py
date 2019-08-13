@@ -153,7 +153,8 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
         fname = 'chan_%d_init_waveforms.png' % ch_grp
         fig = plot_waveforms(np.squeeze(cc.some_waveforms).T)
         fig.savefig(os.path.join(figure_out_dir, fname))
-        plt.close(fig)
+        fig.clf()
+        plt.close()
 
         t1 = time.perf_counter()
         # ~ duration = d['duration'] if d['limit_duration'] else None
@@ -166,6 +167,8 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
         fig = plot_waveforms(np.squeeze(cc.some_waveforms).T)
         fig.savefig(os.path.join(figure_out_dir, fname))
         plt.close(fig)
+        fig.clf()
+        plt.close()
 
         # ~ t1 = time.perf_counter()
         # ~ n_left, n_right = cc.find_good_limits(mad_threshold = 1.1,)
@@ -183,7 +186,8 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
         fname = 'chan_%d_noise.png' % ch_grp
         fig = plot_noise(cc)
         fig.savefig(os.path.join(figure_out_dir, fname))
-        plt.close(fig)
+        fig.clf()
+        plt.close()
 
         t1 = time.perf_counter()
         cc.extract_some_features(method=feat_method, **feat_kargs)
@@ -205,7 +209,8 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
         cluster_labels = cc.clusters['cluster_label']
         fig = plot_cluster_waveforms(cc, cluster_labels)
         fig.savefig(os.path.join(figure_out_dir, fname))
-        plt.close(fig)
+        fig.clf()
+        plt.close()
 
         t1 = time.perf_counter()
         if len(np.where(cc.cluster_labels > -1)[0]):
@@ -232,10 +237,12 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
 
                     fname = 'chan_%d_merge_%d_%d.png' % (ch_grp, cluster_label1, cluster_label2)
                     fig.savefig(os.path.join(figure_out_dir, fname))
-                    plt.close(fig)
+                    fig.clf()
+                    plt.close()
                     fig = plot_cluster_waveforms(cc, [cluster_label1, cluster_label2], title=title)
                     fig.savefig(os.path.join(figure_out_dir, fname))
-                    plt.close(fig)
+                    fig.clf()
+                    plt.close()
 
                     print('auto_merge', cluster_label1, 'with', cluster_label2)
                     mask = cc.all_peaks['cluster_label'] == k2
@@ -271,7 +278,7 @@ def preprocess_data(subject, recording_date):
         # remove is already exists
         shutil.rmtree(output_dir)
 
-    data_dir = os.path.join('/data/tool_learning/recordings/rhd2000/', subject, recording_date)
+    data_dir = os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/rhd2000/', subject, recording_date)
     (data_file_names, total_duration) = read_and_sort_data_files(data_dir)
 
     ## Setup DataIO
@@ -339,7 +346,7 @@ if __name__=='__main__':
     if len(sys.argv)>4:
         preprocess=sys.argv[4] in ['true','True','1']
 
-    data_dir = os.path.join('/data/tool_learning/recordings/rhd2000/', subject, recording_date)
+    data_dir = os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/rhd2000/', subject, recording_date)
     print(data_dir)
     if os.path.exists(data_dir):
         # Compute total duration (want to use all data for clustering)
@@ -353,4 +360,4 @@ if __name__=='__main__':
 
             (data_file_names, total_duration) = read_and_sort_data_files(data_dir)
 
-            compute_catalogue(subject, recording_date, len(data_file_names), total_duration)
+            compute_catalogue(subject, recording_date, len(data_file_names), np.min([2000, total_duration]))

@@ -474,10 +474,7 @@ class IntanRecordingSet:
             else:
                 # Read recording signal
                 data=rhd.read_data(file, no_floats=True)
-                if data['board_dig_in_data'].shape[0]>1:
-                    rec_signal=data['board_dig_in_data'][2,:]
-                else:
-                    rec_signal = data['board_dig_in_data'][0, :]
+                rec_signal=data['board_dig_in_data'][2,:]
                 rec_signal=rec_signal.astype(int)
 
                 # Write recording signal to output
@@ -670,9 +667,9 @@ def run_process_trial_info(subj_name, date):
                             if t_idx in intan_set.multiple_trial_files or t_idx in intan_set.cutoff_trial_files or error:
                                 status='bad'
                             trial_info['status'].append(status)
-                            trial_info['log_file'].append(log_set.logs[session_idx].file)
-                            trial_info['plexon_file'].append(plexon_set.recordings[session_idx].file)
-                            trial_info['intan_file'].append(intan_set.files[t_idx])
+                            trial_info['log_file'].append(os.path.split(log_set.logs[session_idx].file)[1])
+                            trial_info['plexon_file'].append(os.path.split(plexon_set.recordings[session_idx].file)[1])
+                            trial_info['intan_file'].append(os.path.split(intan_set.files[t_idx])[1])
                             trial_info['log_duration'].append(log_dur)
                             trial_info['plexon_duration'].append(plx_dur)
                             trial_info['intan_duration'].append(intan_dur)
@@ -709,7 +706,7 @@ def run_process_trial_info(subj_name, date):
                 trial_info['status'].append('bad')
                 trial_info['log_file'].append('')
                 trial_info['plexon_file'].append('')
-                trial_info['intan_file'].append(intan_set.files[t_idx])
+                trial_info['intan_file'].append(os.path.split(intan_set.files[t_idx])[1])
                 trial_info['log_duration'].append(float('NaN'))
                 trial_info['plexon_duration'].append(float('NaN'))
                 trial_info['intan_duration'].append(intan_dur)
@@ -1210,4 +1207,3 @@ if __name__=='__main__':
     subject = sys.argv[1]
     recording_date = sys.argv[2]
     run_process_trial_info(subject, recording_date)
-    #rerun(subject, recording_date)
