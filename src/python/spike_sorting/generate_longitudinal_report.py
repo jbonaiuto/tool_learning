@@ -116,7 +116,8 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
             plt.savefig(os.path.join(report_output_dir, fname))
             array_results.append({'array': array, 'channel': electrode, 'spike_img':fname,
                                   'impedance_img': os.path.join('img','%s_%d_impedances.png' % (array,electrode))})
-            plt.close('all')
+            fig.clf()
+            plt.close()
 
     recording_base_path = os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/rhd2000/', subject)
     array_impedances = {}
@@ -142,11 +143,13 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
 
     for array in array_impedances:
         for electrode in array_impedances[array]:
+            fig=plt.figure()
             ch_series=pd.Series(array_impedances[array][electrode],index=[datetime.strptime(x,'%d.%m.%y') for x in date_results])
             ch_series.plot(figsize=(12,4))
             plt.ylabel('impedance')
             plt.savefig(os.path.join(report_output_dir, 'img','%s_%d_impedances.png' % (array,electrode)))
-            plt.close('all')
+            fig.clf()
+            plt.close()
 
     template_dir = '/home/ferrarilab/tool_learning/src/templates'
     env = Environment(loader=FileSystemLoader(template_dir))
