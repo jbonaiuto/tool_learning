@@ -474,10 +474,7 @@ class IntanRecordingSet:
             else:
                 # Read recording signal
                 data=rhd.read_data(file, no_floats=True)
-                if data['board_dig_in_data'].shape[0]>1:
-                    rec_signal=data['board_dig_in_data'][2,:]
-                else:
-                    rec_signal = data['board_dig_in_data'][0, :]
+                rec_signal=data['board_dig_in_data'][2,:]
                 rec_signal=rec_signal.astype(int)
 
                 # Write recording signal to output
@@ -1210,4 +1207,3 @@ if __name__=='__main__':
     subject = sys.argv[1]
     recording_date = sys.argv[2]
     run_process_trial_info(subject, recording_date)
-    #rerun(subject, recording_date)
