@@ -39,7 +39,7 @@ if length(files)>0
         subject,recording_date,'trial_info.csv'));
 
     % time to cut off at beginning and end of trial due to amplifier ringing (in seconds)
-    cutoff_window=0.1;
+    %cutoff_window=0.1;
 
     % Downsampled sampling rate
     ds_rate=256;
@@ -176,7 +176,8 @@ if length(files)>0
 
             % Center times on trial start time
             trial_times=times-trial_start_times(start_idx);
-            idx=intersect(find(trial_times>=-1),find(trial_times<=trial_end_times(start_idx)-trial_start_times(start_idx)+1));
+            idx=intersect(find(trial_times>=-1),...
+                find(trial_times<=trial_end_times(start_idx)-trial_start_times(start_idx)+1));
 
             % Data structure to hold trial data
             trial_data.label={};
@@ -189,14 +190,14 @@ if length(files)>0
             
             % Cut off beginning and end (because of amplifier ringing)            
             clean_trial_data=cleaned_data(:,idx);
-            clean_trial_times=times(idx);
+            clean_trial_times=trial_times(idx);
             % Number of samples to remove from beginning and end
-            window=cutoff_window*srate;
-            if length(clean_trial_data)>2*window
-                % Remove window from beginning and end of trial
-                clean_trial_data=clean_trial_data(:,window+1:end-window);
-                clean_trial_times=clean_trial_times(window+1:end-window);
-            end
+            %window=cutoff_window*srate;
+            %if length(clean_trial_data)>2*window
+            %    % Remove window from beginning and end of trial
+            %    clean_trial_data=clean_trial_data(:,window+1:end-window);
+            %    clean_trial_times=clean_trial_times(window+1:end-window);
+            %end
             
             trial_data.trial={clean_trial_data};
             trial_data.time={clean_trial_times};        
@@ -206,11 +207,14 @@ if length(files)>0
             trial_data.trialinfo=ones(1,2+length(exp_info.event_types)).*nan;
             trial_data.trialinfo(1)=find(strcmp(exp_info.conditions,condition));
             trial_data.trialinfo(2)=strcmp(trialinfo.status{t_info_idx},'good');
-            trial_rows=find(events.trial==t_info_idx);
+            trial_rows=find(events.trial==(t_info_idx-1));
             for j=1:length(trial_rows)
-                evt_idx=find(strcmp(exp_info.event_types,events.event(trial_rows(j))));
-                if events.time(trial_rows(j))>=0 && events.time(trial_rows(j))/1000.0<=trial_end_times(start_idx)-trial_start_times(start_idx)+1
-                    trial_data.trialinfo(2+evt_idx)=events.time(trial_rows(j))/1000.0;
+                evt_type=events.event(trial_rows(j));
+                evt_idx=find(strcmp(exp_info.event_types,evt_type));
+                evt_time=events.time(trial_rows(j))/1000.0;
+                % Only include event if it occurs within the trial
+                if evt_time>=0 && evt_time<=trial_end_times(start_idx)-trial_start_times(start_idx)
+                    trial_data.trialinfo(2+evt_idx)=evt_time;
                 end
             end
 
