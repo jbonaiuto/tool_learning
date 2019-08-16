@@ -8,7 +8,7 @@ function time_frequency_go_aligned(exp_info, subject)
 base_data_path=fullfile('/data/tool_learning/preprocessed_data', subject);
 
 % Dates to load data from
-dates={'01.02.19','04.02.19','01.04.19'};
+dates={'12.02.19','13.02.19','14.02.19','18.02.19','19.02.19','01.04.19'};
 
 % Conditions to analyze
 conditions={'visual_grasp', 'motor_grasp', 'visual_pliers', 'visual_rake_pull'};
@@ -130,38 +130,48 @@ cfg_TF.t_ftimwin    = ones(length(cfg_TF.foi),1).*0.5;   % length of time window
 for i=1:length(conditions)
     condition=conditions{i};
     condition_data=all_data.(condition);
+    all_data.(condition).trial=[];
     condition_times=condition_data.time{1};
     cfg_TF.toi          = condition_times;          
     tf_data = ft_freqanalysis(cfg_TF, condition_data);
-
-	condition_baseline_data=all_data.(sprintf('%s_baseline', condition));
+    
+	condition_baseline_data=all_data.(sprintf('%s_baseline', condition));    
     condition_baseline_times=condition_baseline_data.time{1};
     cfg_TF.toi          = condition_baseline_times;      
     tf_baseline_data = ft_freqanalysis(cfg_TF, condition_baseline_data);
     baselinetime_idx=dsearchn(condition_baseline_times',params.(condition).baseline_window');
     
     % Baseline correct (log normalize) each trial
-    n_trials=length(condition_data.trial);
+    plotidx = dsearchn(condition_times',params.(condition).plot_time');
     n_chans=length(condition_data.label);
     n_freqs=length(tf_data.freq);
-    n_pts=length(tf_data.time);
-    trial_tf=zeros(n_trials,n_chans,n_freqs,n_pts);
-    for triali=1:n_trials
-        for ch=1:n_chans
-            % dB-correct
-            trial_tf_data=squeeze(tf_data.powspctrm(triali,ch,:,:));
-            baseline_power = squeeze(mean(tf_baseline_data.powspctrm(triali,ch,:,baselinetime_idx(1):baselinetime_idx(2)),4));
-            dbconverted = 10*log10( bsxfun(@rdivide,trial_tf_data,baseline_power));
-            trial_tf(triali,ch,:,:)=dbconverted;
-        end
+    n_pts=diff(plotidx)+1;
+    chan_tf=zeros(n_chans,n_freqs,n_pts);    
+    for ch=1:n_chans
+        % dB-correct
+        trial_tf_data=squeeze(tf_data.powspctrm(:,ch,:,:));
+        baseline_power = squeeze(mean(tf_baseline_data.powspctrm(:,ch,:,baselinetime_idx(1):baselinetime_idx(2)),4));
+        dbconverted = 10*log10( bsxfun(@rdivide,trial_tf_data,baseline_power));
+        % Average over trials
+        chan_tf(ch,:,:)=squeeze(mean(dbconverted(:,:,plotidx(1):plotidx(2)),1));
     end
-    plotidx = dsearchn(condition_times',params.(condition).plot_time');
+    clear tf_data;
+    clear tf_baseline_data;
+    
     % Average over trials
-    all_data.(sprintf('%s_tf', condition))=squeeze(mean(trial_tf(:,:,:,plotidx(1):plotidx(2)),1));
+    all_data.(sprintf('%s_tf', condition))=chan_tf;
+    
+    % Clear to save memory
+    all_data.(condition).trial=[];
+    all_data.(sprintf('%s_baseline', condition))=[];
+    clear condition_data;
+    clear condition_baseline_data;
 end
 
-%for labeli = 1:length(all_data.visual_grasp.label)
-    labeli=find(strcmp(all_data.visual_grasp.label,'F5hand_22'));
+chan_labels=all_data.visual_grasp.label;
+
+%for labeli = 1:length(chan_labels)
+labeli=find(strcmp(chan_labels,'F5hand_22'));
     
     % plot results
     chantf=[];
@@ -180,8 +190,7 @@ end
     f= figure();
     for i=1:length(conditions)
         condition=conditions{i};
-        condition_data=all_data.(condition);
-        condition_times=condition_data.time{1};
+        condition_times=all_data.(sprintf('%s', condition)).time;
         plotidx = dsearchn(condition_times',params.(condition).plot_time');
         
         subplot(length(conditions),1,i);
@@ -191,14 +200,13 @@ end
         set(gca,'clim',[-max_abs max_abs]);
         %set(gca,'ytick',round(round(logspace(log10(frex(1)),log10(frex(end)),10)*100)/100),'yscale','log')
         hold on
-        plot([0 0], [frex(1) frex(end)], '--w');    
         for j=1:length(events)
             mean_offset=all_data.(condition).event_mean_times(j);
             plot([mean_offset mean_offset], [frex(1) frex(end)], '--k');    
         end
         xlabel('Time (s)');
         ylabel('Frequency (Hz)');
-        title([condition ': ', strrep(condition_data.label{labeli},'_',' ')])
+        title([condition ': ', strrep(chan_labels{labeli},'_',' ')])
         h=colorbar();
         title(h,'Power (dB)');
     end    
@@ -215,7 +223,7 @@ end
     
     subplot(4,1,1);
     cond_diff=chantf.motor_grasp-chantf.visual_grasp;
-    condition_times=all_data.motor_grasp.time{1};
+    condition_times=all_data.motor_grasp.time;
     plotidx = dsearchn(condition_times',params.motor_grasp.plot_time');
     maxabs=.9.*max(abs(cond_diff(:)));
     imagesc(condition_times(plotidx(1):plotidx(2)),frex,cond_diff);
@@ -227,7 +235,7 @@ end
     plot([0 0], [frex(1) frex(end)], '--k');        
     xlabel('Time (s)');
     ylabel('Frequency (Hz)');
-    title(['motor grasp - visual grasp: ', strrep(all_data.motor_grasp.label{labeli},'_',' ')])
+    title(['motor grasp - visual grasp: ', strrep(chan_labels{labeli},'_',' ')])
     h=colorbar();
     title(h,'Power (dB)');
         
