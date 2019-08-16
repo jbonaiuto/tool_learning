@@ -27,7 +27,9 @@ concat_data.trialinfo=[];
 for i=1:length(data)
     curr_data=data{i};
     ntrials=length(curr_data.time);
-    concat_data.time(end+1:end+ntrials)=curr_data.time;
-    concat_data.trial(end+1:end+ntrials)=curr_data.trial;
-    concat_data.trialinfo(end+1:end+ntrials,:)=curr_data.trialinfo;
+    if ntrials>0
+        concat_data.time(end+1:end+ntrials)=curr_data.time;
+        concat_data.trial(end+1:end+ntrials)=curr_data.trial;
+        concat_data.trialinfo(end+1:end+ntrials,:)=curr_data.trialinfo;
+    end
 end
