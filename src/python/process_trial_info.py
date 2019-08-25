@@ -775,13 +775,13 @@ def filter_visual_events(trial, condition):
 
     # Reliable visual task events
     if len(trial['error']):
-        trial=filter_event(trial, 'error', np.min)
+        trial=filter_event(trial, 'error', np.min, after_evt='trial_start')
     if len(trial['reward']):
-        trial = filter_event(trial, 'reward', np.min)
+        trial = filter_event(trial, 'reward', np.min, after_evt='trial_start')
     if len(trial['laser_exp_start_center']):
-        trial = filter_event(trial, 'laser_exp_start_center', np.min)
+        trial = filter_event(trial, 'laser_exp_start_center', np.min, after_evt='trial_start', before_evt='trial_stop')
     if len(trial['go']):
-        trial = filter_event(trial, 'go', np.min)
+        trial = filter_event(trial, 'go', np.min, after_evt='laser_exp_start_center', before_evt='trial_stop')
 
     # Get first grasp event after go and before reward
     if len(trial['exp_grasp_center']):
@@ -806,10 +806,10 @@ def filter_visual_events(trial, condition):
             trial=filter_event(trial, 'exp_start_off', np.max, after_evt='go', before_evt='exp_grasp_center')
     # Place should be after grasp and before reward
     if len(trial['exp_place_left']):
-        trial=filter_event(trial, 'exp_place_left', np.min, after_evt='exp_grasp_center', before_evt='reward')
+        trial=filter_event(trial, 'exp_place_left', np.min, after_evt='exp_grasp_center', before_evt='trial_stop')
     # Place should be after grasp
     if len(trial['exp_place_right']):
-        trial=filter_event(trial, 'exp_place_right', np.min, after_evt='exp_grasp_center', before_evt='reward')
+        trial=filter_event(trial, 'exp_place_right', np.min, after_evt='exp_grasp_center', before_evt='trial_stop')
     return trial
 
 
@@ -821,23 +821,23 @@ def filter_motor_grasp_events(trial):
 
     # Reliable motor task events
     if len(trial['error']):
-        trial=filter_event(trial, 'error', np.min)
+        trial=filter_event(trial, 'error', np.min, after_evt='trial_start')
     if len(trial['reward']):
-        trial = filter_event(trial, 'reward', np.min)
+        trial = filter_event(trial, 'reward', np.min, after_evt='trial_start')
     if len(trial['laser_monkey_tool_center']):
-        trial = filter_event(trial, 'laser_monkey_tool_center', np.min)
+        trial = filter_event(trial, 'laser_monkey_tool_center', np.min, after_evt='trial_start', before_evt='trial_stop')
     if len(trial['go']):
-        trial = filter_event(trial, 'go', np.min)
+        trial = filter_event(trial, 'go', np.min, after_evt='laser_monkey_tool_center', before_evt='trial_stop')
 
     # Handle off should be after go
     if len(trial['monkey_handle_off']):
-        trial=filter_event(trial, 'monkey_handle_off', np.min, after_evt='go')
+        trial=filter_event(trial, 'monkey_handle_off', np.min, after_evt='go', before_evt='trial_stop')
     # Trap edge (grasp) should be after handle off
     if len(trial['trap_edge']):
-        trial=filter_event(trial, 'trap_edge', np.min, after_evt='monkey_handle_off')
+        trial=filter_event(trial, 'trap_edge', np.min, after_evt='monkey_handle_off', before_evt='trial_stop')
     # Trap bottom (place) should be between trap edge (grasp) and reward
     if len(trial['trap_bottom']):
-        trial=filter_event(trial, 'trap_bottom', np.min, after_evt='trap_edge', before_evt='reward')
+        trial=filter_event(trial, 'trap_bottom', np.min, after_evt='trap_edge', before_evt='trial_stop')
     return trial
 
 
@@ -849,38 +849,38 @@ def filter_motor_rake_events(trial):
 
     # Reliable motor task events
     if len(trial['error']):
-        trial = filter_event(trial, 'error', np.min)
+        trial = filter_event(trial, 'error', np.min, after_evt='trial_start')
     if len(trial['reward']):
-        trial = filter_event(trial, 'reward', np.min)
+        trial = filter_event(trial, 'reward', np.min, after_evt='trial_start')
     if len(trial['go']):
-        trial = filter_event(trial, 'go', np.min)
+        trial = filter_event(trial, 'go', np.min, after_evt='trial_start', before_evt='trial_stop')
 
     # Handle off should be after go
     if len(trial['monkey_handle_off']):
-        trial=filter_event(trial, 'monkey_handle_off', np.min, after_evt='go')
+        trial=filter_event(trial, 'monkey_handle_off', np.min, after_evt='go', before_evt='trial_stop')
     # Rake handle should be after handle off
     if len(trial['monkey_rake_handle']):
-        trial=filter_event(trial, 'monkey_rake_handle', np.min, after_evt='monkey_handle_off')
+        trial=filter_event(trial, 'monkey_rake_handle', np.min, after_evt='monkey_handle_off', before_evt='trial_stop')
     # Tocchino should be after rake handle
     if len(trial['monkey_tool_right']):
-        trial = filter_event(trial, 'monkey_tool_right', np.min, after_evt='monkey_rake_handle')
+        trial = filter_event(trial, 'monkey_tool_right', np.min, after_evt='monkey_rake_handle', before_evt='trial_stop')
     if len(trial['monkey_tool_mid_right']):
-        trial = filter_event(trial, 'monkey_tool_mid_right', np.min, after_evt='monkey_rake_handle')
+        trial = filter_event(trial, 'monkey_tool_mid_right', np.min, after_evt='monkey_rake_handle', before_evt='trial_stop')
     if len(trial['monkey_tool_center']):
-        trial = filter_event(trial, 'monkey_tool_center', np.min, after_evt='monkey_rake_handle')
+        trial = filter_event(trial, 'monkey_tool_center', np.min, after_evt='monkey_rake_handle', before_evt='trial_stop')
     if len(trial['monkey_tool_mid_left']):
-        trial = filter_event(trial, 'monkey_tool_mid_left', np.min, after_evt='monkey_rake_handle')
+        trial = filter_event(trial, 'monkey_tool_mid_left', np.min, after_evt='monkey_rake_handle', before_evt='trial_stop')
     if len(trial['monkey_tool_left']):
-        trial = filter_event(trial, 'monkey_tool_left', np.min, after_evt='monkey_rake_handle')
+        trial = filter_event(trial, 'monkey_tool_left', np.min, after_evt='monkey_rake_handle', before_evt='trial_stop')
     # Rake blade should be after rake handle
     if len(trial['monkey_rake_blade']):
-        trial=filter_event(trial, 'monkey_rake_blade', np.min, after_evt='monkey_rake_handle')
+        trial=filter_event(trial, 'monkey_rake_blade', np.min, after_evt='monkey_rake_handle', before_evt='trial_stop')
     # Trap edge should be after rake blade
     if len(trial['trap_edge']):
-        trial=filter_event(trial, 'trap_edge', np.min, after_evt='monkey_rake_blade')
+        trial=filter_event(trial, 'trap_edge', np.min, after_evt='monkey_rake_blade', before_evt='trial_stop')
     # Trap bottom should be after trap edge and before reward
     if len(trial['trap_bottom']):
-        trial=filter_event(trial, 'trap_bottom', np.min, after_evt='trap_edge', before_evt='reward')
+        trial=filter_event(trial, 'trap_bottom', np.min, after_evt='trap_edge', before_evt='trial_stop')
     return trial
 
 
@@ -1206,4 +1206,5 @@ def rerun(subject, date_start_str):
 if __name__=='__main__':
     subject = sys.argv[1]
     recording_date = sys.argv[2]
-    run_process_trial_info(subject, recording_date)
+    #run_process_trial_info(subject, recording_date)
+    rerun(subject,recording_date)

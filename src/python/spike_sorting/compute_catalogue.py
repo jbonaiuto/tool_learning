@@ -332,7 +332,7 @@ def read_and_sort_data_files(data_dir):
     for idx, evt_file in enumerate(data_file_names):
         fname = os.path.split(evt_file)[-1]
         fparts = fname.split('_')
-        filedate = datetime.strptime('%s %s' % (fparts[4], fparts[5].split('.')[0]), '%y%m%d %H%M%S')
+        filedate = datetime.strptime('%s %s' % (fparts[-2], fparts[-1].split('.')[0]), '%y%m%d %H%M%S')
         data_file_times.append(filedate)
     data_file_names = [x for _, x in sorted(zip(data_file_times, data_file_names))]
     return (data_file_names,total_duration)
