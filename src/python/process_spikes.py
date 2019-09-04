@@ -34,7 +34,7 @@ def run_process_spikes(subj_name, date):
     seg_times=[]
     srate = 30000.0
 
-    for rec_fname in rec_fnames:
+    for rec_idx, rec_fname in enumerate(rec_fnames):
         rec_data = json.load(open(rec_fname))
         rec_signal = np.array(rec_data['rec_signal'])
 
@@ -44,6 +44,10 @@ def run_process_spikes(subj_name, date):
         # Find trial start and end points
         trial_start = np.where(np.diff(rec_signal) == 1)[0]
         trial_end = np.where(np.diff(rec_signal) == -1)[0]
+
+        trial_start_idx = []
+        trial_end_idx = []
+        trial_start_evt_idx = []
 
         # If there is at least one start and stop time
         if len(trial_start) > 0 and len(trial_end) > 0:
@@ -59,9 +63,9 @@ def run_process_spikes(subj_name, date):
                 # Ignore single time step blups
                 if dur_step > 1:
                     add_extra=True
-                    extra_start_idx=[np.max([0, last_trial_start - srate])]
-                    extra_end_idx=[len(rec_signal) - 1]
-                    extra_start_evt_idx=[last_trial_start]
+                    extra_start_idx=np.max([0, last_trial_start - srate])
+                    extra_end_idx=len(rec_signal) - 1
+                    extra_start_evt_idx=last_trial_start
                 trial_start = trial_start[0:-1]
             elif len(trial_end) > len(trial_start):
                 first_trial_end = trial_end[0]
@@ -69,17 +73,14 @@ def run_process_spikes(subj_name, date):
                 dur_step = first_trial_end
                 # Ignore single time step blips
                 if dur_step > 1:
-                    seg_trial_start_idx.append([0])
-                    seg_trial_end_idx.append([np.min([len(rec_signal) - 1, first_trial_end + srate])])
-                    seg_trial_start_evt_idx.append([0])
+                    trial_start_idx.append(0)
+                    trial_end_idx.append(np.min([len(rec_signal) - 1, first_trial_end + srate]))
+                    trial_start_evt_idx.append(0)
                 trial_end = trial_end[1:]
 
             # Number of time steps between each up and down state switch
             dur_steps = trial_end - trial_start
 
-            trial_start_idx=[]
-            trial_end_idx=[]
-            trial_start_evt_idx=[]
             # For each trial in the file
             for idx,dur_step in enumerate(dur_steps):
                 # Ignore single time step blups
@@ -87,14 +88,15 @@ def run_process_spikes(subj_name, date):
                     trial_start_idx.append(np.max([0, trial_start[idx]-srate]))
                     trial_end_idx.append(np.min([len(rec_signal)-1, trial_end[idx]+srate]))
                     trial_start_evt_idx.append(trial_start[idx])
+
+            if add_extra:
+                trial_start_idx.append(extra_start_idx)
+                trial_end_idx.append(extra_end_idx)
+                trial_start_evt_idx.append(extra_start_evt_idx)
+
             seg_trial_start_idx.append(trial_start_idx)
             seg_trial_end_idx.append(trial_end_idx)
             seg_trial_start_evt_idx.append(trial_start_evt_idx)
-
-            if add_extra:
-                seg_trial_start_idx.append(extra_start_idx)
-                seg_trial_end_idx.append(extra_end_idx)
-                seg_trial_start_evt_idx.append(extra_start_evt_idx)
 
         # If there is a trial start and no trial end
         elif len(trial_start) > 0 and len(trial_end) == 0:
