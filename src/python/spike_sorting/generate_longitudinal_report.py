@@ -27,7 +27,8 @@ condition_map={'visual_grasp_right':'visual_grasp',
                'visual_pliers_right': 'visual_pliers',
                'visual_pliers_left': 'visual_pliers',
                'visual_rake_pull_left': 'visual_rake_pull',
-               'visual_rake_pull_right': 'visual_rake_pull'}
+               'visual_rake_pull_right': 'visual_rake_pull',
+               'fixation': 'fixation'}
 def generate_longitudinal_report(subject, date_start_str, date_end_str):
     date_start = datetime.strptime(date_start_str, '%d.%m.%y')
     date_end = datetime.strptime(date_end_str, '%d.%m.%y')
@@ -121,10 +122,14 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
 
     recording_base_path = os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/rhd2000/', subject)
     array_impedances = {}
-    for date in date_results:
-        if os.path.isdir(os.path.join(recording_base_path, date)):
+    impedance_dates=[]
+    current_date = date_start
+    while current_date <= date_end:
+        print(current_date)
+        current_date_str = datetime.strftime(current_date, '%d.%m.%y')
+        if os.path.isdir(os.path.join(recording_base_path, current_date_str)):
 
-            fname = os.path.join(recording_base_path, date, '%s_%s_impedance_data.csv' % (subject, date))
+            fname = os.path.join(recording_base_path, current_date_str, '%s_%s_impedance_data.csv' % (subject, current_date_str))
             if os.path.exists(fname):
                 print(fname)
                 with open(fname, 'rU') as csvfile:
@@ -140,11 +145,13 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
                             if not electrode in array_impedances[array]:
                                 array_impedances[array][electrode] = []
                             array_impedances[array][electrode].append(impedance)
+                impedance_dates.append(current_date_str)
+        current_date = current_date + timedelta(days=1)
 
     for array in array_impedances:
         for electrode in array_impedances[array]:
             fig=plt.figure()
-            ch_series=pd.Series(array_impedances[array][electrode],index=[datetime.strptime(x,'%d.%m.%y') for x in date_results])
+            ch_series=pd.Series(array_impedances[array][electrode],index=[datetime.strptime(x,'%d.%m.%y') for x in impedance_dates])
             ch_series.plot(figsize=(12,4))
             plt.ylabel('impedance')
             plt.savefig(os.path.join(report_output_dir, 'img','%s_%d_impedances.png' % (array,electrode)))
