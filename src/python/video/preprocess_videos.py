@@ -23,15 +23,6 @@ CAMERA_VIEWS=['front', 'side', 'top']
 CAMERA_SERIALS={'front':    '22508274',
                 'side':     '22524011',
                 'top':      '22524012'}
-BLUE_LED_ROIS={'front': [1800, 1900, 900, 1050],
-               'side':  [550,650,900,1000],#[579,593,929,949],#[589,603,934,953],
-               'top':   [400,500,0,100]}#[453,467,24,37]}
-YELLOW_LED_ROIS={'front':   [1800, 1900, 900, 1050],
-                'side':     [550,650,900,1000],#[583,595,920,933],#[592,604,922,933],
-                 'top':     [400,500,0,100]}#[468,482,23,37]}
-CROP_LIMITS={'front':   [540, 1900, 180, 1084],
-             'side':    [570, 1696, 280, 1050],
-             'top':     [340, 1530, 0, 1084]}
 
 
 """
@@ -43,6 +34,8 @@ def copy_and_rename_videos(subject, date):
     out_dir=os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data',subject, date,'video')
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
+    shutil.copy('/home/bonaiuto/Projects/tool_learning/src/python/video/default_config.json', os.path.join(out_dir, 'config.json'))
+
     for view in CAMERA_VIEWS:
         if not os.path.exists(os.path.join(out_dir, view)):
             os.mkdir(os.path.join(out_dir, view))
@@ -220,25 +213,24 @@ def combine_video(base_video_path, fnames, out_path, out_fname):
 """
 Aligns videos based on blue LED onset times, crops videos, saves video info in json files
 """
-def align_videos(subject, date, blue_roi=None, yellow_roi=None):
+def align_videos(subject, date):
     frame_buffer = 10
 
     base_video_path=os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data',subject, date,'video')
-    fnames=sorted(os.listdir(os.path.join(base_video_path, 'front')))
+    cfg={}
+    with open(os.path.join(base_video_path,'config.json')) as json_file:
+        cfg=json.load(json_file)
+    fnames=sorted(glob.glob(os.path.join(base_video_path, 'front', '%s*.avi' % date)))
 
-    # Init ROIs for blue and yellow LEDs
-    if blue_roi is None:
-        blue_roi = {}
-        for view in CAMERA_VIEWS:
-            blue_roi[view] = None
-    if yellow_roi is None:
-        yellow_roi = {}
-        for view in CAMERA_VIEWS:
-            yellow_roi[view]=None
+    rois_checked={
+        'front':False,
+        'side':False,
+        'top':False
+    }
 
     # For each file (filenames are same in each view directory)
     for fname in fnames:
-
+        fname=os.path.split(fname)[-1]
         print('Processing %s' % fname)
         blue_onsets={}
         yellow_onsets={}
@@ -264,25 +256,45 @@ def align_videos(subject, date, blue_roi=None, yellow_roi=None):
                 image = img_as_ubyte(clip.reader.read_frame())
 
                 # If not already set, show GUI to select blue LED ROI
-                if blue_roi[view] is None:
-                    blue_roi[view]=select_crop_parameters.show(image[BLUE_LED_ROIS[view][2]:BLUE_LED_ROIS[view][3],
-                                                               BLUE_LED_ROIS[view][0]:BLUE_LED_ROIS[view][1],:],
-                                                               'Select blue LED ROI')
-                    blue_roi[view][0] = blue_roi[view][0] + BLUE_LED_ROIS[view][0]
-                    blue_roi[view][1] = blue_roi[view][1] + BLUE_LED_ROIS[view][0]
-                    blue_roi[view][2] = blue_roi[view][2] + BLUE_LED_ROIS[view][2]
-                    blue_roi[view][3] = blue_roi[view][3] + BLUE_LED_ROIS[view][2]
+                if not rois_checked[view]:
+                    blue_led_roi_area=cfg['blue_led_roi_areas'][view]
+                    blue_cropped_img=image[blue_led_roi_area[2]:blue_led_roi_area[3],
+                                     blue_led_roi_area[0]:blue_led_roi_area[1],:]
+                    init_roi=None
+                    if 'blue_led_rois' not in cfg or cfg['blue_led_rois'] is None:
+                        cfg['blue_led_rois']={}
+                    if  view in cfg['blue_led_rois'] and cfg['blue_led_rois'][view] is not None:
+                        init_roi=cfg['blue_led_rois'][view]
+                        init_roi[0] = init_roi[0] - blue_led_roi_area[0]
+                        init_roi[1] = init_roi[1] - blue_led_roi_area[0]
+                        init_roi[2] = init_roi[2] - blue_led_roi_area[2]
+                        init_roi[3] = init_roi[3] - blue_led_roi_area[2]
+                    cfg['blue_led_rois'][view] = select_crop_parameters.show(blue_cropped_img, 'Select blue LED ROI', init_coords=init_roi)
+                    cfg['blue_led_rois'][view][0] = cfg['blue_led_rois'][view][0] + blue_led_roi_area[0]
+                    cfg['blue_led_rois'][view][1] = cfg['blue_led_rois'][view][1] + blue_led_roi_area[0]
+                    cfg['blue_led_rois'][view][2] = cfg['blue_led_rois'][view][2] + blue_led_roi_area[2]
+                    cfg['blue_led_rois'][view][3] = cfg['blue_led_rois'][view][3] + blue_led_roi_area[2]
 
-                # If not already set, show GUI to select yellow LED ROI
-                if yellow_roi[view] is None:
-                    yellow_roi[view]=select_crop_parameters.show(image[YELLOW_LED_ROIS[view][2]:YELLOW_LED_ROIS[view][3],
-                                                                 YELLOW_LED_ROIS[view][0]:YELLOW_LED_ROIS[view][1],:],
-                                                                 'Select yellow LED ROI')
-                    yellow_roi[view][0] = yellow_roi[view][0] + YELLOW_LED_ROIS[view][0]
-                    yellow_roi[view][1] = yellow_roi[view][1] + YELLOW_LED_ROIS[view][0]
-                    yellow_roi[view][2] = yellow_roi[view][2] + YELLOW_LED_ROIS[view][2]
-                    yellow_roi[view][3] = yellow_roi[view][3] + YELLOW_LED_ROIS[view][2]
+                    yellow_led_roi_area = cfg['yellow_led_roi_areas'][view]
+                    yellow_cropped_img = image[yellow_led_roi_area[2]:yellow_led_roi_area[3],
+                                       yellow_led_roi_area[0]:yellow_led_roi_area[1], :]
+                    init_roi = None
+                    if 'yellow_led_rois' not in cfg or cfg['yellow_led_rois'] is None:
+                        cfg['yellow_led_rois'] = {}
+                    if view in cfg['yellow_led_rois'] and cfg['yellow_led_rois'][view] is not None:
+                        init_roi = cfg['yellow_led_rois'][view]
+                        init_roi[0] = init_roi[0] - yellow_led_roi_area[0]
+                        init_roi[1] = init_roi[1] - yellow_led_roi_area[0]
+                        init_roi[2] = init_roi[2] - yellow_led_roi_area[2]
+                        init_roi[3] = init_roi[3] - yellow_led_roi_area[2]
+                    cfg['yellow_led_rois'][view] = select_crop_parameters.show(yellow_cropped_img, 'Select yellow LED ROI', init_coords=init_roi)
+                    cfg['yellow_led_rois'][view][0] = cfg['yellow_led_rois'][view][0] + yellow_led_roi_area[0]
+                    cfg['yellow_led_rois'][view][1] = cfg['yellow_led_rois'][view][1] + yellow_led_roi_area[0]
+                    cfg['yellow_led_rois'][view][2] = cfg['yellow_led_rois'][view][2] + yellow_led_roi_area[2]
+                    cfg['yellow_led_rois'][view][3] = cfg['yellow_led_rois'][view][3] + yellow_led_roi_area[2]
 
+                    rois_checked[view]=True
+                    
                 if index == int(n_frames_approx - frame_buffer * 2):
                     last_image = image
                 elif index > int(n_frames_approx - frame_buffer * 2):
@@ -291,13 +303,14 @@ def align_videos(subject, date, blue_roi=None, yellow_roi=None):
                         break
 
                 # Crop image around blue LED, get only blue channel
-                blue_led_image = image[blue_roi[view][2]:blue_roi[view][3], blue_roi[view][0]:blue_roi[view][1], 2]
+                blue_roi=cfg['blue_led_rois'][view]
+                blue_led_image = image[blue_roi[2]:blue_roi[3], blue_roi[0]:blue_roi[1], 2]
                 # Add average of cropped image to blue LED timeseries
                 blue_ts[view].append(np.mean(blue_led_image))
 
                 # Crop image around yellow LED, average red and green channels
-                yellow_led_image = np.mean(image[yellow_roi[view][2]:yellow_roi[view][3],
-                                           yellow_roi[view][0]:yellow_roi[view][1], 0:1],axis=2)
+                yellow_roi=cfg['yellow_led_rois'][view]
+                yellow_led_image = np.mean(image[yellow_roi[2]:yellow_roi[3], yellow_roi[0]:yellow_roi[1], 0:1],axis=2)
                 # Add average of cropped image to yellow LED timeseries
                 yellow_ts[view].append(np.mean(yellow_led_image))
 
@@ -396,7 +409,7 @@ def align_videos(subject, date, blue_roi=None, yellow_roi=None):
             clip = VideoFileClip(os.path.join(video_path, fname))
 
             # Crop limits based on view
-            crop_lims = CROP_LIMITS[view]
+            crop_lims = cfg['crop_limits'][view]
 
             frames=[]
             n_frames_approx = int(np.ceil(clip.duration * clip.fps)+frame_buffer)
@@ -436,8 +449,8 @@ def align_videos(subject, date, blue_roi=None, yellow_roi=None):
 
         # Save video info to JSON
         data = {
-            'blue_roi': blue_roi,
-            'yellow_roi': yellow_roi,
+            'blue_roi': cfg['blue_led_rois'],
+            'yellow_roi': cfg['yellow_led_rois'],
             'blue_ts': blue_ts,
             'yellow_ts': yellow_ts,
             'blue_onset': blue_onsets,
@@ -451,6 +464,8 @@ def align_videos(subject, date, blue_roi=None, yellow_roi=None):
 
         print('')
 
+    with open(os.path.join(base_video_path,'config.json'),'w') as outfile:
+        json.dump(cfg, outfile)
 
 """
 Match videos to recorded trial data
@@ -572,8 +587,6 @@ if __name__=='__main__':
     subject = sys.argv[1]
     date = sys.argv[2]
     copy_and_rename_videos(subject,date)
-    align_videos(subject, date)#,
-    #             blue_roi={"top": [408, 423, 23, 38], "side": [587, 601, 932, 950], "front": [1842, 1859, 979, 1004]},
-    #             yellow_roi={"top": [424, 439, 24, 39], "side": [591, 605, 919, 932], "front": [1823, 1844, 977, 1006]})
+    align_videos(subject, date)
     match_video_trials(subject,date)
     combine_videos(subject,date)

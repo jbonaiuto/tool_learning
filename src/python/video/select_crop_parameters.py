@@ -48,7 +48,7 @@ class WidgetPanel(wx.Panel):
 class MainFrame(wx.Frame):
     """Contains the main GUI and button boxes"""
 
-    def __init__(self, parent,image, title):
+    def __init__(self, parent,image, title, init_coords=None):
 # Settting the GUI size and panels design
         displays = (wx.Display(i) for i in range(wx.Display.GetCount())) # Gets the number of displays
         screenSizes = [display.GetGeometry().GetSize() for display in displays] # Gets the size of each display
@@ -99,7 +99,12 @@ class MainFrame(wx.Frame):
         self.coords = []
         self.figure = Figure()
         self.axes = self.figure.add_subplot(111)
-        MainFrame.show_image(self)
+
+        self.show_image()
+
+        if init_coords is not None:
+            self.cid.extents = init_coords[0], init_coords[1], init_coords[2], init_coords[3]
+            self.coords=init_coords
 
     def quitButton(self, event):
         """
@@ -124,12 +129,11 @@ class MainFrame(wx.Frame):
         
     def line_select_callback(self,eclick, erelease):
         'eclick and erelease are the press and release events'
-        global coords
         new_x1, new_y1 = eclick.xdata, eclick.ydata
         new_x2, new_y2 = erelease.xdata, erelease.ydata
         coords = [int(new_x1),int(new_x2),int(new_y1),int(new_y2)]
         self.coords = coords
-        return(self.coords)
+        return self.coords
         
     def helpButton(self,event):
         """
@@ -137,11 +141,12 @@ class MainFrame(wx.Frame):
         """
         wx.MessageBox('1. Use left click to select the region of interest. A red box will be drawn around the selected region. \n\n2. Use the corner points to expand the box and center to move the box around the image. \n\n3. Click ''Save parameters and Quit'' to save the croppeing parameters and close the GUI. \n\n Click OK to continue', 'Instructions to use!', wx.OK | wx.ICON_INFORMATION)
 
-def show(image, title):
+def show(image, title, init_coords=None):
     app = wx.App()
-    MainFrame(None,image,title).Show()
+    frame=MainFrame(None,image,title,init_coords=init_coords)
+    frame.Show()
     app.MainLoop()
-    return(coords)
+    return frame.coords
 
 
 if __name__ == '__main__':
