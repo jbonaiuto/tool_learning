@@ -261,8 +261,6 @@ def align_videos(subject, date):
                     blue_cropped_img=image[blue_led_roi_area[2]:blue_led_roi_area[3],
                                      blue_led_roi_area[0]:blue_led_roi_area[1],:]
                     init_roi=None
-                    if 'blue_led_rois' not in cfg or cfg['blue_led_rois'] is None:
-                        cfg['blue_led_rois']={}
                     if  view in cfg['blue_led_rois'] and cfg['blue_led_rois'][view] is not None:
                         init_roi=cfg['blue_led_rois'][view]
                         init_roi[0] = init_roi[0] - blue_led_roi_area[0]
@@ -279,8 +277,6 @@ def align_videos(subject, date):
                     yellow_cropped_img = image[yellow_led_roi_area[2]:yellow_led_roi_area[3],
                                        yellow_led_roi_area[0]:yellow_led_roi_area[1], :]
                     init_roi = None
-                    if 'yellow_led_rois' not in cfg or cfg['yellow_led_rois'] is None:
-                        cfg['yellow_led_rois'] = {}
                     if view in cfg['yellow_led_rois'] and cfg['yellow_led_rois'][view] is not None:
                         init_roi = cfg['yellow_led_rois'][view]
                         init_roi[0] = init_roi[0] - yellow_led_roi_area[0]
@@ -473,12 +469,13 @@ Match videos to recorded trial data
 def match_video_trials(subject, date):
     # Read video information
     base_video_path = os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data', subject, date, 'video')
-    fnames = sorted(os.listdir(os.path.join(base_video_path, 'front')))
+    fnames = sorted(glob.glob(os.path.join(base_video_path, 'front', '*.avi')))
 
     # Read video data
     videos=[]
     for fname in fnames:
-        [base, ext] = os.path.splitext(fname)
+        [pth,file] = os.path.split(fname)
+        [base, ext] = os.path.splitext(file)
         if os.path.exists(os.path.join(base_video_path, '%s.json' % base)):
             with open(os.path.join(base_video_path, '%s.json' % base)) as json_file:
                 data=json.load(json_file)
