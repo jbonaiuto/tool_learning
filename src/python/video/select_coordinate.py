@@ -13,6 +13,9 @@ import wx
 import cv2
 import matplotlib
 import argparse
+
+import matplotlib.pyplot as plt
+from matplotlib import patches
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.widgets import RectangleSelector
@@ -20,6 +23,9 @@ from matplotlib.widgets import RectangleSelector
 # ###########################################################################
 # Class for GUI MainFrame
 # ###########################################################################
+from deeplabcut.generate_training_dataset import auxfun_drag_label
+
+
 class ImagePanel(wx.Panel):
 
     def __init__(self, parent,gui_size,**kwargs):
@@ -41,6 +47,7 @@ class ImagePanel(wx.Panel):
         """
         return(self.figure,self.axes,self.canvas)
 
+
 class WidgetPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent, -1,style=wx.SUNKEN_BORDER)
@@ -50,6 +57,9 @@ class MainFrame(wx.Frame):
 
     def __init__(self, parent,image, title, init_coords=None):
 # Settting the GUI size and panels design
+        self.coords=init_coords
+        self.updatedCoords=init_coords
+        self.colormap = plt.get_cmap('hsv')
         displays = (wx.Display(i) for i in range(wx.Display.GetCount())) # Gets the number of displays
         screenSizes = [display.GetGeometry().GetSize() for display in displays] # Gets the size of each display
         index = 0 # For display 1.
@@ -63,14 +73,14 @@ class MainFrame(wx.Frame):
         self.statusbar.SetStatusText("")
 
         self.SetSizeHints(wx.Size(self.gui_size)) #  This sets the minimum size of the GUI. It can scale now!
-        
+
 ###################################################################################################################################################
 # Spliting the frame into top and bottom panels. Bottom panels contains the widgets. The top panel is for showing images and plotting!
         topSplitter = wx.SplitterWindow(self)
 
         self.image_panel = ImagePanel(topSplitter, self.gui_size)
         self.widget_panel = WidgetPanel(topSplitter)
-        
+
         topSplitter.SplitHorizontally(self.image_panel, self.widget_panel,sashPosition=self.gui_size[1]*0.83)#0.9
         topSplitter.SetSashGravity(1)
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -93,18 +103,13 @@ class MainFrame(wx.Frame):
         self.widget_panel.SetSizer(widgetsizer)
         self.widget_panel.SetSizerAndFit(widgetsizer)
         self.widget_panel.Layout()
-        
+
 # Variables initialization
         self.image = image
-        self.coords = []
         self.figure = Figure()
         self.axes = self.figure.add_subplot(111)
-
         self.show_image()
-
-        if init_coords is not None:
-            self.cid.extents = init_coords[0], init_coords[1], init_coords[2], init_coords[3]
-            self.coords=init_coords
+        self.plot(None)
 
     def quitButton(self, event):
         """
@@ -122,31 +127,49 @@ class MainFrame(wx.Frame):
         #frame=cv2.imread(self.image)[...,::-1]
         frame=self.image
         self.ax = self.axes.imshow(frame)
+        #self.cid=self.figure.canvas.mpl_connect('button_press_event', self.onclick_callback)
+
+
+    def plot(self,img):
+        """
+        Plots and call auxfun_drag class for moving and removing points.
+        """
+        self.updatedCoords = []
+        self.drs = []
+        for coord_idx, coord in enumerate(self.coords):
+            color = self.colormap(coord_idx*20)
+            circle = [
+                patches.Circle((coord[0], coord[1]), radius=2, fc=color, alpha=1)]
+            self.axes.add_patch(circle[0])
+            self.dr = auxfun_drag_label.DraggablePoint(circle[0], '%d' % coord_idx)
+            self.dr.connect()
+            self.drs.append(self.dr)
+            self.updatedCoords.append(self.dr.coords[0])
         self.figure.canvas.draw()
-        self.cid = RectangleSelector(self.axes, self.line_select_callback,drawtype='box', useblit=False,button=[1], minspanx=5, minspany=5,spancoords='pixels',interactive=True)
-        self.canvas.mpl_connect('key_press_event', self.cid)
-        
-        
-    def line_select_callback(self,eclick, erelease):
-        'eclick and erelease are the press and release events'
-        new_x1, new_y1 = eclick.xdata, eclick.ydata
-        new_x2, new_y2 = erelease.xdata, erelease.ydata
-        coords = [int(new_x1),int(new_x2),int(new_y1),int(new_y2)]
-        self.coords = coords
-        return self.coords
-        
+
+    #def onclick_callback(self, event):
+    #    'eclick and erelease are the press and release events'
+    #    global coords
+    #    coords = [event.xdata, event.ydata]
+    #    print(coords)
+    #    self.coords = coords
+    #    circle = patches.Circle(coords, radius=3, fc='r', alpha=.25)
+    #    self.axes.add_patch(circle)
+    #    self.figure.canvas.draw()
+    #    return(self.coords)
+
     def helpButton(self,event):
         """
         Opens Instructions
         """
-        wx.MessageBox('1. Use left click to select the region of interest. A red box will be drawn around the selected region. \n\n2. Use the corner points to expand the box and center to move the box around the image. \n\n3. Click ''Save parameters and Quit'' to save the croppeing parameters and close the GUI. \n\n Click OK to continue', 'Instructions to use!', wx.OK | wx.ICON_INFORMATION)
+        wx.MessageBox('Click on image to select a coordinate.\n\n Click OK to continue', 'Instructions to use!', wx.OK | wx.ICON_INFORMATION)
 
 def show(image, title, init_coords=None):
     app = wx.App()
-    frame=MainFrame(None,image,title,init_coords=init_coords)
+    frame=MainFrame(None,image,title, init_coords=init_coords)
     frame.Show()
     app.MainLoop()
-    return frame.coords
+    return(frame.updatedCoords)
 
 
 if __name__ == '__main__':

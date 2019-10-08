@@ -1,3 +1,5 @@
+import json
+
 import matplotlib.pyplot as plt
 import cv2
 import glob
@@ -25,11 +27,18 @@ dlc_3d_projects={
     'motor_task_grasp': {
         'motor_grasp_left': 'motor_grasp_3d-Jimmy-2019-08-13-3d',
         'motor_grasp_center': 'motor_grasp_3d-Jimmy-2019-08-13-3d',
-        'motor_grasp_right': 'motor_grasp_3d-Jimmy-2019-08-13-3d'
+        'motor_grasp_right': 'motor_grasp_3d-Jimmy-2019-08-13-3d',
+        'motor_rake_left': 'motor_grasp_3d-Jimmy-2019-09-27-3d',
+        'motor_rake_center': 'motor_grasp_3d-Jimmy-2019-09-27-3d',
+        'motor_rake_right': 'motor_grasp_3d-Jimmy-2019-09-27-3d'
     },
     'visual_task_stage1-2': {
         'visual_grasp_left': 'visual_grasp_3d-Jimmy-2019-08-19-3d',
-        'visual_grasp_right': 'visual_grasp_3d-Jimmy-2019-08-19-3d'
+        'visual_grasp_right': 'visual_grasp_3d-Jimmy-2019-08-19-3d',
+        'visual_pliers_left': 'visual_pliers_3d-Jimmy-2019-09-21-3d',
+        'visual_pliers_right': 'visual_pliers_3d-Jimmy-2019-09-21-3d',
+        'visual_rake_left': 'visual_rake_3d-Jimmy-2019-09-26-3d',
+        'visual_rake_right': 'visual_rake_3d-Jimmy-2019-09-26-3d'
     }
 }
 
@@ -51,6 +60,23 @@ dlc_projects={
             'top': 'motor_grasp_top-Anita-2019-07-03'
         }
     },
+    'motor_task_rake': {
+        'motor_rake_left': {
+            'front': 'motor_rake_front-Sebastien-2019-08-14',
+            'side': 'motor_rake_side-Sebastien-2019-08-14',
+            'top': 'motor_rake_top-Sebastien-2019-08-14'
+        },
+        'motor_rake_center': {
+            'front': 'motor_rake_front-Sebastien-2019-08-14',
+            'side': 'motor_rake_side-Sebastien-2019-08-14',
+            'top': 'motor_rake_top-Sebastien-2019-08-14'
+        },
+        'motor_rake_right': {
+            'front': 'motor_rake_front-Sebastien-2019-08-14',
+            'side': 'motor_rake_side-Sebastien-2019-08-14',
+            'top': 'motor_rake_top-Sebastien-2019-08-14'
+        }
+    },
     'visual_task_stage1-2': {
         'visual_grasp_left':{
             'front': 'visual_grasp_front-Anita-2019-07-25',
@@ -61,13 +87,52 @@ dlc_projects={
             'front': 'visual_grasp_front-Anita-2019-07-25',
             'side': 'visual_grasp_side-Anita-2019-07-25',
             'top': 'visual_grasp_top-Anita-2019-07-25'
+        },
+        'visual_pliers_left':{
+            'front': 'visual_pliers_front-Anita-2019-08-07',
+            'side': 'visual_pliers_side-Anita-2019-08-07',
+            'top': 'visual_pliers_top-Anita-2019-08-07',
+        },
+        'visual_pliers_right':{
+            'front': 'visual_pliers_front-Anita-2019-08-07',
+            'side': 'visual_pliers_side-Anita-2019-08-07',
+            'top': 'visual_pliers_top-Anita-2019-08-07',
+        },
+        'visual_rake_left':{
+            'front': 'visual_rake_front-Anita-2019-08-07',
+            'side': 'visual_rake_side-Anita-2019-08-07',
+            'top': 'visual_rake_top-Anita-2019-08-07',
+        },
+        'visual_rake_right':{
+            'front': 'visual_rake_front-Anita-2019-08-07',
+            'side': 'visual_rake_side-Anita-2019-08-07',
+            'top': 'visual_rake_top-Anita-2019-08-07',
         }
     }
 }
 
-def process_videos(subject, date, origins, table_corners, tocchini):
+def process_videos(subject, date):
     base_video_path = os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data', subject, date, 'video')
+    with open(os.path.join(base_video_path,'config.json')) as json_file:
+        cfg=json.load(json_file)
+
     trial_info = pd.read_csv('/home/bonaiuto/Projects/tool_learning/preprocessed_data/%s/%s/trial_info.csv' % (subject, date))
+
+    origin_checked={
+        'front': False,
+        'side': False,
+        'top': False,
+    }
+    table_corners_checked={
+        'front': False,
+        'side': False,
+        'top': False,
+    }
+    tocchini_checked={
+        'front': False,
+        'side': False,
+        'top': False,
+    }
     for t_idx in range(len(trial_info.index)):
         if len(trial_info.video[t_idx]):
             fname=trial_info.video[t_idx]
@@ -82,11 +147,11 @@ def process_videos(subject, date, origins, table_corners, tocchini):
             for view in CAMERA_VIEWS:
                 view_path=os.path.join(base_video_path, view)
                 if task in dlc_projects and condition in dlc_projects[task] and view in dlc_projects[task][condition]:
-                    cfg=os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data/dlc_projects',
+                    dlc_cfg=os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data/dlc_projects',
                                      dlc_projects[task][condition][view],'config.yaml')
-                    deeplabcut.analyze_videos(cfg, [os.path.join(view_path, fname)], shuffle=1, save_as_csv=True)
-                    deeplabcut.filterpredictions(cfg, os.path.join(view_path, fname), shuffle=1)
-                    deeplabcut.create_labeled_video(cfg, [os.path.join(view_path, fname)], shuffle=1, filtered=True,
+                    deeplabcut.analyze_videos(dlc_cfg, [os.path.join(view_path, fname)], shuffle=1, save_as_csv=True)
+                    deeplabcut.filterpredictions(dlc_cfg, os.path.join(view_path, fname), shuffle=1)
+                    deeplabcut.create_labeled_video(dlc_cfg, [os.path.join(view_path, fname)], shuffle=1, filtered=True,
                                                     draw_skeleton=True)
                     dlc_files = glob.glob(os.path.join(base_video_path, view, '%s*DeepCut*.mp4' % base))
                     if len(dlc_files):
@@ -96,7 +161,7 @@ def process_videos(subject, date, origins, table_corners, tocchini):
                 out_path = os.path.join(base_video_path, 'combined')
 
                 if task in dlc_3d_projects and condition in dlc_3d_projects[task]:
-                    cfg = os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data/dlc_projects',
+                    dlc_cfg = os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data/dlc_projects',
                                        dlc_3d_projects[task][condition], 'config.yaml')
                     fnames={}
                     for view in CAMERA_VIEWS:
@@ -106,28 +171,48 @@ def process_videos(subject, date, origins, table_corners, tocchini):
                         clip = VideoFileClip(fnames[view])
                         clip.reader.initialize()
                         image = img_as_ubyte(clip.reader.read_frame())
-                        if origins[view] is None:
-                            origins[view]=np.array(select_coordinate.show(image, 'Select origin'))
-                        for c_idx in range(len(table_corners)):
-                            if table_corners[c_idx][view] is None:
-                                table_corners[c_idx][view]=np.array(select_coordinate.show(image, 'Select table corner %d' % c_idx))
-                        for c_idx in range(len(tocchini)):
-                            if tocchini[c_idx][view] is None:
-                                tocchini[c_idx][view]=np.array(select_coordinate.show(image, 'Select tocchino %d' % c_idx))
+
+                        if not origin_checked[view]:
+                            init_origin=None
+                            if view in cfg['origins'] and cfg['origins'][view] is not None:
+                                init_origin = np.array(cfg['origins'][view])
+                            cfg['origins'][view]=select_coordinate.show(image, 'Select origin', init_coords=[init_origin])[0]
+                            origin_checked[view]=True
+
+                        if not table_corners_checked[view]:
+                            init_table_corners=[]
+                            if view in cfg['table_corners'] and cfg['table_corners'][view] is not None:
+                                init_table_corners=cfg['table_corners'][view]
+                            selected_corners=select_coordinate.show(image, 'Select table corners', init_coords=init_table_corners)
+                            cfg['table_corners'][view]=[]
+                            for corner in selected_corners:
+                                cfg['table_corners'][view].append(corner)
+                            table_corners_checked[view]=True
+
+                        if not tocchini_checked[view]:
+                            init_tocchini=[]
+                            if view in cfg['tocchini'] and cfg['tocchini'][view] is not None:
+                                init_tocchini = cfg['tocchini'][view]
+                            selected_tocchini = select_coordinate.show(image, 'Select tocchini', init_coords=init_tocchini)
+                            cfg['tocchini'][view] = []
+                            for tocchino in selected_tocchini:
+                                cfg['tocchini'][view].append(tocchino)
+                            tocchini_checked[view] = True
                         clip.close()
 
-                    (fname, table_corners_3d, tocchini_3d)=triangulate(cfg, origins, table_corners, tocchini, fnames, videotype='avi',
+                    (fname, table_corners_3d, tocchini_3d)=triangulate(dlc_cfg, cfg['origins'], cfg['table_corners'], cfg['tocchini'], fnames,
                                                           filterpredictions=True, destfolder=base_video_path, save_as_csv=True)
-                    vid_fname=create_labeled_video_3d(cfg, fname, table_corners_3d, tocchini_3d, fps=100, trailpoints=5,
+                    vid_fname=create_labeled_video_3d(dlc_cfg, fname, table_corners_3d, tocchini_3d, fps=100, trailpoints=5,
                                                       xlim=[-.26, .26], ylim=[-.51, 0],zlim=[-0.01,0.1])
                     video_fnames['3d']=os.path.split(vid_fname)[1]
 
                     combine_video(base_video_path, video_fnames, out_path, '%d-%d_%s-%s_labeled.mp4' % (block, trial_num, task, condition))
 
+    with open(os.path.join(base_video_path,'config.json'),'w') as outfile:
+        json.dump(cfg, outfile)
 
-def triangulate(config, origins, table_corners, tocchini, video_path, videotype='avi', filterpredictions=True, gputouse=None,
-                destfolder=None, save_as_csv=False):
-    from deeplabcut.pose_estimation_tensorflow import predict_videos
+def triangulate(config, origins, table_corners, tocchini, video_path, filterpredictions=True, destfolder=None,
+                save_as_csv=False):
 
     cfg_3d = auxiliaryfunctions.read_config(config)
     img_path, path_corners, path_camera_matrix, path_undistort = auxiliaryfunctions_3d.Foldernames3Dproject(cfg_3d)
@@ -172,7 +257,10 @@ def triangulate(config, origins, table_corners, tocchini, video_path, videotype=
     [origin, pairs_used]=locate(cam_names,{'front':1,'side':1,'top':1}, origins, pcutoff, projections)
 
     table_coords_3d=[]
-    for corner in table_corners:
+    for corner_idx in range(len(table_corners['front'])):
+        corner={}
+        for view in cam_names:
+            corner[view]=table_corners[view][corner_idx]
         [coord,pairs_used]=locate(cam_names,{'front':1,'side':1,'top':1},corner,pcutoff,projections)
         table_coords_3d.append(coord)
 
@@ -198,23 +286,41 @@ def triangulate(config, origins, table_corners, tocchini, video_path, videotype=
         table_coords_3d[idx]=coord
 
     tocchini_coords_3d=[]
-    for tocchino in tocchini:
+    for tocchino_idx in range(len(tocchini['front'])):
+        tocchino={}
+        for view in cam_names:
+            tocchino[view]=tocchini[view][tocchino_idx]
         [coord,pairs_used]=locate(cam_names,{'front':1,'side':1,'top':1},tocchino,pcutoff,projections)
         tocchini_coords_3d.append(np.matmul(rot_mat,coord)-origin)
 
     file_name_3d_scorer = []
     dataname = []
     for cam_name in cam_names:
-        cfg = snapshots[cam_name]
+        config = snapshots[cam_name]
+        cfg = auxiliaryfunctions.read_config(config)
+
         shuffle = cfg_3d[str('shuffle_' + cam_name)]
         trainingsetindex = cfg_3d[str('trainingsetindex_' + cam_name)]
 
         video=video_path[cam_name]
         vname = Path(video).stem
-        output_filename = os.path.join(destfolder, vname + '_' + scorer_3d)
 
-        DLCscorer = predict_videos.analyze_videos(cfg, [video], videotype=videotype, shuffle=shuffle,
-                                                  trainingsetindex=trainingsetindex, gputouse=gputouse)
+
+        trainFraction = cfg['TrainingFraction'][trainingsetindex]
+        modelfolder = os.path.join(cfg["project_path"],
+                                   str(auxiliaryfunctions.GetModelFolder(trainFraction, shuffle, cfg)))
+        path_test_config = Path(modelfolder) / 'test' / 'pose_cfg.yaml'
+        dlc_cfg = load_config(str(path_test_config))
+        Snapshots = np.array([fn.split('.')[0] for fn in os.listdir(os.path.join(modelfolder, 'train')) if "index" in fn])
+        snapshotindex = cfg['snapshotindex']
+
+        increasing_indices = np.argsort([int(m.split('-')[1]) for m in Snapshots])
+        Snapshots = Snapshots[increasing_indices]
+
+        dlc_cfg['init_weights'] = os.path.join(modelfolder, 'train', Snapshots[snapshotindex])
+        trainingsiterations = (dlc_cfg['init_weights'].split(os.sep)[-1]).split('-')[-1]
+        DLCscorer = auxiliaryfunctions.GetScorerName(cfg, shuffle, trainFraction,
+                                                     trainingsiterations=trainingsiterations)
 
         file_name_3d_scorer.append(DLCscorer)
 
@@ -223,7 +329,7 @@ def triangulate(config, origins, table_corners, tocchini, video_path, videotype=
         else:
             dataname.append(os.path.join(destfolder, cam_name, vname + DLCscorer + '.h5'))
 
-
+    output_filename = os.path.join(destfolder, vname + '_' + scorer_3d)
     if os.path.isfile(output_filename + '.h5'):  # TODO: don't check twice and load the pickle file to check if the same snapshots + camera matrices were used.
         print("Already analyzed...", output_filename+'.h5')
     else:
@@ -523,84 +629,4 @@ def locate(cam_names, likelihoods, camera_coords, pcutoff, projections):
 if __name__=='__main__':
     subject = sys.argv[1]
     date = sys.argv[2]
-    origins={
-        'front': np.array([665.9027205, 142.38619437]),
-        'side': np.array([962.0556872, 332.10663507]),
-        'top': np.array([561.51529513, 1041.53311381])
-    }
-    table_corners = [
-        {
-            'front': np.array([259.72311811, 185.50800148]),
-            'side': np.array([877.93246445, 125.94549763]),
-            'top': np.array([1055.24336801, 1021.51711085])
-        },
-        {
-            'front': np.array([1070.69129685, 168.81568905]),
-            'side': np.array([1011.81872038, 727.84123223]),
-            'top': np.array([76.12722349, 953.12910076])
-        },
-        {
-            'front': np.array([1329.42213947, 757.2197021]),
-            'side': np.array([33.1457346, 653.19668246]),
-            'top': np.array([99.47922693, 42.40096633])
-        },
-        {
-            'front': np.array([17.68458792, 741.91841571]),
-            'side': np.array([246.41587678, 79.73696682]),
-            'top': np.array([1172.00338524, 132.47297963])
-        }
-    ]
-
-    tocchini = [
-        {
-            'front': np.array([432.2103465255124, 267.57853757616783]),
-            'side': np.array([754.7097156398104, 215.9928909952606]),
-            'top': np.array([845.0753369852896, 841.3730842617099])
-        },
-        {
-            'front': np.array([526.8001169446668, 312.0913707145934]),
-            'side': np.array([688.3590047393366, 268.1255924170616]),
-            'top': np.array([734.9873207361359, 744.6290699821506])
-        },
-        {
-            'front': np.array([660.3386163599434, 323.2195789991998]),
-            'side': np.array([664.6623222748815, 346.324644549763]),
-            'top': np.array([591.5392995629961, 702.9290638271681])
-        },
-        {
-            'front': np.array([792.4860897396443, 303.74521450113866]),
-            'side': np.array([696.6528436018957, 434.00236966824644]),
-            'top': np.array([434.7472764202622, 722.9450667815597])
-        },
-        {
-            'front': np.array([896.813042407829, 256.4503292915615]),
-            'side': np.array([786.7002369668248, 521.6800947867298]),
-            'top': np.array([312.9832584477134, 801.3410783529267])
-        },
-        {
-            'front': np.array([155.3961654459285, 615.3350464701175]),
-            'side': np.array([342.38744075829374, 104.61848341232223]),
-            'top': np.array([1080.2633716993905, 287.59700252354276])
-        },
-        {
-            'front': np.array([507.3257524466056, 622.2901766479965]),
-            'side': np.array([305.65758293838854, 250.35308056872032]),
-            'top': np.array([760.0073244291254, 260.908998584354])
-        },
-        {
-            'front': np.array([660.3386163599434, 616.7260725056933]),
-            'side': np.array([294.9940758293838, 316.70379146919436]),
-            'top': np.array([624.8993044869821, 244.22899612236097])
-        },
-        {
-            'front': np.array([809.1784021665537, 622.2901766479965]),
-            'side': np.array([270.11255924170604, 387.79383886255926]),
-            'top': np.array([489.7912845448391, 232.5529943989659])
-        },
-        {
-            'front': np.array([1176.4092755585646, 611.1619683633901]),
-            'side': np.array([213.24052132701416, 604.6184834123223]),
-            'top': np.array([171.2032375207731, 215.872991936973])
-        }
-    ]
-    process_videos(subject, date, origins, table_corners, tocchini)
+    process_videos(subject, date)
