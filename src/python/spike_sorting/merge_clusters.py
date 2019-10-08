@@ -16,6 +16,11 @@ from tridesclous import DataIO, CatalogueConstructor, median_mad, CatalogueWindo
 # This is for selecting a GPU
 from tridesclous.tools import get_pairs_over_threshold
 
+from config import read_config
+
+cfg = read_config()
+
+
 for e in tdc.get_cl_device_list():
     print(e)
 tdc.set_default_cl_device(platform_index=0, device_index=0)
@@ -104,7 +109,7 @@ def merge_clusters(dataio, chan_grp, out_path, cluster_merge_threshold):
 
 
 def run_merge_clusters(subject, recording_date, ch_grp, threshold):
-    data_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/recordings/rhd2000/', subject, recording_date)
+    data_dir = os.path.join(cfg['intan_data_dir'], subject, recording_date)
     print(data_dir)
     if os.path.exists(data_dir):
         # Compute total duration (want to use all data for clustering)
@@ -122,7 +127,7 @@ def run_merge_clusters(subject, recording_date, ch_grp, threshold):
         data_file_names = [x for _, x in sorted(zip(data_file_times, data_file_names))]
 
         if os.path.exists(data_dir) and len(data_file_names) > 0:
-            output_dir = os.path.join('/home/bonaiuto/Projects/tool_learning/spike_sorting/', subject, recording_date)
+            output_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, recording_date)
 
             ## Setup DataIO
             dataio = DataIO(dirname=output_dir)

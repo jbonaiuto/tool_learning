@@ -15,8 +15,9 @@ from tridesclous import DataIO, Peeler, PeelerWindow
 #     print(e)
 # tdc.set_default_cl_device(platform_index=0, device_index=0)
 
-arrays = ['F1', 'F5hand', 'F5mouth', '46v-12r', '45a', 'F2']
-n_channels_per_array=32
+from config import read_config
+
+cfg = read_config()
 
 def run_peeler(dirname, chan_grp):
     dataio = DataIO(dirname=dirname, ch_grp=chan_grp)
@@ -48,7 +49,7 @@ def open_PeelerWindow(dirname, chan_grp):
 def export_spikes(dirname, array_idx, chan_grp):
     print('Exporting ch %d' % chan_grp)
     data = {'array': [], 'electrode': [], 'cell': [], 'segment': [], 'time': []}
-    array=arrays[array_idx]
+    array=cfg['arrays'][array_idx]
 
 
     dataio = DataIO(dirname=dirname, ch_grp=chan_grp)
@@ -84,10 +85,10 @@ if __name__ == '__main__':
     display_peeler = sys.argv[3] in ['true', 'True','1']
     export = sys.argv[4] in ['true', 'True', '1']
 
-    for array_idx in range(len(arrays)):
-        output_dir = os.path.join('/data/tool_learning/spike_sorting/', subject, recording_date, 'array_%d' % array_idx)
+    for array_idx in range(len(cfg['arrays'])):
+        output_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, recording_date, 'array_%d' % array_idx)
         if os.path.exists(output_dir):
-            for ch_grp in range(n_channels_per_array):
+            for ch_grp in range(cfg['n_channels_per_array']):
                 run_peeler(output_dir, chan_grp=ch_grp)
                 if display_peeler:
                     open_PeelerWindow(output_dir, ch_grp)

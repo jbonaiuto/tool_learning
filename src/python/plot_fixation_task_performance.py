@@ -1,9 +1,16 @@
+import os
+import sys
 from datetime import datetime
 
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def plot_performance(filename):
+from config import read_config
+
+cfg = read_config()
+
+def plot_performance(subject):
+    filename=os.path.join(cfg['log_dir'], subject, 'fixation_performance.csv')
     df=pd.read_csv(filename)
     print (df)
 
@@ -35,4 +42,5 @@ def plot_performance(filename):
     plt.show()
 
 if __name__=='__main__':
-    plot_performance('/home/bonaiuto/Dropbox/Projects/inProgress/tool_learning/data/fixation_performance.csv')
+    subject = sys.argv[1]
+    plot_performance(subject)

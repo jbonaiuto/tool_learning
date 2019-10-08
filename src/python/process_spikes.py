@@ -7,16 +7,21 @@ import numpy as np
 import scipy.io
 import sys
 
-arrays = ['F1', 'F5hand', 'F5mouth', '46v-12r', '45a', 'F2']
+from config import read_config
+
+cfg = read_config()
+
 
 def run_process_spikes(subj_name, date):
-
-    out_dir = os.path.join('/data/tool_learning/preprocessed_data/', subj_name, date, 'spikes')
+    preproc_dir=os.path.join(cfg['preprocessed_data_dir'], subj_name, date)
+    if not os.path.exists(preproc_dir):
+        os.mkdir(preproc_dir)
+    out_dir = os.path.join(preproc_dir, 'spikes')
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
-    spike_data_dir = os.path.join('/data/tool_learning/spike_sorting', subj_name, date)
+    spike_data_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subj_name, date)
 
-    rec_data_dir = os.path.join('/data/tool_learning/preprocessed_data/', subj_name, date,'rhd2000')
+    rec_data_dir = os.path.join(cfg['preprocessed_data_dir'], subj_name, date,'rhd2000')
     rec_fnames = glob(os.path.join(rec_data_dir, '*.json'))
     rec_fdates = []
     for rec_fname in rec_fnames:
@@ -32,7 +37,7 @@ def run_process_spikes(subj_name, date):
     seg_trial_end_idx=[]
     seg_trial_start_evt_idx=[]
     seg_times=[]
-    srate = 30000.0
+    srate = cfg['intan_srate']
 
     for rec_idx, rec_fname in enumerate(rec_fnames):
         rec_data = json.load(open(rec_fname))
@@ -122,7 +127,7 @@ def run_process_spikes(subj_name, date):
             seg_trial_start_evt_idx.append([])
 
     # Import spikes
-    for array_idx, region in enumerate(arrays):
+    for array_idx, region in enumerate(cfg['arrays']):
 
         fnames = glob(os.path.join(spike_data_dir, 'array_%d' % array_idx, '%s*.csv' % region))
         for fname in fnames:
@@ -163,7 +168,7 @@ def rerun(subject, date_start_str):
     current_date = date_start
     while current_date <= date_now:
         date_str = datetime.strftime(current_date, '%d.%m.%y')
-        recording_path = os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/rhd2000', subject, date_str)
+        recording_path = os.path.join(cfg['intan_data_dir'], subject, date_str)
         if os.path.exists(recording_path):
 
             run_process_spikes(subject, date_str)

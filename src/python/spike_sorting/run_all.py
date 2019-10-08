@@ -11,21 +11,23 @@ from spike_sorting.generate_longitudinal_report import generate_longitudinal_rep
 from spike_sorting.generate_spike_sorting_report import generate_spike_sorting_report
 from spike_sorting.run_peeler import run_peeler, export_spikes
 
-arrays = ['F1', 'F5hand', 'F5mouth', '46v/12r', '45a', 'F2']
+from config import read_config
+
+cfg = read_config()
 
 def array_peeler(array_idx, subject, date_str):
-    output_dir = os.path.join('/data/tool_learning/spike_sorting/', subject, date_str,
+    output_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, date_str,
                               'array_%d' % array_idx)
     if os.path.exists(output_dir):
-        for ch_grp in range(32):
+        for ch_grp in range(cfg['n_channels_per_array']):
             run_peeler(output_dir, chan_grp=ch_grp)
 
 
 def array_export_spikes(array_idx, subject, date_str):
-    output_dir = os.path.join('/data/tool_learning/spike_sorting/', subject, date_str,
+    output_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, date_str,
                               'array_%d' % array_idx)
     if os.path.exists(output_dir):
-        for ch_grp in range(32):
+        for ch_grp in range(cfg['n_channels_per_array']):
             run_peeler(output_dir, chan_grp=ch_grp)
             export_spikes(output_dir, array_idx, ch_grp)
 
@@ -37,7 +39,7 @@ def run_all(subject, date_start_str):
     current_date=date_start
     while current_date<=date_now:
         date_str=datetime.strftime(current_date, '%d.%m.%y')
-        recording_path=os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/rhd2000',subject,date_str)
+        recording_path=os.path.join(cfg['intan_data_dir'],subject,date_str)
         if os.path.exists(recording_path):
 
             # Compute total duration (want to use all data for clustering)
@@ -47,18 +49,20 @@ def run_all(subject, date_start_str):
 
                 run_process_trial_info(subject, date_str)
 
-                preprocess_data(subject, date_str)
+                preprocess_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, date_str, 'preprocess')
+                if not os.path.exists(preprocess_dir):
+                    preprocess_data(subject, date_str)
 
                 compute_catalogue(subject, date_str, len(data_file_names), total_duration)
 
-                for array_idx in range(6):
+                for array_idx in range(len(cfg['arrays'])):
                     array_peeler(array_idx, subject, date_str)
 
                 generate_spike_sorting_report(subject, date_str)
 
                 run_compare_catalogues(subject, date_str)
 
-                for array_idx in range(6):
+                for array_idx in range(len(cfg['arrays'])):
                     array_export_spikes(array_idx, subject, date_str)
 
                 run_process_spikes(subject, date_str)

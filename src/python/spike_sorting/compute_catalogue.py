@@ -21,13 +21,14 @@ from tridesclous import DataIO, CatalogueConstructor, CatalogueWindow
 
 from spike_sorting.plot import plot_noise, plot_waveforms, plot_cluster_waveforms
 
+from config import read_config
+
+cfg = read_config()
+
 # This is for selecting a GPU
 for e in tdc.get_cl_device_list():
     print(e)
 tdc.set_default_cl_device(platform_index=0, device_index=0)
-
-arrays = ['F1', 'F5hand', 'F5mouth', '46v/12r', '45a', 'F2']
-n_channels_per_array=32
 
 def preprocess_array(array_idx, output_dir, total_duration):
     dataio = DataIO(dirname=output_dir, ch_grp=array_idx)
@@ -63,7 +64,7 @@ def preprocess_array(array_idx, output_dir, total_duration):
 
 def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, n_segments, total_duration,
                             cluster_merge_threshold):
-    output_dir = os.path.join('/data/tool_learning/spike_sorting/', subject, recording_date, 'array_%d' % array_idx)
+    output_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, recording_date, 'array_%d' % array_idx)
     if os.path.exists(output_dir):
         # remove is already exists
         shutil.rmtree(output_dir)
@@ -73,14 +74,14 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
         data_file_names.append(
             os.path.join(preprocess_dir, 'channel_group_%d' % array_idx, 'segment_%d' % seg, 'processed_signals.raw'))
     dataio = DataIO(dirname=output_dir)
-    dataio.set_data_source(type='RawData', filenames=data_file_names, dtype='float32', sample_rate=30000,
-                           total_channel=32)
+    dataio.set_data_source(type='RawData', filenames=data_file_names, dtype='float32', sample_rate=cfg['intan_srate'],
+                           total_channel=cfg['n_channels_per_array'])
     dataio.datasource.bit_to_microVolt = 0.195
-    for ch_grp in range(n_channels_per_array):
+    for ch_grp in range(cfg['n_channels_per_array']):
         dataio.add_one_channel_group(channels=[ch_grp], chan_grp=ch_grp)
     figure_out_dir = os.path.join(output_dir, 'figures')
     os.mkdir(figure_out_dir)
-    for ch_grp in range(n_channels_per_array):
+    for ch_grp in range(cfg['n_channels_per_array']):
         print(ch_grp)
         cc = CatalogueConstructor(dataio=DataIO(dirname=output_dir, ch_grp=ch_grp), chan_grp=ch_grp)
 
@@ -150,11 +151,11 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
         t2 = time.perf_counter()
         print('extract_some_waveforms', t2 - t1)
 
-        fname = 'chan_%d_init_waveforms.png' % ch_grp
-        fig = plot_waveforms(np.squeeze(cc.some_waveforms).T)
-        fig.savefig(os.path.join(figure_out_dir, fname))
-        fig.clf()
-        plt.close()
+        # fname = 'chan_%d_init_waveforms.png' % ch_grp
+        # fig = plot_waveforms(np.squeeze(cc.some_waveforms).T)
+        # fig.savefig(os.path.join(figure_out_dir, fname))
+        # fig.clf()
+        # plt.close()
 
         t1 = time.perf_counter()
         # ~ duration = d['duration'] if d['limit_duration'] else None
@@ -163,12 +164,11 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
         t2 = time.perf_counter()
         print('clean_waveforms', t2 - t1)
 
-        fname = 'chan_%d_clean_waveforms.png' % ch_grp
-        fig = plot_waveforms(np.squeeze(cc.some_waveforms).T)
-        fig.savefig(os.path.join(figure_out_dir, fname))
-        plt.close(fig)
-        fig.clf()
-        plt.close()
+        # fname = 'chan_%d_clean_waveforms.png' % ch_grp
+        # fig = plot_waveforms(np.squeeze(cc.some_waveforms).T)
+        # fig.savefig(os.path.join(figure_out_dir, fname))
+        # fig.clf()
+        # plt.close()
 
         # ~ t1 = time.perf_counter()
         # ~ n_left, n_right = cc.find_good_limits(mad_threshold = 1.1,)
@@ -179,8 +179,6 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
         cc.extract_some_noise(**fullchain_kargs['noise_snippet'])
         t2 = time.perf_counter()
         print('extract_some_noise', t2 - t1)
-
-        # ~ print(cc)
 
         # Plot noise
         fname = 'chan_%d_noise.png' % ch_grp
@@ -270,15 +268,15 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
 # p = Pool(ncpus=4)
 
 def preprocess_data(subject, recording_date):
-    base_path=os.path.join('/data/tool_learning/spike_sorting/', subject, recording_date)
+    base_path=os.path.join(cfg['single_unit_spike_sorting_dir'], subject, recording_date)
     if not os.path.exists(base_path):
         os.mkdir(base_path)
-    output_dir = os.path.join('/data/tool_learning/spike_sorting/', subject, recording_date, 'preprocess')
+    output_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, recording_date, 'preprocess')
     if os.path.exists(output_dir):
         # remove is already exists
         shutil.rmtree(output_dir)
 
-    data_dir = os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/rhd2000/', subject, recording_date)
+    data_dir = os.path.join(cfg['intan_data_dir'], subject, recording_date)
     (data_file_names, total_duration) = read_and_sort_data_files(data_dir)
 
     ## Setup DataIO
@@ -287,22 +285,22 @@ def preprocess_data(subject, recording_date):
     dataio.set_data_source(type='Intan', filenames=data_file_names)
 
     # Setup channel groups
-    for array_idx in range(len(arrays)):
-        dataio.add_one_channel_group(channels=range(array_idx * n_channels_per_array, (array_idx + 1) * n_channels_per_array), chan_grp=array_idx)
+    for array_idx in range(len(cfg['arrays'])):
+        dataio.add_one_channel_group(channels=range(array_idx * cfg['n_channels_per_array'], (array_idx + 1) * cfg['n_channels_per_array']), chan_grp=array_idx)
 
     print(dataio)
 
-    for array_idx in range(len(arrays)):
+    for array_idx in range(len(cfg['arrays'])):
         print(array_idx)
         preprocess_array(array_idx, output_dir, total_duration)
 
 
 def compute_catalogue(subject, recording_date, n_segments, total_duration, cluster_merge_threshold=0.7):
 
-    preprocess_dir=os.path.join('/data/tool_learning/spike_sorting/', subject, recording_date,'preprocess')
+    preprocess_dir=os.path.join(cfg['single_unit_spike_sorting_dir'], subject, recording_date,'preprocess')
     if os.path.exists(preprocess_dir):
 
-        for array_idx in range(len(arrays)):
+        for array_idx in range(len(cfg['arrays'])):
             compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, n_segments, total_duration,
                                     cluster_merge_threshold)
 
@@ -346,7 +344,7 @@ if __name__=='__main__':
     if len(sys.argv)>4:
         preprocess=sys.argv[4] in ['true','True','1']
 
-    data_dir = os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/rhd2000/', subject, recording_date)
+    data_dir = os.path.join(cfg['intan_data_dir'], subject, recording_date)
     print(data_dir)
     if os.path.exists(data_dir):
         # Compute total duration (want to use all data for clustering)
@@ -357,7 +355,5 @@ if __name__=='__main__':
             if preprocess:
                 print('Preprocessing')
                 preprocess_data(subject, recording_date)
-
-            (data_file_names, total_duration) = read_and_sort_data_files(data_dir)
 
             compute_catalogue(subject, recording_date, len(data_file_names), np.min([2000, total_duration]))
