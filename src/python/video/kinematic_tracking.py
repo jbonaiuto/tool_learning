@@ -136,7 +136,8 @@ def process_videos(subject, date):
     for t_idx in range(len(trial_info.index)):
         if len(trial_info.video[t_idx]):
             fname=trial_info.video[t_idx]
-            (base, ext) = os.path.splitext(fname)
+            base_fname=os.path.split(fname)[1]
+            (base, ext) = os.path.splitext(base_fname)
 
             block = trial_info.block[t_idx]
             task=trial_info.task[t_idx]
@@ -149,9 +150,9 @@ def process_videos(subject, date):
                 if task in dlc_projects and condition in dlc_projects[task] and view in dlc_projects[task][condition]:
                     dlc_cfg=os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data/dlc_projects',
                                      dlc_projects[task][condition][view],'config.yaml')
-                    deeplabcut.analyze_videos(dlc_cfg, [os.path.join(view_path, fname)], shuffle=1, save_as_csv=True)
-                    deeplabcut.filterpredictions(dlc_cfg, os.path.join(view_path, fname), shuffle=1)
-                    deeplabcut.create_labeled_video(dlc_cfg, [os.path.join(view_path, fname)], shuffle=1, filtered=True,
+                    deeplabcut.analyze_videos(dlc_cfg, [os.path.join(view_path, base_fname)], shuffle=1, save_as_csv=True)
+                    deeplabcut.filterpredictions(dlc_cfg, os.path.join(view_path, base_fname), shuffle=1)
+                    deeplabcut.create_labeled_video(dlc_cfg, [os.path.join(view_path, base_fname)], shuffle=1, filtered=True,
                                                     draw_skeleton=True)
                     dlc_files = glob.glob(os.path.join(base_video_path, view, '%s*DeepCut*.mp4' % base))
                     if len(dlc_files):
@@ -166,7 +167,7 @@ def process_videos(subject, date):
                     fnames={}
                     for view in CAMERA_VIEWS:
                         view_path = os.path.join(base_video_path, view)
-                        fnames[view]=os.path.join(view_path, fname)
+                        fnames[view]=os.path.join(view_path, base_fname)
 
                         clip = VideoFileClip(fnames[view])
                         clip.reader.initialize()
