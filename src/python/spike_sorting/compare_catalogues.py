@@ -9,11 +9,10 @@ from tridesclous import metrics
 import matplotlib.pyplot as plt
 import os
 
+from config import read_config
 from spike_sorting.plot import heatmap, annotate_heatmap, plot_clusters_summary
-from spike_sorting.run_peeler import export_spikes
 
-arrays = ['F1', 'F5hand', 'F5mouth', '46v-12r', '45a', 'F2']
-n_channels_per_array=32
+cfg = read_config()
 
 _cluster_merge_template = """
 Cluster {new_cluster_label}, Cell {new_cell_label}
@@ -35,16 +34,16 @@ def run_compare_catalogues(subject, date, similarity_threshold=0.7):
     # Results for report
     channel_results = []
 
-    for array_idx in range(len(arrays)):
-        new_output_dir = os.path.join('/data/tool_learning/spike_sorting/', subject, date, 'array_%d' % array_idx)
+    for array_idx in range(len(cfg['arrays'])):
+        new_output_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, date, 'array_%d' % array_idx)
 
         # Create directory for plots
-        plot_output_dir = os.path.join('/data/tool_learning/spike_sorting/', subject ,date, 'array_%d' % array_idx, 'figures', 'catalogue_comparison')
+        plot_output_dir = os.path.join(new_output_dir, 'figures', 'catalogue_comparison')
         if not os.path.exists(plot_output_dir):
             os.mkdir(plot_output_dir)
 
-        for ch_grp in range(n_channels_per_array):
-            channel_result = {'array': arrays[array_idx], 'channel': ch_grp, 'merged': [], 'unmerged': [], 'final': ''}
+        for ch_grp in range(cfg['n_channels_per_array']):
+            channel_result = {'array': cfg['arrays'][array_idx], 'channel': ch_grp, 'merged': [], 'unmerged': [], 'final': ''}
 
             # load catalogue for this channel
             new_dataio = DataIO(dirname=new_output_dir, ch_grp=ch_grp)
@@ -78,7 +77,7 @@ def run_compare_catalogues(subject, date, similarity_threshold=0.7):
 
                 for old_date,old_file in zip(sorted_dates,sorted_files):
                     if old_date<new_date:
-                        old_output_dir = os.path.join('/data/tool_learning/spike_sorting/', subject, old_file, 'array_%d' % array_idx)
+                        old_output_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, old_file, 'array_%d' % array_idx)
                         old_dataio = DataIO(dirname=old_output_dir, ch_grp=ch_grp, reload_data_source=False)
 
                         old_catalogueconstructor = CatalogueConstructor(dataio=old_dataio, chan_grp=ch_grp, load_persistent_arrays=False)
@@ -188,16 +187,15 @@ def run_compare_catalogues(subject, date, similarity_threshold=0.7):
             channel_results.append(channel_result)
 
 
-    template_dir = '/home/ferrarilab/tool_learning/src/templates'
-    env = Environment(loader=FileSystemLoader(template_dir))
+    env = Environment(loader=FileSystemLoader(cfg['template_dir']))
     template = env.get_template('spike_sorting_merge_template.html')
     template_output = template.render(subject=subject, recording_date=date, channel_results=channel_results)
 
-    out_filename = os.path.join('/data/tool_learning/spike_sorting/', subject, date, 'spike_sorting_merge_report.html')
+    out_filename = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, date, 'spike_sorting_merge_report.html')
     with open(out_filename, 'w') as fh:
         fh.write(template_output)
 
-    copyfile(os.path.join(template_dir, 'style.css'), os.path.join('/data/tool_learning/spike_sorting/', subject, date, 'style.css'))
+    copyfile(os.path.join(cfg['template_dir'], 'style.css'), os.path.join(cfg['single_unit_spike_sorting_dir'], subject, date, 'style.css'))
 
 
 def plot_cluster_new(all_old_cluster_labels, all_old_cell_labels, all_old_isis, all_old_wfs, all_old_wfs_stds,
@@ -309,10 +307,10 @@ def compute_cluster_isis(bins, ch_grp, cluster_label, new_dataio):
 
 
 def read_previous_sorts(subject):
-    x = os.listdir(os.path.join('/data/tool_learning/spike_sorting/', subject))
+    x = os.listdir(os.path.join(cfg['single_unit_spike_sorting_dir'], subject))
     sorted_files = []
     for y in x:
-        if os.path.isdir(os.path.join('/data/tool_learning/spike_sorting/', subject, y)):
+        if os.path.isdir(os.path.join(cfg['single_unit_spike_sorting_dir'], subject, y)):
             try:
                 datetime.strptime(y, '%d.%m.%y')
                 sorted_files.append(y)

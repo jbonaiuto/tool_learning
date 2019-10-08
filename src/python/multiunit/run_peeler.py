@@ -48,7 +48,7 @@ def open_PeelerWindow(dirname, chan_grp):
 
 def export_spikes(dirname, array_idx, chan_grp):
     print('Exporting ch %d' % chan_grp)
-    data = {'array': [], 'electrode': [], 'cell': [], 'segment': [], 'time': []}
+    data = {'array': [], 'electrode': [], 'segment': [], 'time': []}
     array=cfg['arrays'][array_idx]
 
 
@@ -71,11 +71,10 @@ def export_spikes(dirname, array_idx, chan_grp):
             if label>=0:
                 data['array'].append(array)
                 data['electrode'].append(chan_grp)
-                data['cell'].append(label)
                 data['segment'].append(seg_num)
                 data['time'].append(index)
         dataio.flush_processed_signals(seg_num=seg_num, chan_grp=chan_grp)
-    df=pd.DataFrame(data, columns=['array','electrode','cell','segment','time'])
+    df=pd.DataFrame(data, columns=['array','electrode','segment','time'])
     df.to_csv(os.path.join(dirname,'%s_%d_spikes.csv' % (array, chan_grp)), index=False)
 
 
@@ -86,7 +85,7 @@ if __name__ == '__main__':
     export = sys.argv[4] in ['true', 'True', '1']
 
     for array_idx in range(len(cfg['arrays'])):
-        output_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, recording_date, 'array_%d' % array_idx)
+        output_dir = os.path.join(cfg['multi_unit_spike_sorting_dir'], subject, recording_date, 'multiunit', 'array_%d' % array_idx)
         if os.path.exists(output_dir):
             for ch_grp in range(cfg['n_channels_per_array']):
                 run_peeler(output_dir, chan_grp=ch_grp)

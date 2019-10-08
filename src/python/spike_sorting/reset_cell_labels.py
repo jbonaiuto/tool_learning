@@ -1,13 +1,16 @@
 import os
 import sys
 from tridesclous import DataIO, CatalogueConstructor
+from config import read_config
+
+cfg = read_config()
 
 def reset_cell_labels(subject, date):
-    output_dir = '/data/tool_learning/spike_sorting/%s/%s' % (subject, date)
+    output_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, date)
 
-    for array_idx in range(6):
+    for array_idx in range(len(cfg['arrays'])):
         array_dir=os.path.join(output_dir,'array_%d' % array_idx)
-        for ch_grp in range(32):
+        for ch_grp in range(cfg['n_channels_per_array']):
             print(ch_grp)
             new_dataio = DataIO(dirname=array_dir, ch_grp=ch_grp)
             catalogueconstructor = CatalogueConstructor(dataio=new_dataio,chan_grp=ch_grp)

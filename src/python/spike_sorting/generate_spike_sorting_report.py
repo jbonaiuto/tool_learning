@@ -13,17 +13,18 @@ faulthandler.enable()
 import matplotlib.pyplot as plt
 from tridesclous import DataIO, CatalogueConstructor
 
-arrays = ['F1', 'F5hand', 'F5mouth', '46v-12r', '45a', 'F2']
-n_channels_per_array=32
+from config import read_config
+
+cfg = read_config()
 
 def generate_spike_sorting_report(subject, recording_date):
 
-    data_dir = os.path.join('/data/tool_learning/spike_sorting/', subject, recording_date)
+    data_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, recording_date)
 
     channel_results=[]
 
-    for array_idx in range(len(arrays)):
-        array = arrays[array_idx]
+    for array_idx in range(len(cfg['arrays'])):
+        array = cfg['arrays'][array_idx]
         print(array)
 
         array_data_dir=os.path.join(data_dir, 'array_%d' % array_idx)
@@ -32,7 +33,7 @@ def generate_spike_sorting_report(subject, recording_date):
         if not os.path.exists(export_path):
             os.makedirs(export_path)
 
-        for chan_grp in range(n_channels_per_array):
+        for chan_grp in range(cfg['n_channels_per_array']):
             print(chan_grp)
 
             dataio = DataIO(array_data_dir, ch_grp=chan_grp)
@@ -80,8 +81,7 @@ def generate_spike_sorting_report(subject, recording_date):
 
             channel_results.append(channel_result)
 
-    template_dir='/home/ferrarilab/tool_learning/src/templates'
-    env=Environment(loader=FileSystemLoader(template_dir))
+    env=Environment(loader=FileSystemLoader(cfg['template_dir']))
     template=env.get_template('spike_sorting_results_template.html')
     template_output=template.render(subject=subject, recording_date=recording_date, channel_results=channel_results)
 
@@ -89,7 +89,7 @@ def generate_spike_sorting_report(subject, recording_date):
     with open(out_filename,'w') as fh:
         fh.write(template_output)
 
-    copyfile(os.path.join(template_dir,'style.css'),os.path.join(data_dir,'style.css'))
+    copyfile(os.path.join(cfg['template_dir'],'style.css'),os.path.join(data_dir,'style.css'))
 
 
 if __name__=='__main__':

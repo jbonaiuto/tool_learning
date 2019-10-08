@@ -11,7 +11,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from jinja2 import Environment, FileSystemLoader
 
-arrays = ['F1', 'F5hand', 'F5mouth', '46v-12r', '45a', 'F2']
+from config import read_config
+
+cfg = read_config()
+
 array_map={'F1':'F1',
            'F5(HAND)':'F5hand',
            'F5(MOUTH)':'F5mouth',
@@ -28,12 +31,14 @@ condition_map={'visual_grasp_right':'visual_grasp',
                'visual_pliers_left': 'visual_pliers',
                'visual_rake_pull_left': 'visual_rake_pull',
                'visual_rake_pull_right': 'visual_rake_pull',
-               'fixation': 'fixation'}
+               'fixation': 'fixation',
+               'motor_rake_center':'motor_rake'}
+
 def generate_longitudinal_report(subject, date_start_str, date_end_str):
     date_start = datetime.strptime(date_start_str, '%d.%m.%y')
     date_end = datetime.strptime(date_end_str, '%d.%m.%y')
 
-    report_output_dir=os.path.join('/data/tool_learning/spike_sorting',subject)
+    report_output_dir=os.path.join(cfg['single_unit_spike_sorting_dir'],subject)
     if not os.path.exists(report_output_dir):
         os.mkdir(report_output_dir)
     if not os.path.exists(os.path.join(report_output_dir,'img')):
@@ -42,7 +47,7 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
     array_results=[]
     date_results=[]
 
-    for array in arrays:
+    for array in cfg['arrays']:
         current_date = date_start
         print(array)
         electrode_data={}
@@ -51,13 +56,13 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
             print(current_date)
             current_date_str = datetime.strftime(current_date, '%d.%m.%y')
 
-            trial_info_fname=os.path.join('/data/tool_learning/preprocessed_data',subject,current_date_str,'trial_info.csv')
+            trial_info_fname=os.path.join(cfg['preprocessed_data_dir'],subject,current_date_str,'trial_info.csv')
             if os.path.exists(trial_info_fname):
                 trial_info=pd.read_csv(trial_info_fname)
 
                 trial_durations = trial_info['intan_duration'].values
 
-                spike_data_dir = os.path.join('/data/tool_learning/preprocessed_data/', subject, datetime.strftime(current_date,'%d.%m.%y'),'spikes')
+                spike_data_dir = os.path.join(cfg['preprocessed_data_dir'], subject, datetime.strftime(current_date,'%d.%m.%y'),'spikes')
 
                 fnames = glob(os.path.join(spike_data_dir, '%s*spikes.csv' % array))
                 for fname in sorted(fnames):
@@ -109,10 +114,11 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
                 for cell in electrode_data[electrode]:
                     if condition in electrode_data[electrode][cell]:
                         condition_data[str(cell)]=pd.Series(electrode_data[electrode][cell][condition], index=dates)
-                condition_df=pd.DataFrame(condition_data, index=dates)
-                ax=plt.subplot(len(conditions),1,idx+1)
-                condition_df.plot(ax=ax)
-                plt.ylabel('%s rate (Hz)' % condition)
+                if len(condition_data.keys())>0:
+                    condition_df=pd.DataFrame(condition_data, index=dates)
+                    ax=plt.subplot(len(conditions),1,idx+1)
+                    condition_df.plot(ax=ax)
+                    plt.ylabel('%s rate (Hz)' % condition)
             fname=os.path.join('img','%s_%d_spikes.png' % (array,electrode))
             plt.savefig(os.path.join(report_output_dir, fname))
             array_results.append({'array': array, 'channel': electrode, 'spike_img':fname,
@@ -120,8 +126,13 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
             fig.clf()
             plt.close()
 
-    recording_base_path = os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/rhd2000/', subject)
+    recording_base_path = os.path.join(cfg['intan_data_dir'],subject)
     array_impedances = {}
+    for array in cfg['arrays']:
+        array_impedances[array]={}
+        for electrode in range(cfg['n_channels_per_array']):
+            array_impedances[array][electrode]=[]
+
     impedance_dates=[]
     current_date = date_start
     while current_date <= date_end:
@@ -134,18 +145,28 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
                 print(fname)
                 with open(fname, 'rU') as csvfile:
                     reader = csv.reader(csvfile, delimiter=',')
+                    empty_file=True
+                    day_impedances={}
+                    for array in cfg['arrays']:
+                        day_impedances[array] = {}
+                        for electrode in range(cfg['n_channels_per_array]']):
+                            day_impedances[array][electrode] = float('NaN')
                     for idx, row in enumerate(reader):
                         if idx > 0:
+                            empty_file=False
                             chan_name = row[1]
                             array = array_map[chan_name.split('-')[0]]
                             electrode = int(chan_name.split('-')[1])-1#+arrays.index(array)*32
                             impedance = float(row[4])
-                            if not array in array_impedances:
-                                array_impedances[array] = {}
-                            if not electrode in array_impedances[array]:
-                                array_impedances[array][electrode] = []
-                            array_impedances[array][electrode].append(impedance)
-                impedance_dates.append(current_date_str)
+                            day_impedances[array][electrode]=impedance
+                    for array in cfg['arrays']:
+                        for electrode in range(cfg['n_channels_per_array']):
+                            array_impedances[array][electrode].append(day_impedances[array][electrode])
+                    if not empty_file:
+                        impedance_dates.append(current_date_str)
+                    else:
+                        print('no impedance data for %s!' % current_date_str)
+
         current_date = current_date + timedelta(days=1)
 
     for array in array_impedances:
@@ -158,8 +179,7 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
             fig.clf()
             plt.close()
 
-    template_dir = '/home/ferrarilab/tool_learning/src/templates'
-    env = Environment(loader=FileSystemLoader(template_dir))
+    env = Environment(loader=FileSystemLoader(cfg['template_dir']))
     template = env.get_template('spike_sorting_longitudinal_template.html')
     template_output = template.render(subject=subject, array_results=array_results, date_results=date_results)
 
@@ -167,7 +187,7 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
     with open(out_filename, 'w') as fh:
         fh.write(template_output)
 
-    copyfile(os.path.join(template_dir, 'style.css'), os.path.join(report_output_dir, 'style.css'))
+    copyfile(os.path.join(cfg['template_dir'], 'style.css'), os.path.join(report_output_dir, 'style.css'))
 
 if __name__=='__main__':
     subject=sys.argv[1]
