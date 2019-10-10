@@ -5,12 +5,16 @@ import numpy as np
 import os
 import sys
 
+from config import read_config
 from process_trial_info import run_process_trial_info
 
 # Look at 13/3, 15/3, 18/3 - pulse codes are weird
 excluded_days=['22.02.19']
 
+cfg=read_config()
+
 def check_condition_trial_numbers(subject, date_start_str, date_end_str):
+
     date_start = datetime.strptime(date_start_str, '%d.%m.%y')
     date_end = datetime.strptime(date_end_str, '%d.%m.%y')
 
@@ -24,7 +28,7 @@ def check_condition_trial_numbers(subject, date_start_str, date_end_str):
         current_date_str = datetime.strftime(current_date, '%d.%m.%y')
         if current_date_str not in excluded_days:
             print(current_date_str)
-            fname='/home/bonaiuto/Projects/tool_learning/data/preprocessed_data/%s/%s/trial_info.csv' % (subject, current_date_str)
+            fname=os.path.join(cfg['preprocessed_data_dir'],'%s/%s/trial_info.csv' % (subject, current_date_str))
             #if not os.path.exists(fname):
             run_process_trial_info(subject, current_date_str)
             if os.path.exists(fname):

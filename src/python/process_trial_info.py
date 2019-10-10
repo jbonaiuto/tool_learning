@@ -11,6 +11,9 @@ import numpy as np
 import pandas as pd
 
 import rhd
+from config import read_config
+
+cfg = read_config()
 
 condition_pulse_codes={
     3:'visual_grasp_right',
@@ -48,7 +51,11 @@ log_condition_map={
     'motor-rake_left-cube': 'motor_rake_left',
     'motor-rake_left-food': 'motor_rake_food_left',
     'motor-rake_center-cube': 'motor_rake_center',
-    'motor-rake_center-food': 'motor_rake_food_center'
+    'motor-rake_center-food': 'motor_rake_food_center',
+    'Rake push_left': 'rake_push_left',
+    'Rake push_right': 'rake_push_right',
+    'Stick_left': 'stick_left',
+    'Stick_right': 'stick_right'
 }
 event_channels={
     #'exp_start_on': 0,
@@ -432,7 +439,7 @@ class IntanRecordingSet:
         self.subj_name=subj_name
         self.date=date
         self.data_dir=data_dir
-        self.srate=30000
+        self.srate=cfg['intan_srate']
 
         self.files=[]
         self.tasks=[]
@@ -553,7 +560,7 @@ class IntanRecordingSet:
             # If there is a trial end and no trial start
             elif len(trial_start)==0 and len(trial_end)>0:
                 # Recording starts at beginning of file
-                dur_step = trial_end
+                dur_step = trial_end[0]
                 # Ignore single time step blips
                 if dur_step > 1:
                     dur_ms = dur_step / self.srate * 1000
@@ -571,16 +578,16 @@ class IntanRecordingSet:
 
 
 def run_process_trial_info(subj_name, date):
-    log_dir = os.path.join('/data/tool_learning/logs/', subj_name)
-    plx_data_dir = os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/plexon/%s/%s' % (subj_name, date))
-    intan_data_dir = os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/rhd2000/%s/%s' % (subj_name, date))
+    log_dir = os.path.join(cfg['log_dir'], subj_name)
+    plx_data_dir = os.path.join(cfg['plexon_data_dir'],subj_name, date)
+    intan_data_dir = os.path.join(cfg['intan_data_dir'],subj_name, date)
 
     if os.path.exists(plx_data_dir) and os.path.exists(intan_data_dir):
         # Create output dir
-        out_dir = os.path.join('/data/tool_learning/preprocessed_data/', subj_name, date)
+        out_dir = os.path.join(cfg['preprocessed_data_dir'], subj_name, date)
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
-        rhd_rec_out_dir = os.path.join('/data/tool_learning/preprocessed_data/', subj_name, date, 'rhd2000')
+        rhd_rec_out_dir = os.path.join(out_dir, 'rhd2000')
         if not os.path.exists(rhd_rec_out_dir):
             os.mkdir(rhd_rec_out_dir)
 
@@ -1195,7 +1202,7 @@ def rerun(subject, date_start_str):
     current_date = date_start
     while current_date <= date_now:
         date_str = datetime.strftime(current_date, '%d.%m.%y')
-        recording_path = os.path.join('/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordings/rhd2000', subject, date_str)
+        recording_path = os.path.join(cfg['intan_data_dir'], subject, date_str)
         if os.path.exists(recording_path):
 
             run_process_trial_info(subject, date_str)

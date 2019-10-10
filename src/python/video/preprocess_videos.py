@@ -23,15 +23,6 @@ CAMERA_VIEWS=['front', 'side', 'top']
 CAMERA_SERIALS={'front':    '22508274',
                 'side':     '22524011',
                 'top':      '22524012'}
-BLUE_LED_ROIS={'front': [1800, 1900, 900, 1050],
-               'side':  [550,650,900,1000],#[579,593,929,949],#[589,603,934,953],
-               'top':   [400,500,0,100]}#[453,467,24,37]}
-YELLOW_LED_ROIS={'front':   [1800, 1900, 900, 1050],
-                'side':     [550,650,900,1000],#[583,595,920,933],#[592,604,922,933],
-                 'top':     [400,500,0,100]}#[468,482,23,37]}
-CROP_LIMITS={'front':   [540, 1900, 0, 1084],
-             'side':    [570, 2040, 280, 1050],
-             'top':     [350, 1490, 0, 1084]}
 
 
 """
@@ -43,6 +34,8 @@ def copy_and_rename_videos(subject, date):
     out_dir=os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data',subject, date,'video')
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
+    shutil.copy('/home/bonaiuto/Projects/tool_learning/src/python/video/default_config.json', os.path.join(out_dir, 'config.json'))
+
     for view in CAMERA_VIEWS:
         if not os.path.exists(os.path.join(out_dir, view)):
             os.mkdir(os.path.join(out_dir, view))
@@ -90,8 +83,9 @@ def combine_videos(subject, date):
         # If there is a video corresponding to this trial
         if len(trial_info.video[t_idx]):
             print(trial_info.video[t_idx])
+            base_fname=os.path.split(trial_info.video[t_idx])[1]
 
-            combine_video(base_video_path, {'front': trial_info.video[t_idx], 'side': trial_info.video[t_idx], 'top': trial_info.video[t_idx]},
+            combine_video(base_video_path, {'front': base_fname, 'side': base_fname, 'top': base_fname},
                           out_path, '%d-%d_%s-%s.mp4' % (block, trial_num, task, condition))
 
 
@@ -104,16 +98,23 @@ def combine_video(base_video_path, fnames, out_path, out_fname):
     front_video = VideoFileClip(os.path.join(base_video_path, 'front', fnames['front']))
     side_video = VideoFileClip(os.path.join(base_video_path, 'side', fnames['side']))
     top_video = VideoFileClip(os.path.join(base_video_path, 'top', fnames['top']))
+    if '3d' in fnames:
+        video_3d=VideoFileClip(os.path.join(base_video_path, fnames['3d']))
+
     fps = front_video.fps
     # Create new clip and write frames
     new_clip = VideoProcessorCV(
         sname=os.path.join(out_path, out_fname),
         fps=fps, codec='mp4v', sw=out_size[0], sh=out_size[1])
+
     n_frames_approx = int(np.ceil(front_video.duration * front_video.fps) + frame_buffer)
     n_frames = n_frames_approx
     front_video.reader.initialize()
     side_video.reader.initialize()
     top_video.reader.initialize()
+    if '3d' in fnames:
+        video_3d.reader.initialize()
+
     for index in range(n_frames_approx):
         front_image = img_as_ubyte(front_video.reader.read_frame())
         if index == int(n_frames_approx - frame_buffer * 2):
@@ -139,35 +140,63 @@ def combine_video(base_video_path, fnames, out_path, out_fname):
                 n_frames = index
                 break
 
+        if '3d' in fnames:
+            image_3d = img_as_ubyte(video_3d.reader.read_frame())
+            if index == int(n_frames_approx - frame_buffer * 2):
+                last_3d_image = image_3d
+            elif index > int(n_frames_approx - frame_buffer * 2):
+                if (image_3d == last_3d_image).all():
+                    n_frames = index
+                    break
+
         # Resize frame
-        front_factor = np.min([out_size[0] / 2.0 / front_image.shape[1],
-                               out_size[1] / 2.0 / front_image.shape[0]])
+        front_factor = np.min([out_size[0] / 2.0 / front_image.shape[1], out_size[1] / 2.0 / front_image.shape[0]])
         front_image = cv2.resize(front_image, None, fx=front_factor, fy=front_factor)
         side_factor = np.min([out_size[0] / 2.0 / side_image.shape[1], out_size[1] / 2.0 / side_image.shape[0]])
         side_image = cv2.resize(side_image, None, fx=side_factor, fy=side_factor)
         top_factor = np.min([out_size[0] / 2.0 / top_image.shape[1], out_size[1] / 2.0 / top_image.shape[0]])
         top_image = cv2.resize(top_image, None, fx=top_factor, fy=top_factor)
+        if '3d' in fnames:
+            factor_3d = np.min([out_size[0] / 2.0 / image_3d.shape[1], out_size[1] / 2.0 / image_3d.shape[0]])
+            image_3d = cv2.resize(image_3d, None, fx=factor_3d, fy=factor_3d)
 
         # Initialize new frame and add front image to it
         new_frame = np.zeros((out_size[1], out_size[0], 3))
         extra_x_space = out_size[0] / 2 - front_image.shape[1]
         extra_y_space = out_size[1] / 2 - front_image.shape[0]
-        new_frame[
-        int(out_size[1] / 2 + extra_y_space / 2):int(out_size[1] / 2 + front_image.shape[0] + extra_y_space / 2),
-        int(0 + extra_x_space / 2):int(front_image.shape[1] + extra_x_space / 2), :] = front_image
+        start_x=int(out_size[1] / 2 + extra_y_space / 2)
+        end_x=int(out_size[1] / 2 + front_image.shape[0] + extra_y_space / 2)
+        start_y=int(0 + extra_x_space / 2)
+        end_y=int(front_image.shape[1] + extra_x_space / 2)
+        new_frame[start_x:end_x,start_y:end_y, :] = front_image
 
         # Add side image to frame
         extra_x_space = out_size[0] / 2 - side_image.shape[1]
         extra_y_space = out_size[1] / 2 - side_image.shape[0]
-        new_frame[int(0 + extra_y_space / 2):int(side_image.shape[0] + extra_y_space / 2),
-        int(out_size[0] / 2 + extra_x_space / 2):int(out_size[0] / 2 + side_image.shape[1] + extra_x_space / 2),
-        :] = side_image
+        start_x=int(0 + extra_y_space / 2)
+        end_x=int(side_image.shape[0] + extra_y_space / 2)
+        start_y=int(out_size[0] / 2 + extra_x_space / 2)
+        end_y=int(out_size[0] / 2 + side_image.shape[1] + extra_x_space / 2)
+        new_frame[start_x:end_x,start_y:end_y,:] = side_image
 
         # Add top image to frame
         extra_x_space = out_size[0] / 2 - top_image.shape[1]
         extra_y_space = out_size[1] / 2 - top_image.shape[0]
-        new_frame[int(0 + extra_y_space / 2):int(top_image.shape[0] + extra_y_space / 2),
-        int(0 + extra_x_space / 2):int(top_image.shape[1] + extra_x_space / 2), :] = top_image
+        start_x=int(0 + extra_y_space / 2)
+        end_x=int(top_image.shape[0] + extra_y_space / 2)
+        start_y=int(0 + extra_x_space / 2)
+        end_y=int(top_image.shape[1] + extra_x_space / 2)
+        new_frame[start_x:end_x,start_y:end_y, :] = top_image
+
+        if '3d' in fnames:
+            extra_x_space = out_size[0] / 2 - image_3d.shape[1]
+            extra_y_space = out_size[1] / 2 - image_3d.shape[0]
+            start_x = int(out_size[1] / 2 + extra_y_space / 2)
+            end_x = int(out_size[1] / 2 + image_3d.shape[0] + extra_y_space / 2)
+            start_y = int(out_size[0] / 2 + extra_x_space / 2)
+            end_y = int(out_size[0] / 2 + image_3d.shape[1] + extra_x_space / 2)
+            new_frame[start_x:end_x, start_y:end_y, :] = image_3d
+
 
         new_clip.save_frame(np.uint8(new_frame))
     front_video.close()
@@ -176,36 +205,39 @@ def combine_video(base_video_path, fnames, out_path, out_fname):
     del side_video
     top_video.close()
     del top_video
+    if '3d' in fnames:
+        video_3d.close()
+        del video_3d
     new_clip.close()
 
 
 """
 Aligns videos based on blue LED onset times, crops videos, saves video info in json files
 """
-def align_videos(subject, date, blue_roi=None, yellow_roi=None):
+def align_videos(subject, date):
     frame_buffer = 10
 
     base_video_path=os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data',subject, date,'video')
-    fnames=sorted(os.listdir(os.path.join(base_video_path, 'front')))
+    cfg={}
+    with open(os.path.join(base_video_path,'config.json')) as json_file:
+        cfg=json.load(json_file)
+    fnames=sorted(glob.glob(os.path.join(base_video_path, 'front', '%s*.avi' % date)))
 
-    # Init ROIs for blue and yellow LEDs
-    if blue_roi is None:
-        blue_roi = {}
-        for view in CAMERA_VIEWS:
-            blue_roi[view] = None
-    if yellow_roi is None:
-        yellow_roi = {}
-        for view in CAMERA_VIEWS:
-            yellow_roi[view]=None
+    rois_checked={
+        'front':False,
+        'side':False,
+        'top':False
+    }
 
     # For each file (filenames are same in each view directory)
     for fname in fnames:
-
+        fname=os.path.split(fname)[-1]
         print('Processing %s' % fname)
         blue_onsets={}
         yellow_onsets={}
         blue_ts={}
         yellow_ts={}
+        video_nframes={}
 
         # Whether or not to use LED for alignment
         led_based = True
@@ -225,25 +257,41 @@ def align_videos(subject, date, blue_roi=None, yellow_roi=None):
                 image = img_as_ubyte(clip.reader.read_frame())
 
                 # If not already set, show GUI to select blue LED ROI
-                if blue_roi[view] is None:
-                    blue_roi[view]=select_crop_parameters.show(image[BLUE_LED_ROIS[view][2]:BLUE_LED_ROIS[view][3],
-                                                               BLUE_LED_ROIS[view][0]:BLUE_LED_ROIS[view][1],:],
-                                                               'Select blue LED ROI')
-                    blue_roi[view][0] = blue_roi[view][0] + BLUE_LED_ROIS[view][0]
-                    blue_roi[view][1] = blue_roi[view][1] + BLUE_LED_ROIS[view][0]
-                    blue_roi[view][2] = blue_roi[view][2] + BLUE_LED_ROIS[view][2]
-                    blue_roi[view][3] = blue_roi[view][3] + BLUE_LED_ROIS[view][2]
+                if not rois_checked[view]:
+                    blue_led_roi_area=cfg['blue_led_roi_areas'][view]
+                    blue_cropped_img=image[blue_led_roi_area[2]:blue_led_roi_area[3],
+                                     blue_led_roi_area[0]:blue_led_roi_area[1],:]
+                    init_roi=None
+                    if  view in cfg['blue_led_rois'] and cfg['blue_led_rois'][view] is not None:
+                        init_roi=cfg['blue_led_rois'][view]
+                        init_roi[0] = init_roi[0] - blue_led_roi_area[0]
+                        init_roi[1] = init_roi[1] - blue_led_roi_area[0]
+                        init_roi[2] = init_roi[2] - blue_led_roi_area[2]
+                        init_roi[3] = init_roi[3] - blue_led_roi_area[2]
+                    cfg['blue_led_rois'][view] = select_crop_parameters.show(blue_cropped_img, 'Select blue LED ROI', init_coords=init_roi)
+                    cfg['blue_led_rois'][view][0] = cfg['blue_led_rois'][view][0] + blue_led_roi_area[0]
+                    cfg['blue_led_rois'][view][1] = cfg['blue_led_rois'][view][1] + blue_led_roi_area[0]
+                    cfg['blue_led_rois'][view][2] = cfg['blue_led_rois'][view][2] + blue_led_roi_area[2]
+                    cfg['blue_led_rois'][view][3] = cfg['blue_led_rois'][view][3] + blue_led_roi_area[2]
 
-                # If not already set, show GUI to select yellow LED ROI
-                if yellow_roi[view] is None:
-                    yellow_roi[view]=select_crop_parameters.show(image[YELLOW_LED_ROIS[view][2]:YELLOW_LED_ROIS[view][3],
-                                                                 YELLOW_LED_ROIS[view][0]:YELLOW_LED_ROIS[view][1],:],
-                                                                 'Select yellow LED ROI')
-                    yellow_roi[view][0] = yellow_roi[view][0] + YELLOW_LED_ROIS[view][0]
-                    yellow_roi[view][1] = yellow_roi[view][1] + YELLOW_LED_ROIS[view][0]
-                    yellow_roi[view][2] = yellow_roi[view][2] + YELLOW_LED_ROIS[view][2]
-                    yellow_roi[view][3] = yellow_roi[view][3] + YELLOW_LED_ROIS[view][2]
+                    yellow_led_roi_area = cfg['yellow_led_roi_areas'][view]
+                    yellow_cropped_img = image[yellow_led_roi_area[2]:yellow_led_roi_area[3],
+                                       yellow_led_roi_area[0]:yellow_led_roi_area[1], :]
+                    init_roi = None
+                    if view in cfg['yellow_led_rois'] and cfg['yellow_led_rois'][view] is not None:
+                        init_roi = cfg['yellow_led_rois'][view]
+                        init_roi[0] = init_roi[0] - yellow_led_roi_area[0]
+                        init_roi[1] = init_roi[1] - yellow_led_roi_area[0]
+                        init_roi[2] = init_roi[2] - yellow_led_roi_area[2]
+                        init_roi[3] = init_roi[3] - yellow_led_roi_area[2]
+                    cfg['yellow_led_rois'][view] = select_crop_parameters.show(yellow_cropped_img, 'Select yellow LED ROI', init_coords=init_roi)
+                    cfg['yellow_led_rois'][view][0] = cfg['yellow_led_rois'][view][0] + yellow_led_roi_area[0]
+                    cfg['yellow_led_rois'][view][1] = cfg['yellow_led_rois'][view][1] + yellow_led_roi_area[0]
+                    cfg['yellow_led_rois'][view][2] = cfg['yellow_led_rois'][view][2] + yellow_led_roi_area[2]
+                    cfg['yellow_led_rois'][view][3] = cfg['yellow_led_rois'][view][3] + yellow_led_roi_area[2]
 
+                    rois_checked[view]=True
+                    
                 if index == int(n_frames_approx - frame_buffer * 2):
                     last_image = image
                 elif index > int(n_frames_approx - frame_buffer * 2):
@@ -252,13 +300,14 @@ def align_videos(subject, date, blue_roi=None, yellow_roi=None):
                         break
 
                 # Crop image around blue LED, get only blue channel
-                blue_led_image = image[blue_roi[view][2]:blue_roi[view][3], blue_roi[view][0]:blue_roi[view][1], 2]
+                blue_roi=cfg['blue_led_rois'][view]
+                blue_led_image = image[blue_roi[2]:blue_roi[3], blue_roi[0]:blue_roi[1], 2]
                 # Add average of cropped image to blue LED timeseries
                 blue_ts[view].append(np.mean(blue_led_image))
 
                 # Crop image around yellow LED, average red and green channels
-                yellow_led_image = np.mean(image[yellow_roi[view][2]:yellow_roi[view][3],
-                                           yellow_roi[view][0]:yellow_roi[view][1], 0:1],axis=2)
+                yellow_roi=cfg['yellow_led_rois'][view]
+                yellow_led_image = np.mean(image[yellow_roi[2]:yellow_roi[3], yellow_roi[0]:yellow_roi[1], 0:1],axis=2)
                 # Add average of cropped image to yellow LED timeseries
                 yellow_ts[view].append(np.mean(yellow_led_image))
 
@@ -295,6 +344,8 @@ def align_videos(subject, date, blue_roi=None, yellow_roi=None):
                 blue_onsets[view] = np.where(blue_diff >= 0.05)[0][0]
                 yellow_onsets[view] = np.where(yellow_diff >= 0.05)[0][0]
 
+            video_nframes[view]=n_frames
+
         # Use first view where blue LED exceeds threshold as reference to align to
         if len(blue_onsets.values())>0:
             min_blue_onset=min(blue_onsets.values())
@@ -316,55 +367,63 @@ def align_videos(subject, date, blue_roi=None, yellow_roi=None):
                 print('%s: %.2fms' % (view, trial_duration))
         #assert(len(trial_durations)>0 and all(x == trial_durations[0] for x in trial_durations))
 
+        start_frames_to_cut={}
+        n_frames_after_cutting = {}
         # Cut frames to align videos and crop
         for idx,view in enumerate(CAMERA_VIEWS):
 
             # using LED to align
             if led_based:
-                frames_to_cut=blue_onsets[view]-min_blue_onset
+                start_frames_to_cut[view]=blue_onsets[view]-min_blue_onset
             # otherwise - use standard # of frames to crop (order of video triggering is top, side, front)
-            if not led_based or frames_to_cut>5:
-                frames_to_cut = 0
+            if not led_based or start_frames_to_cut[view]>5:
+                start_frames_to_cut[view] = 0
                 if view=='front':
-                    frames_to_cut=2
+                    start_frames_to_cut[view]=2
                 elif view=='side':
-                    frames_to_cut=1
+                    start_frames_to_cut[view]=1
+            n_frames_after_cutting[view]=video_nframes[view]-start_frames_to_cut[view]
+        new_nframes=min(n_frames_after_cutting.values())
 
-            print('cutting %d frames from beginning of %s' % (frames_to_cut,view))
+        for idx, view in enumerate(CAMERA_VIEWS):
+            end_frames_to_cut=n_frames_after_cutting[view]-new_nframes
+            print('cutting %d frames from beginning and %d frames from end of %s' % (start_frames_to_cut[view], end_frames_to_cut, view))
 
             # Cut frames from blue and yellow LED time series and onsets
-            blue_ts[view]=blue_ts[view][frames_to_cut:]
-            yellow_ts[view] = yellow_ts[view][frames_to_cut:]
+            if end_frames_to_cut>0:
+                blue_ts[view]=blue_ts[view][start_frames_to_cut[view]:-end_frames_to_cut]
+                yellow_ts[view] = yellow_ts[view][start_frames_to_cut[view]:-end_frames_to_cut]
+            else:
+                blue_ts[view] = blue_ts[view][start_frames_to_cut[view]:]
+                yellow_ts[view] = yellow_ts[view][start_frames_to_cut[view]:]
             if view in blue_onsets:
-                blue_onsets[view]=blue_onsets[view]-frames_to_cut
+                blue_onsets[view]=blue_onsets[view]-start_frames_to_cut[view]
             if view in yellow_onsets:
-                yellow_onsets[view]=yellow_onsets[view]-frames_to_cut
+                yellow_onsets[view]=yellow_onsets[view]-start_frames_to_cut[view]
 
             # Load video and cut frames from beginning
             video_path = os.path.join(base_video_path, view)
             clip = VideoFileClip(os.path.join(video_path, fname))
-            clip=clip.subclip(1.0/clip.fps*frames_to_cut)
 
             # Crop limits based on view
-            crop_lims = CROP_LIMITS[view]
+            crop_lims = cfg['crop_limits'][view]
 
             frames=[]
-            n_frames_approx = int(np.ceil(clip.duration * clip.fps) + frame_buffer)
-            n_frames = n_frames_approx
+            n_frames_approx = int(np.ceil(clip.duration * clip.fps)+frame_buffer)
             for index in range(n_frames_approx):
                 image = img_as_ubyte(clip.reader.read_frame())
 
-                if index == int(n_frames_approx - frame_buffer * 2):
-                    last_image = image
-                elif index > int(n_frames_approx - frame_buffer * 2):
-                    if (image == last_image).all():
-                        n_frames = index
-                        break
+                if index>=start_frames_to_cut[view]:
+                    # Crop image and save to video
+                    image=image[crop_lims[2]:crop_lims[3], crop_lims[0]:crop_lims[1], :]
+                    frames.append(image)
+                if len(frames)==new_nframes:
+                    break
 
-                # Crop image and save to video
-                image=image[crop_lims[2]:crop_lims[3], crop_lims[0]:crop_lims[1], :]
-                frames.append(image)
             clip.close()
+
+            # Check that have the right number of frames
+            assert(len(frames)==new_nframes)
 
             # Create new video clip (cropped and aligned)
             video_path = os.path.join(base_video_path, view)
@@ -387,8 +446,8 @@ def align_videos(subject, date, blue_roi=None, yellow_roi=None):
 
         # Save video info to JSON
         data = {
-            'blue_roi': blue_roi,
-            'yellow_roi': yellow_roi,
+            'blue_roi': cfg['blue_led_rois'],
+            'yellow_roi': cfg['yellow_led_rois'],
             'blue_ts': blue_ts,
             'yellow_ts': yellow_ts,
             'blue_onset': blue_onsets,
@@ -402,6 +461,8 @@ def align_videos(subject, date, blue_roi=None, yellow_roi=None):
 
         print('')
 
+    with open(os.path.join(base_video_path,'config.json'),'w') as outfile:
+        json.dump(cfg, outfile)
 
 """
 Match videos to recorded trial data
@@ -409,12 +470,13 @@ Match videos to recorded trial data
 def match_video_trials(subject, date):
     # Read video information
     base_video_path = os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data', subject, date, 'video')
-    fnames = sorted(os.listdir(os.path.join(base_video_path, 'front')))
+    fnames = sorted(glob.glob(os.path.join(base_video_path, 'front', '*.avi')))
 
     # Read video data
     videos=[]
     for fname in fnames:
-        [base, ext] = os.path.splitext(fname)
+        [pth,file] = os.path.split(fname)
+        [base, ext] = os.path.splitext(file)
         if os.path.exists(os.path.join(base_video_path, '%s.json' % base)):
             with open(os.path.join(base_video_path, '%s.json' % base)) as json_file:
                 data=json.load(json_file)
@@ -523,8 +585,6 @@ if __name__=='__main__':
     subject = sys.argv[1]
     date = sys.argv[2]
     copy_and_rename_videos(subject,date)
-    align_videos(subject, date)#,
-    #             blue_roi={"top": [408, 423, 23, 38], "side": [587, 601, 932, 950], "front": [1842, 1859, 979, 1004]},
-    #             yellow_roi={"top": [424, 439, 24, 39], "side": [591, 605, 919, 932], "front": [1823, 1844, 977, 1006]})
+    align_videos(subject, date)
     match_video_trials(subject,date)
     combine_videos(subject,date)

@@ -5,8 +5,12 @@ from dateutil.parser import parse
 from pandas import DataFrame, Series
 import matplotlib.pyplot as plt
 
+from config import read_config
+
+cfg = read_config()
+
 def check_impedances(subject):
-    basepath=os.path.join('/home/bonaiuto/Projects/tool_learning/data/recordings/rhd2000/',subject)
+    basepath=os.path.join(cfg['intan_data_dir'],subject)
     index=[]
     array_impedances={}
     for f in os.listdir(basepath):
@@ -25,7 +29,7 @@ def check_impedances(subject):
                         if idx>0:
                             chan_name=row[1]
                             array=chan_name.split('-')[0].upper()
-                            if array in arrays:
+                            if array in cfg['arrays']:
                                 if idx==1:
                                     index.append(date)
                                 electrode=chan_name.split('-')[1]

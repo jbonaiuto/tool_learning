@@ -16,19 +16,17 @@ import numpy as np
 import gc
 
 import tridesclous as tdc
-from neo.rawio import IntanRawIO, RawBinarySignalRawIO
+from neo.rawio import IntanRawIO
 from tridesclous import DataIO, CatalogueConstructor, CatalogueWindow
-
-from spike_sorting.plot import plot_noise, plot_waveforms, plot_cluster_waveforms
-
-from config import read_config
-
-cfg = read_config()
 
 # This is for selecting a GPU
 for e in tdc.get_cl_device_list():
     print(e)
 tdc.set_default_cl_device(platform_index=0, device_index=0)
+
+from config import read_config
+
+cfg = read_config()
 
 def preprocess_array(array_idx, output_dir, total_duration):
     dataio = DataIO(dirname=output_dir, ch_grp=array_idx)
@@ -62,9 +60,8 @@ def preprocess_array(array_idx, output_dir, total_duration):
     print('run_signalprocessor', t2 - t1)
 
 
-def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, n_segments, total_duration,
-                            cluster_merge_threshold):
-    output_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, recording_date, 'array_%d' % array_idx)
+def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, n_segments, total_duration):
+    output_dir = os.path.join(cfg['multi_unit_spike_sorting_dir'], subject, recording_date, 'multiunit', 'array_%d' % array_idx)
     if os.path.exists(output_dir):
         # remove is already exists
         shutil.rmtree(output_dir)
@@ -79,8 +76,6 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
     dataio.datasource.bit_to_microVolt = 0.195
     for ch_grp in range(cfg['n_channels_per_array']):
         dataio.add_one_channel_group(channels=[ch_grp], chan_grp=ch_grp)
-    figure_out_dir = os.path.join(output_dir, 'figures')
-    os.mkdir(figure_out_dir)
     for ch_grp in range(cfg['n_channels_per_array']):
         print(ch_grp)
         cc = CatalogueConstructor(dataio=DataIO(dirname=output_dir, ch_grp=ch_grp), chan_grp=ch_grp)
@@ -151,41 +146,15 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
         t2 = time.perf_counter()
         print('extract_some_waveforms', t2 - t1)
 
-        # fname = 'chan_%d_init_waveforms.png' % ch_grp
-        # fig = plot_waveforms(np.squeeze(cc.some_waveforms).T)
-        # fig.savefig(os.path.join(figure_out_dir, fname))
-        # fig.clf()
-        # plt.close()
-
         t1 = time.perf_counter()
-        # ~ duration = d['duration'] if d['limit_duration'] else None
-        # ~ d['clean_waveforms']
         cc.clean_waveforms(**fullchain_kargs['clean_waveforms'])
         t2 = time.perf_counter()
         print('clean_waveforms', t2 - t1)
-
-        # fname = 'chan_%d_clean_waveforms.png' % ch_grp
-        # fig = plot_waveforms(np.squeeze(cc.some_waveforms).T)
-        # fig.savefig(os.path.join(figure_out_dir, fname))
-        # fig.clf()
-        # plt.close()
-
-        # ~ t1 = time.perf_counter()
-        # ~ n_left, n_right = cc.find_good_limits(mad_threshold = 1.1,)
-        # ~ t2 = time.perf_counter()
-        # ~ print('find_good_limits', t2-t1)
 
         t1 = time.perf_counter()
         cc.extract_some_noise(**fullchain_kargs['noise_snippet'])
         t2 = time.perf_counter()
         print('extract_some_noise', t2 - t1)
-
-        # Plot noise
-        fname = 'chan_%d_noise.png' % ch_grp
-        fig = plot_noise(cc)
-        fig.savefig(os.path.join(figure_out_dir, fname))
-        fig.clf()
-        plt.close()
 
         t1 = time.perf_counter()
         cc.extract_some_features(method=feat_method, **feat_kargs)
@@ -203,14 +172,6 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
         if cc.centroids_median is None:
             cc.compute_all_centroid()
 
-        fname = 'chan_%d_init_clusters.png' % ch_grp
-        cluster_labels = cc.clusters['cluster_label']
-        fig = plot_cluster_waveforms(cc, cluster_labels)
-        fig.savefig(os.path.join(figure_out_dir, fname))
-        fig.clf()
-        plt.close()
-
-        t1 = time.perf_counter()
         if len(np.where(cc.cluster_labels > -1)[0]):
             # Auto-merge clusters
             cluster_removed = True
@@ -219,8 +180,7 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
 
                 nn_cluster_labels = cc.cluster_labels[cc.cluster_labels > -1]
 
-                pairs = get_pairs_over_threshold(cc.cluster_similarity, nn_cluster_labels,
-                                                 cluster_merge_threshold)
+                pairs = get_pairs_over_threshold(cc.cluster_similarity, nn_cluster_labels, 0)
                 if len(pairs) > 0:
                     (k1, k2) = pairs[0]
 
@@ -229,18 +189,6 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
 
                     cluster_label1 = cc.clusters['cluster_label'][idx1]
                     cluster_label2 = cc.clusters['cluster_label'][idx2]
-                    similarity = cc.cluster_similarity[np.where(nn_cluster_labels == k1)[0][0],
-                                                       np.where(nn_cluster_labels == k2)[0][0]]
-                    title = 'Amplitude in MAD (STD) ratio, similarity=%.3f' % similarity
-
-                    fname = 'chan_%d_merge_%d_%d.png' % (ch_grp, cluster_label1, cluster_label2)
-                    fig.savefig(os.path.join(figure_out_dir, fname))
-                    fig.clf()
-                    plt.close()
-                    fig = plot_cluster_waveforms(cc, [cluster_label1, cluster_label2], title=title)
-                    fig.savefig(os.path.join(figure_out_dir, fname))
-                    fig.clf()
-                    plt.close()
 
                     print('auto_merge', cluster_label1, 'with', cluster_label2)
                     mask = cc.all_peaks['cluster_label'] == k2
@@ -254,24 +202,17 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
         # order cluster by waveforms rms
         cc.order_clusters(by='waveforms_rms')
 
-        # put label 0 to trash
-        #    mask = catalogueconstructor.all_peaks['cluster_label'] == 0
-        #    catalogueconstructor.all_peaks['cluster_label'][mask] = -1
-        #    catalogueconstructor.on_new_cluster()
-
         # save the catalogue
         cc.make_catalogue_for_peeler()
 
         gc.collect()
 
 
-# p = Pool(ncpus=4)
-
 def preprocess_data(subject, recording_date):
-    base_path=os.path.join(cfg['single_unit_spike_sorting_dir'], subject, recording_date)
+    base_path=os.path.join(cfg['multi_unit_spike_sorting_dir'], subject, recording_date)
     if not os.path.exists(base_path):
         os.mkdir(base_path)
-    output_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, recording_date, 'preprocess')
+    output_dir = os.path.join(base_path, 'preprocess')
     if os.path.exists(output_dir):
         # remove is already exists
         shutil.rmtree(output_dir)
@@ -295,14 +236,17 @@ def preprocess_data(subject, recording_date):
         preprocess_array(array_idx, output_dir, total_duration)
 
 
-def compute_catalogue(subject, recording_date, n_segments, total_duration, cluster_merge_threshold=0.7):
+def compute_catalogue(subject, recording_date, n_segments, total_duration):
 
-    preprocess_dir=os.path.join(cfg['single_unit_spike_sorting_dir'], subject, recording_date,'preprocess')
+    preprocess_dir=os.path.join(cfg['multi_unit_spike_sorting_dir'], subject, recording_date,'preprocess')
     if os.path.exists(preprocess_dir):
 
+        output_dir = os.path.join(cfg['multi_unit_spike_sorting_dir'], subject, recording_date, 'multiunit')
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
+
         for array_idx in range(len(cfg['arrays'])):
-            compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, n_segments, total_duration,
-                                    cluster_merge_threshold)
+            compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, n_segments, total_duration)
 
 
 def open_cataloguewindow(dataio, chan_grp):
@@ -340,9 +284,6 @@ if __name__=='__main__':
     subject=sys.argv[1]
     recording_date=sys.argv[2]
     display_catalogue=sys.argv[3] in ['true', 'True','1']
-    preprocess=True
-    if len(sys.argv)>4:
-        preprocess=sys.argv[4] in ['true','True','1']
 
     data_dir = os.path.join(cfg['intan_data_dir'], subject, recording_date)
     print(data_dir)
@@ -352,7 +293,8 @@ if __name__=='__main__':
 
         if os.path.exists(data_dir) and len(data_file_names) > 0:
 
-            if preprocess:
+            preprocess_dir = os.path.join(cfg['multi_unit_spike_sorting_dir'], subject, recording_date, 'preprocess')
+            if not os.path.exists(preprocess_dir):
                 print('Preprocessing')
                 preprocess_data(subject, recording_date)
 
