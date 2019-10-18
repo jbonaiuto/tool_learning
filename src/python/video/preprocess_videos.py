@@ -83,8 +83,9 @@ def combine_videos(subject, date):
         # If there is a video corresponding to this trial
         if len(trial_info.video[t_idx]):
             print(trial_info.video[t_idx])
+            base_fname=os.path.split(trial_info.video[t_idx])[1]
 
-            combine_video(base_video_path, {'front': trial_info.video[t_idx], 'side': trial_info.video[t_idx], 'top': trial_info.video[t_idx]},
+            combine_video(base_video_path, {'front': base_fname, 'side': base_fname, 'top': base_fname},
                           out_path, '%d-%d_%s-%s.mp4' % (block, trial_num, task, condition))
 
 
