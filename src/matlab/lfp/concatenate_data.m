@@ -1,4 +1,4 @@
-function concat_data=concatenate_data(exp_info, data, varargin)
+function concat_data=concatenate_data(data, varargin)
 
 % Parse optional arguments
 defaults=struct();
@@ -13,12 +13,7 @@ end
 spm('defaults','eeg');
 
 % Empty structure to store concatenated data (from all trials)
-concat_data.label={};
-for a=1:length(exp_info.array_names)
-    for c=1:32
-        concat_data.label{end+1}=sprintf('%s_%d',exp_info.array_names{a},c);
-    end
-end
+concat_data.label=data{1}.label;
 concat_data.fsample=data{1}.fsample;
 concat_data.time={};
 concat_data.trial={};
