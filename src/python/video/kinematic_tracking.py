@@ -11,6 +11,7 @@ from matplotlib import gridspec
 from moviepy.video.io.VideoFileClip import VideoFileClip
 from tqdm import tqdm
 
+from config import read_config
 from deeplabcut.pose_estimation_3d import undistort_points
 from deeplabcut.utils import auxiliaryfunctions, auxiliaryfunctions_3d, Path, img_as_ubyte, load_config
 
@@ -18,16 +19,20 @@ import deeplabcut
 import pandas as pd
 import numpy as np
 
-from video.preprocess_videos import CAMERA_VIEWS, combine_video
+from video.preprocess_videos import combine_video
 from video.transformations import unit_vector, rotation_matrix
 from video.video_processor import VideoProcessorCV
 from video import select_coordinate
+
+cfg = read_config()
 
 dlc_3d_projects={
     'motor_task_grasp': {
         'motor_grasp_left': 'motor_grasp_3d-Jimmy-2019-08-13-3d',
         'motor_grasp_center': 'motor_grasp_3d-Jimmy-2019-08-13-3d',
         'motor_grasp_right': 'motor_grasp_3d-Jimmy-2019-08-13-3d',
+    },
+    'motor_task_rake': {
         'motor_rake_left': 'motor_grasp_3d-Jimmy-2019-09-27-3d',
         'motor_rake_center': 'motor_grasp_3d-Jimmy-2019-09-27-3d',
         'motor_rake_right': 'motor_grasp_3d-Jimmy-2019-09-27-3d'
@@ -37,8 +42,8 @@ dlc_3d_projects={
         'visual_grasp_right': 'visual_grasp_3d-Jimmy-2019-08-19-3d',
         'visual_pliers_left': 'visual_pliers_3d-Jimmy-2019-09-21-3d',
         'visual_pliers_right': 'visual_pliers_3d-Jimmy-2019-09-21-3d',
-        'visual_rake_left': 'visual_rake_3d-Jimmy-2019-09-26-3d',
-        'visual_rake_right': 'visual_rake_3d-Jimmy-2019-09-26-3d'
+        'visual_rake_pull_left': 'visual_rake_3d-Jimmy-2019-10-10-3d',
+        'visual_rake_pull_right': 'visual_rake_3d-Jimmy-2019-10-10-3d'
     }
 }
 
@@ -98,12 +103,12 @@ dlc_projects={
             'side': 'visual_pliers_side-Anita-2019-08-07',
             'top': 'visual_pliers_top-Anita-2019-08-07',
         },
-        'visual_rake_left':{
+        'visual_rake_pull_left':{
             'front': 'visual_rake_front-Anita-2019-08-07',
             'side': 'visual_rake_side-Anita-2019-08-07',
             'top': 'visual_rake_top-Anita-2019-08-07',
         },
-        'visual_rake_right':{
+        'visual_rake_pull_right':{
             'front': 'visual_rake_front-Anita-2019-08-07',
             'side': 'visual_rake_side-Anita-2019-08-07',
             'top': 'visual_rake_top-Anita-2019-08-07',
@@ -112,11 +117,11 @@ dlc_projects={
 }
 
 def process_videos(subject, date):
-    base_video_path = os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data', subject, date, 'video')
+    base_video_path = os.path.join(cfg['preprocessed_data_dir'], subject, date, 'video')
     with open(os.path.join(base_video_path,'config.json')) as json_file:
-        cfg=json.load(json_file)
+        video_cfg=json.load(json_file)
 
-    trial_info = pd.read_csv('/home/bonaiuto/Projects/tool_learning/preprocessed_data/%s/%s/trial_info.csv' % (subject, date))
+    trial_info = pd.read_csv('%s/%s/%s/trial_info.csv' % (cfg['preprocessed_data_dir'], subject, date))
 
     origin_checked={
         'front': False,
@@ -136,8 +141,7 @@ def process_videos(subject, date):
     for t_idx in range(len(trial_info.index)):
         if len(trial_info.video[t_idx]):
             fname=trial_info.video[t_idx]
-            base_fname=os.path.split(fname)[1]
-            (base, ext) = os.path.splitext(base_fname)
+            (base, ext) = os.path.splitext(fname)
 
             block = trial_info.block[t_idx]
             task=trial_info.task[t_idx]
@@ -145,29 +149,29 @@ def process_videos(subject, date):
             trial_num = trial_info.trial[t_idx]
 
             video_fnames = {}
-            for view in CAMERA_VIEWS:
+            for view in cfg['camera_views']:
                 view_path=os.path.join(base_video_path, view)
                 if task in dlc_projects and condition in dlc_projects[task] and view in dlc_projects[task][condition]:
                     dlc_cfg=os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data/dlc_projects',
                                      dlc_projects[task][condition][view],'config.yaml')
-                    deeplabcut.analyze_videos(dlc_cfg, [os.path.join(view_path, base_fname)], shuffle=1, save_as_csv=True)
-                    deeplabcut.filterpredictions(dlc_cfg, os.path.join(view_path, base_fname), shuffle=1)
-                    deeplabcut.create_labeled_video(dlc_cfg, [os.path.join(view_path, base_fname)], shuffle=1, filtered=True,
+                    deeplabcut.analyze_videos(dlc_cfg, [os.path.join(view_path, fname)], shuffle=1, save_as_csv=True)
+                    deeplabcut.filterpredictions(dlc_cfg, os.path.join(view_path, fname), shuffle=1)
+                    deeplabcut.create_labeled_video(dlc_cfg, [os.path.join(view_path, fname)], shuffle=1, filtered=True,
                                                     draw_skeleton=True)
                     dlc_files = glob.glob(os.path.join(base_video_path, view, '%s*DeepCut*.mp4' % base))
                     if len(dlc_files):
                         video_fnames[view] = dlc_files[0]
 
-            if len(video_fnames.keys()) == len(CAMERA_VIEWS):
+            if len(video_fnames.keys()) == len(cfg['camera_views']):
                 out_path = os.path.join(base_video_path, 'combined')
 
                 if task in dlc_3d_projects and condition in dlc_3d_projects[task]:
                     dlc_cfg = os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data/dlc_projects',
                                        dlc_3d_projects[task][condition], 'config.yaml')
                     fnames={}
-                    for view in CAMERA_VIEWS:
+                    for view in cfg['camera_views']:
                         view_path = os.path.join(base_video_path, view)
-                        fnames[view]=os.path.join(view_path, base_fname)
+                        fnames[view]=os.path.join(view_path, fname)
 
                         clip = VideoFileClip(fnames[view])
                         clip.reader.initialize()
@@ -175,33 +179,33 @@ def process_videos(subject, date):
 
                         if not origin_checked[view]:
                             init_origin=None
-                            if view in cfg['origins'] and cfg['origins'][view] is not None:
-                                init_origin = np.array(cfg['origins'][view])
-                            cfg['origins'][view]=select_coordinate.show(image, 'Select origin', init_coords=[init_origin])[0]
+                            if view in video_cfg['origins'] and video_cfg['origins'][view] is not None:
+                                init_origin = np.array(video_cfg['origins'][view])
+                            video_cfg['origins'][view]=select_coordinate.show(image, 'Select origin', init_coords=[init_origin])[0]
                             origin_checked[view]=True
 
                         if not table_corners_checked[view]:
                             init_table_corners=[]
-                            if view in cfg['table_corners'] and cfg['table_corners'][view] is not None:
-                                init_table_corners=cfg['table_corners'][view]
+                            if view in video_cfg['table_corners'] and video_cfg['table_corners'][view] is not None:
+                                init_table_corners=video_cfg['table_corners'][view]
                             selected_corners=select_coordinate.show(image, 'Select table corners', init_coords=init_table_corners)
-                            cfg['table_corners'][view]=[]
+                            video_cfg['table_corners'][view]=[]
                             for corner in selected_corners:
-                                cfg['table_corners'][view].append(corner)
+                                video_cfg['table_corners'][view].append(corner)
                             table_corners_checked[view]=True
 
                         if not tocchini_checked[view]:
                             init_tocchini=[]
-                            if view in cfg['tocchini'] and cfg['tocchini'][view] is not None:
-                                init_tocchini = cfg['tocchini'][view]
+                            if view in video_cfg['tocchini'] and video_cfg['tocchini'][view] is not None:
+                                init_tocchini = video_cfg['tocchini'][view]
                             selected_tocchini = select_coordinate.show(image, 'Select tocchini', init_coords=init_tocchini)
-                            cfg['tocchini'][view] = []
+                            video_cfg['tocchini'][view] = []
                             for tocchino in selected_tocchini:
-                                cfg['tocchini'][view].append(tocchino)
+                                video_cfg['tocchini'][view].append(tocchino)
                             tocchini_checked[view] = True
                         clip.close()
 
-                    (fname, table_corners_3d, tocchini_3d)=triangulate(dlc_cfg, cfg['origins'], cfg['table_corners'], cfg['tocchini'], fnames,
+                    (fname, table_corners_3d, tocchini_3d)=triangulate(dlc_cfg, video_cfg['origins'], video_cfg['table_corners'], video_cfg['tocchini'], fnames,
                                                           filterpredictions=True, destfolder=base_video_path, save_as_csv=True)
                     vid_fname=create_labeled_video_3d(dlc_cfg, fname, table_corners_3d, tocchini_3d, fps=100, trailpoints=5,
                                                       xlim=[-.26, .26], ylim=[-.51, 0],zlim=[-0.01,0.1])
@@ -210,7 +214,7 @@ def process_videos(subject, date):
                     combine_video(base_video_path, video_fnames, out_path, '%d-%d_%s-%s_labeled.mp4' % (block, trial_num, task, condition))
 
     with open(os.path.join(base_video_path,'config.json'),'w') as outfile:
-        json.dump(cfg, outfile)
+        json.dump(video_cfg, outfile)
 
 def triangulate(config, origins, table_corners, tocchini, video_path, filterpredictions=True, destfolder=None,
                 save_as_csv=False):
