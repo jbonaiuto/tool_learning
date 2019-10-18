@@ -26,6 +26,7 @@ def generate_trial_info_report(subject, date_start_str):
 
     stage1_start=datetime.strptime('12.02.19', '%d.%m.%y')
     stage2_start = datetime.strptime('27.03.19', '%d.%m.%y')
+    stage3_start = datetime.strptime('11.09.19', '%d.%m.%y')
 
     # All possible conditions
     current_date = date_start
@@ -41,8 +42,8 @@ def generate_trial_info_report(subject, date_start_str):
 
     while current_date <= date_now:
         date_str = datetime.strftime(current_date, '%d.%m.%y')
-        info_dir = os.path.join(cfg['preprocessed_data_dir'], date_str)
-        if not os.path.exists(info_dir):
+        info_dir = os.path.join(cfg['preprocessed_data_dir'], subject, date_str)
+        if not os.path.exists(os.path.join(info_dir,'trial_numbers.csv')):
             run_process_trial_info(subject, date_str)
         if os.path.exists(info_dir):
             df=pd.read_csv(os.path.join(info_dir, 'trial_numbers.csv'))
@@ -101,6 +102,8 @@ def generate_trial_info_report(subject, date_start_str):
     plt.text(stage1_start, max_val, 'Stage 1')
     ax.plot([stage2_start, stage2_start], [0, max_val], 'r--')
     plt.text(stage2_start, max_val, 'Stage 2')
+    ax.plot([stage3_start, stage3_start], [0, max_val], 'r--')
+    plt.text(stage3_start, max_val, 'Stage 3')
     plt.xlim((date_start, date_now+timedelta(days=31)))
     plt.savefig(os.path.join(report_output_dir,'img','collapsed_weekly_condition_trial_numbers.png'))
 
@@ -111,6 +114,8 @@ def generate_trial_info_report(subject, date_start_str):
     plt.text(stage1_start, max_val, 'Stage 1')
     ax.plot([stage2_start, stage2_start], [0, max_val], 'r--')
     plt.text(stage2_start, max_val, 'Stage 2')
+    ax.plot([stage3_start, stage3_start], [0, max_val], 'r--')
+    plt.text(stage3_start, max_val, 'Stage 3')
     plt.xlim((date_start, date_now + timedelta(days=31)))
     plt.savefig(os.path.join(report_output_dir,'img','weekly_condition_trial_numbers.png'))
 
@@ -121,6 +126,8 @@ def generate_trial_info_report(subject, date_start_str):
     plt.text(stage1_start, max_val, 'Stage 1')
     ax.plot([stage2_start, stage2_start], [0, max_val], 'r--')
     plt.text(stage2_start, max_val, 'Stage 2')
+    ax.plot([stage3_start, stage3_start], [0, max_val], 'r--')
+    plt.text(stage3_start, max_val, 'Stage 3')
     plt.xlim((date_start, date_now + timedelta(days=31)))
     plt.savefig(os.path.join(report_output_dir, 'img', 'collapsed_daily_condition_trial_numbers.png'))
 
@@ -131,6 +138,8 @@ def generate_trial_info_report(subject, date_start_str):
     plt.text(stage1_start, max_val, 'Stage 1')
     ax.plot([stage2_start, stage2_start], [0, max_val], 'r--')
     plt.text(stage2_start, max_val, 'Stage 2')
+    ax.plot([stage3_start, stage3_start], [0, max_val], 'r--')
+    plt.text(stage3_start, max_val, 'Stage 3')
     plt.xlim((date_start, date_now + timedelta(days=31)))
     plt.savefig(os.path.join(report_output_dir, 'img', 'daily_condition_trial_numbers.png'))
 
