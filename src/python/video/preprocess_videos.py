@@ -16,33 +16,36 @@ from skimage import img_as_ubyte, io
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from config import read_config
 from video import select_crop_parameters
 from video.video_processor import VideoProcessorCV
 
-CAMERA_VIEWS=['front', 'side', 'top']
-CAMERA_SERIALS={'front':    '22508274',
-                'side':     '22524011',
-                'top':      '22524012'}
-
+cfg = read_config()
 
 """
 Copies videos to preprocessed_data directory and puts videos from different cameras in different folders
 (based on CAMERA_SERIALS)
 """
 def copy_and_rename_videos(subject, date):
+    # Directory containing original videos
+    orig_dir = os.path.join(cfg['video_dir'], subject, date)
+    if not os.path.exists(orig_dir):
+        os.mkdir(orig_dir)
+
+    # Download videos from server
+    cmd = 'rsync -avzhe ssh %s:/home/bonaiuto/tool_learning/video/%s/%s/*.avi %s/' % (cfg['data_server'], subject, date, orig_dir)
+    os.system(cmd)
+    
     # Create directory for processed videos
-    out_dir=os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data',subject, date,'video')
+    out_dir=os.path.join(cfg['preprocessed_data_dir'], subject, date,'video')
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
     shutil.copy('/home/bonaiuto/Projects/tool_learning/src/python/video/default_config.json', os.path.join(out_dir, 'config.json'))
 
-    for view in CAMERA_VIEWS:
+    for view in cfg['camera_views']:
         if not os.path.exists(os.path.join(out_dir, view)):
             os.mkdir(os.path.join(out_dir, view))
-
-    # Directory containing original videos
-    orig_dir=os.path.join('/home/bonaiuto/Projects/tool_learning/data/video',subject,date)
-
+    
     for fname in os.listdir(os.path.join(orig_dir)):
         # Parse filename to get serial, timestamp, and trial number
         [base, ext] = os.path.splitext(fname)
@@ -51,7 +54,7 @@ def copy_and_rename_videos(subject, date):
         trial=base.split('_')[3]
 
         # Figure out which view this video corresponds to and copy to appropriate folder (stripping serial from filename)
-        for view,serial in CAMERA_SERIALS.items():
+        for view,serial in cfg['camera_serials'].items():
             if camera_serial==serial:
                 shutil.copy(os.path.join(orig_dir, fname),
                             os.path.join(os.path.join(out_dir, view), '%s_%s.avi' % (timestamp, trial)))
@@ -63,14 +66,13 @@ Combines videos from different cameras into a single video
 def combine_videos(subject, date):
 
     # Create directory to put combined videos in
-    base_video_path = os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data', subject, date, 'video')
+    base_video_path = os.path.join(cfg['preprocessed_data_dir'], subject, date, 'video')
     out_path=os.path.join(base_video_path,'combined')
     if not os.path.exists(out_path):
         os.mkdir(out_path)
 
     # Load trial info
-    trial_info = pd.read_csv('/home/bonaiuto/Projects/tool_learning/preprocessed_data/%s/%s/trial_info.csv' %
-                             (subject, date))
+    trial_info = pd.read_csv('%s/%s/%s/trial_info.csv' % (cfg['preprocessed_data_dir'], subject, date))
 
     for t_idx in range(len(trial_info.index)):
 
@@ -83,9 +85,7 @@ def combine_videos(subject, date):
         # If there is a video corresponding to this trial
         if len(trial_info.video[t_idx]):
             print(trial_info.video[t_idx])
-            base_fname=os.path.split(trial_info.video[t_idx])[1]
-
-            combine_video(base_video_path, {'front': base_fname, 'side': base_fname, 'top': base_fname},
+            combine_video(base_video_path, {'front': trial_info.video[t_idx], 'side': trial_info.video[t_idx], 'top': trial_info.video[t_idx]},
                           out_path, '%d-%d_%s-%s.mp4' % (block, trial_num, task, condition))
 
 
@@ -217,10 +217,9 @@ Aligns videos based on blue LED onset times, crops videos, saves video info in j
 def align_videos(subject, date):
     frame_buffer = 10
 
-    base_video_path=os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data',subject, date,'video')
-    cfg={}
+    base_video_path=os.path.join(cfg['preprocessed_data_dir'],subject, date,'video')
     with open(os.path.join(base_video_path,'config.json')) as json_file:
-        cfg=json.load(json_file)
+        vid_cfg=json.load(json_file)
     fnames=sorted(glob.glob(os.path.join(base_video_path, 'front', '%s*.avi' % date)))
 
     rois_checked={
@@ -242,7 +241,7 @@ def align_videos(subject, date):
         # Whether or not to use LED for alignment
         led_based = True
 
-        for view in CAMERA_VIEWS:
+        for view in cfg['camera_views']:
             video_path=os.path.join(base_video_path, view)
             clip = VideoFileClip(os.path.join(video_path, fname))
             n_frames_approx = int(np.ceil(clip.duration * clip.fps) + frame_buffer)
@@ -258,37 +257,37 @@ def align_videos(subject, date):
 
                 # If not already set, show GUI to select blue LED ROI
                 if not rois_checked[view]:
-                    blue_led_roi_area=cfg['blue_led_roi_areas'][view]
+                    blue_led_roi_area=vid_cfg['blue_led_roi_areas'][view]
                     blue_cropped_img=image[blue_led_roi_area[2]:blue_led_roi_area[3],
                                      blue_led_roi_area[0]:blue_led_roi_area[1],:]
                     init_roi=None
-                    if  view in cfg['blue_led_rois'] and cfg['blue_led_rois'][view] is not None:
-                        init_roi=cfg['blue_led_rois'][view]
+                    if  view in vid_cfg['blue_led_rois'] and vid_cfg['blue_led_rois'][view] is not None:
+                        init_roi=vid_cfg['blue_led_rois'][view]
                         init_roi[0] = init_roi[0] - blue_led_roi_area[0]
                         init_roi[1] = init_roi[1] - blue_led_roi_area[0]
                         init_roi[2] = init_roi[2] - blue_led_roi_area[2]
                         init_roi[3] = init_roi[3] - blue_led_roi_area[2]
-                    cfg['blue_led_rois'][view] = select_crop_parameters.show(blue_cropped_img, 'Select blue LED ROI', init_coords=init_roi)
-                    cfg['blue_led_rois'][view][0] = cfg['blue_led_rois'][view][0] + blue_led_roi_area[0]
-                    cfg['blue_led_rois'][view][1] = cfg['blue_led_rois'][view][1] + blue_led_roi_area[0]
-                    cfg['blue_led_rois'][view][2] = cfg['blue_led_rois'][view][2] + blue_led_roi_area[2]
-                    cfg['blue_led_rois'][view][3] = cfg['blue_led_rois'][view][3] + blue_led_roi_area[2]
+                    vid_cfg['blue_led_rois'][view] = select_crop_parameters.show(blue_cropped_img, 'Select blue LED ROI', init_coords=init_roi)
+                    vid_cfg['blue_led_rois'][view][0] = vid_cfg['blue_led_rois'][view][0] + blue_led_roi_area[0]
+                    vid_cfg['blue_led_rois'][view][1] = vid_cfg['blue_led_rois'][view][1] + blue_led_roi_area[0]
+                    vid_cfg['blue_led_rois'][view][2] = vid_cfg['blue_led_rois'][view][2] + blue_led_roi_area[2]
+                    vid_cfg['blue_led_rois'][view][3] = vid_cfg['blue_led_rois'][view][3] + blue_led_roi_area[2]
 
-                    yellow_led_roi_area = cfg['yellow_led_roi_areas'][view]
+                    yellow_led_roi_area = vid_cfg['yellow_led_roi_areas'][view]
                     yellow_cropped_img = image[yellow_led_roi_area[2]:yellow_led_roi_area[3],
                                        yellow_led_roi_area[0]:yellow_led_roi_area[1], :]
                     init_roi = None
-                    if view in cfg['yellow_led_rois'] and cfg['yellow_led_rois'][view] is not None:
-                        init_roi = cfg['yellow_led_rois'][view]
+                    if view in vid_cfg['yellow_led_rois'] and vid_cfg['yellow_led_rois'][view] is not None:
+                        init_roi = vid_cfg['yellow_led_rois'][view]
                         init_roi[0] = init_roi[0] - yellow_led_roi_area[0]
                         init_roi[1] = init_roi[1] - yellow_led_roi_area[0]
                         init_roi[2] = init_roi[2] - yellow_led_roi_area[2]
                         init_roi[3] = init_roi[3] - yellow_led_roi_area[2]
-                    cfg['yellow_led_rois'][view] = select_crop_parameters.show(yellow_cropped_img, 'Select yellow LED ROI', init_coords=init_roi)
-                    cfg['yellow_led_rois'][view][0] = cfg['yellow_led_rois'][view][0] + yellow_led_roi_area[0]
-                    cfg['yellow_led_rois'][view][1] = cfg['yellow_led_rois'][view][1] + yellow_led_roi_area[0]
-                    cfg['yellow_led_rois'][view][2] = cfg['yellow_led_rois'][view][2] + yellow_led_roi_area[2]
-                    cfg['yellow_led_rois'][view][3] = cfg['yellow_led_rois'][view][3] + yellow_led_roi_area[2]
+                    vid_cfg['yellow_led_rois'][view] = select_crop_parameters.show(yellow_cropped_img, 'Select yellow LED ROI', init_coords=init_roi)
+                    vid_cfg['yellow_led_rois'][view][0] = vid_cfg['yellow_led_rois'][view][0] + yellow_led_roi_area[0]
+                    vid_cfg['yellow_led_rois'][view][1] = vid_cfg['yellow_led_rois'][view][1] + yellow_led_roi_area[0]
+                    vid_cfg['yellow_led_rois'][view][2] = vid_cfg['yellow_led_rois'][view][2] + yellow_led_roi_area[2]
+                    vid_cfg['yellow_led_rois'][view][3] = vid_cfg['yellow_led_rois'][view][3] + yellow_led_roi_area[2]
 
                     rois_checked[view]=True
                     
@@ -300,13 +299,13 @@ def align_videos(subject, date):
                         break
 
                 # Crop image around blue LED, get only blue channel
-                blue_roi=cfg['blue_led_rois'][view]
+                blue_roi=vid_cfg['blue_led_rois'][view]
                 blue_led_image = image[blue_roi[2]:blue_roi[3], blue_roi[0]:blue_roi[1], 2]
                 # Add average of cropped image to blue LED timeseries
                 blue_ts[view].append(np.mean(blue_led_image))
 
                 # Crop image around yellow LED, average red and green channels
-                yellow_roi=cfg['yellow_led_rois'][view]
+                yellow_roi=vid_cfg['yellow_led_rois'][view]
                 yellow_led_image = np.mean(image[yellow_roi[2]:yellow_roi[3], yellow_roi[0]:yellow_roi[1], 0:1],axis=2)
                 # Add average of cropped image to yellow LED timeseries
                 yellow_ts[view].append(np.mean(yellow_led_image))
@@ -359,7 +358,7 @@ def align_videos(subject, date):
 
         # Compute trial duration based on each view
         trial_durations={}
-        for view in CAMERA_VIEWS:
+        for view in cfg['camera_views']:
             if view in blue_onsets and view in yellow_onsets:
                 # Trial duration (in ms, there is an 850ms delay before blue LED comes on)
                 trial_duration=(yellow_onsets[view]-blue_onsets[view])*1.0/clip.fps*1000.0+850.0
@@ -370,7 +369,7 @@ def align_videos(subject, date):
         start_frames_to_cut={}
         n_frames_after_cutting = {}
         # Cut frames to align videos and crop
-        for idx,view in enumerate(CAMERA_VIEWS):
+        for idx,view in enumerate(cfg['camera_views']):
 
             # using LED to align
             if led_based:
@@ -385,7 +384,7 @@ def align_videos(subject, date):
             n_frames_after_cutting[view]=video_nframes[view]-start_frames_to_cut[view]
         new_nframes=min(n_frames_after_cutting.values())
 
-        for idx, view in enumerate(CAMERA_VIEWS):
+        for idx, view in enumerate(cfg['camera_views']):
             end_frames_to_cut=n_frames_after_cutting[view]-new_nframes
             print('cutting %d frames from beginning and %d frames from end of %s' % (start_frames_to_cut[view], end_frames_to_cut, view))
 
@@ -406,7 +405,7 @@ def align_videos(subject, date):
             clip = VideoFileClip(os.path.join(video_path, fname))
 
             # Crop limits based on view
-            crop_lims = cfg['crop_limits'][view]
+            crop_lims = vid_cfg['crop_limits'][view]
 
             frames=[]
             n_frames_approx = int(np.ceil(clip.duration * clip.fps)+frame_buffer)
@@ -434,7 +433,7 @@ def align_videos(subject, date):
             new_clip.close()
 
         # Make everything hashable
-        for view in CAMERA_VIEWS:
+        for view in cfg['camera_views']:
             blue_ts[view]=blue_ts[view].tolist()
             yellow_ts[view] = yellow_ts[view].tolist()
             if view in blue_onsets:
@@ -446,8 +445,8 @@ def align_videos(subject, date):
 
         # Save video info to JSON
         data = {
-            'blue_roi': cfg['blue_led_rois'],
-            'yellow_roi': cfg['yellow_led_rois'],
+            'blue_roi': vid_cfg['blue_led_rois'],
+            'yellow_roi': vid_cfg['yellow_led_rois'],
             'blue_ts': blue_ts,
             'yellow_ts': yellow_ts,
             'blue_onset': blue_onsets,
@@ -462,14 +461,14 @@ def align_videos(subject, date):
         print('')
 
     with open(os.path.join(base_video_path,'config.json'),'w') as outfile:
-        json.dump(cfg, outfile)
+        json.dump(vid_cfg, outfile)
 
 """
 Match videos to recorded trial data
 """
 def match_video_trials(subject, date):
     # Read video information
-    base_video_path = os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data', subject, date, 'video')
+    base_video_path = os.path.join(cfg['preprocessed_data_dir'], subject, date, 'video')
     fnames = sorted(glob.glob(os.path.join(base_video_path, 'front', '*.avi')))
 
     # Read video data
@@ -485,9 +484,9 @@ def match_video_trials(subject, date):
     # Transfer trial info file
     local_date = datetime.strptime(date, '%d-%m-%Y')
     remote_date_str = datetime.strftime(local_date, '%d.%m.%y')
-    cmd='rsync -avzhe ssh ferrarilab@192.168.10.47:/data/tool_learning/preprocessed_data/%s/%s/trial_info.csv /home/bonaiuto/Projects/tool_learning/preprocessed_data/%s/%s/trial_info.csv' % (subject, remote_date_str, subject, date)
+    cmd='rsync -avzhe ssh %s:/data/tool_learning/preprocessed_data/%s/%s/trial_info.csv %s/%s/%s/trial_info.csv' % (cfg['preproc_data_server'], subject, remote_date_str, cfg['preprocessed_data_dir'], subject, date)
     os.system(cmd)
-    trial_info=pd.read_csv('/home/bonaiuto/Projects/tool_learning/preprocessed_data/%s/%s/trial_info.csv' % (subject, date))
+    trial_info=pd.read_csv('%s/%s/%s/trial_info.csv' % (cfg['preprocessed_data_dir'], subject, date))
 
     # For each intan file - the video filename and duration (if matched)
     trial_video = []
@@ -503,18 +502,19 @@ def match_video_trials(subject, date):
             intan_dur = trial_info.intan_duration[t_idx]
             video_info = videos[t_idx]
             video_durations = []
-            for view in CAMERA_VIEWS:
+            for view in cfg['camera_views']:
                 if view in video_info['trial_duration']:
                     video_durations.append(video_info['trial_duration'][view])
             video_durations=np.array(video_durations)
             if len(video_durations):
                 dur_delta = np.abs(video_durations - intan_dur)
-                video_duration=np.where(dur_delta == np.nanmin(dur_delta))[0][0]
+                video_duration=video_durations[np.where(dur_delta == np.nanmin(dur_delta))[0][0]]
             else:
                 video_duration=float('NaN')
 
             # Add filename and duration to list
-            trial_video.append(fnames[t_idx])
+            [pth, file] = os.path.split(fnames[t_idx])
+            trial_video.append(file)
             trial_video_duration.append(video_duration)
 
     # Otherwise - need to match based on trial duration (error-prone! check results!)
@@ -533,7 +533,7 @@ def match_video_trials(subject, date):
             # Look if video duration from at least 2 views is within 200ms of intan duration
             video_info = videos[video_idx]
             video_durations = []
-            for view in CAMERA_VIEWS:
+            for view in cfg['camera_views']:
                 if view in video_info['trial_duration']:
                     video_durations.append(video_info['trial_duration'][view])
             video_durations = np.array(video_durations)
@@ -564,7 +564,8 @@ def match_video_trials(subject, date):
         for t_idx in range(len(trial_info.index)):
             if len(np.where(video_trials==t_idx)[0]):
                 vid_idx=np.where(video_trials==t_idx)[0][0]
-                trial_video.append(fnames[vid_idx])
+                [pth, file] = os.path.split(fnames[vid_idx])
+                trial_video.append(file)
                 trial_video_duration.append(video_trial_durations[vid_idx])
             else:
                 trial_video.append('')
@@ -576,8 +577,8 @@ def match_video_trials(subject, date):
     trial_info['video_duration']=trial_video_duration
 
     # Save and transfer trial info back
-    trial_info.to_csv('/home/bonaiuto/Projects/tool_learning/preprocessed_data/%s/%s/trial_info.csv' % (subject, date), index=False)
-    cmd = 'rsync -avzhe ssh /home/bonaiuto/Projects/tool_learning/preprocessed_data/%s/%s/trial_info.csv ferrarilab@192.168.10.47:/data/tool_learning/preprocessed_data/%s/%s/trial_info.csv' % (subject, date, subject, remote_date_str)
+    trial_info.to_csv('%s/%s/%s/trial_info.csv' % (cfg['preprocessed_data_dir'], subject, date), index=False)
+    cmd = 'rsync -avzhe ssh %s/%s/%s/trial_info.csv %s:/data/tool_learning/preprocessed_data/%s/%s/trial_info.csv' % (cfg['preprocessed_data_dir'], subject, date, cfg['preproc_data_server'], subject, remote_date_str)
     os.system(cmd)
 
 

@@ -12,12 +12,7 @@ end
 evt_idx=find(strcmp(exp_info.event_types,evt));
 
 % Epoched data
-epoch_data.label={};
-for a=1:length(exp_info.array_names)
-    for c=1:32
-        epoch_data.label{end+1}=sprintf('%s_%d',exp_info.array_names{a},c);
-    end
-end
+epoch_data.label=data.label;
 epoch_data.fsample=data.fsample;
 epoch_data.time={};
 epoch_data.trial={};

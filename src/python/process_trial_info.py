@@ -52,10 +52,10 @@ log_condition_map={
     'motor-rake_left-food': 'motor_rake_food_left',
     'motor-rake_center-cube': 'motor_rake_center',
     'motor-rake_center-food': 'motor_rake_food_center',
-    'Rake push_left': 'rake_push_left',
-    'Rake push_right': 'rake_push_right',
-    'Stick_left': 'stick_left',
-    'Stick_right': 'stick_right'
+    'Rake push_left': 'visual_rake_push_left',
+    'Rake push_right': 'visual_rake_push_right',
+    'Stick_left': 'visual_stick_left',
+    'Stick_right': 'visual_stick_right'
 }
 event_channels={
     #'exp_start_on': 0,
@@ -579,10 +579,18 @@ class IntanRecordingSet:
 
 def run_process_trial_info(subj_name, date):
     log_dir = os.path.join(cfg['log_dir'], subj_name)
-    plx_data_dir = os.path.join(cfg['plexon_data_dir'],subj_name, date)
-    intan_data_dir = os.path.join(cfg['intan_data_dir'],subj_name, date)
+    plx_data_dir=None
+    intan_data_dir=None
+    for x in cfg['plexon_data_dirs']:
+        if os.path.exists(os.path.join(x,subj_name, date)):
+            plx_data_dir=os.path.join(x,subj_name, date)
+            break
+    for x in cfg['intan_data_dirs']:
+        if os.path.exists(os.path.join(x,subj_name, date)):
+            intan_data_dir=os.path.join(x,subj_name, date)
+            break
 
-    if os.path.exists(plx_data_dir) and os.path.exists(intan_data_dir):
+    if plx_data_dir is not None and intan_data_dir is not None:
         # Create output dir
         out_dir = os.path.join(cfg['preprocessed_data_dir'], subj_name, date)
         if not os.path.exists(out_dir):

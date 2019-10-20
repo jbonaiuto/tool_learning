@@ -276,23 +276,29 @@ def preprocess_data(subject, recording_date):
         # remove is already exists
         shutil.rmtree(output_dir)
 
-    data_dir = os.path.join(cfg['intan_data_dir'], subject, recording_date)
-    (data_file_names, total_duration) = read_and_sort_data_files(data_dir)
+    data_dir = None
+    for x in cfg['intan_data_dirs']:
+        if os.path.exists(os.path.join(x, subject, recording_date)):
+            data_dir=os.path.join(x, subject, recording_date)
+            break
 
-    ## Setup DataIO
-    dataio = DataIO(dirname=output_dir)
-    # dataio.set_data_source(type='RawData', filenames=data_file_names, dtype='float32', sample_rate=30000, total_channel=192)
-    dataio.set_data_source(type='Intan', filenames=data_file_names)
+    if data_dir is not None:
+        (data_file_names, total_duration) = read_and_sort_data_files(data_dir)
 
-    # Setup channel groups
-    for array_idx in range(len(cfg['arrays'])):
-        dataio.add_one_channel_group(channels=range(array_idx * cfg['n_channels_per_array'], (array_idx + 1) * cfg['n_channels_per_array']), chan_grp=array_idx)
+        ## Setup DataIO
+        dataio = DataIO(dirname=output_dir)
+        # dataio.set_data_source(type='RawData', filenames=data_file_names, dtype='float32', sample_rate=30000, total_channel=192)
+        dataio.set_data_source(type='Intan', filenames=data_file_names)
 
-    print(dataio)
+        # Setup channel groups
+        for array_idx in range(len(cfg['arrays'])):
+            dataio.add_one_channel_group(channels=range(array_idx * cfg['n_channels_per_array'], (array_idx + 1) * cfg['n_channels_per_array']), chan_grp=array_idx)
 
-    for array_idx in range(len(cfg['arrays'])):
-        print(array_idx)
-        preprocess_array(array_idx, output_dir, total_duration)
+        print(dataio)
+
+        for array_idx in range(len(cfg['arrays'])):
+            print(array_idx)
+            preprocess_array(array_idx, output_dir, total_duration)
 
 
 def compute_catalogue(subject, recording_date, n_segments, total_duration, cluster_merge_threshold=0.7):
@@ -320,6 +326,7 @@ def read_and_sort_data_files(data_dir):
     data_file_names = []
     for x in os.listdir(data_dir):
         if os.path.splitext(x)[1] == '.rhd':
+            print(x)
             data_file_names.append(os.path.join(data_dir, x))
             # data = RawBinarySignalRawIO(os.path.join(data_dir, x),dtype='float32',sampling_rate=30000,nb_channel=192)
             data = IntanRawIO(os.path.join(data_dir, x))

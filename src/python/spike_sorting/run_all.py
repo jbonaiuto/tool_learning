@@ -39,8 +39,12 @@ def run_all(subject, date_start_str):
     current_date=date_start
     while current_date<=date_now:
         date_str=datetime.strftime(current_date, '%d.%m.%y')
-        recording_path=os.path.join(cfg['intan_data_dir'],subject,date_str)
-        if os.path.exists(recording_path):
+        recording_path=None
+        for x in cfg['intan_data_dirs']:
+            if os.path.exists(os.path.join(x,subject,date_str)):
+                recording_path=os.path.join(x,subject,date_str)
+
+        if recording_path is not None:
 
             # Compute total duration (want to use all data for clustering)
             (data_file_names, total_duration) = read_and_sort_data_files(recording_path)
