@@ -138,6 +138,16 @@ def process_videos(subject, date):
         'side': False,
         'top': False,
     }
+    all_videos={}
+    for t_idx in range(len(trial_info.index)):
+        if len(trial_info.video[t_idx]):
+            fname=trial_info.video[t_idx]
+            for view in cfg['camera_views']:
+                view_path=os.path.join(base_video_path, view)
+                if not view in all_videos:
+                    all_videos[view]=[]
+                all_videos[view].append(os.path.join(view_path,fname))
+
     for t_idx in range(len(trial_info.index)):
         if len(trial_info.video[t_idx]):
             fname=trial_info.video[t_idx]
@@ -173,22 +183,22 @@ def process_videos(subject, date):
                         view_path = os.path.join(base_video_path, view)
                         fnames[view]=os.path.join(view_path, fname)
 
-                        clip = VideoFileClip(fnames[view])
-                        clip.reader.initialize()
-                        image = img_as_ubyte(clip.reader.read_frame())
+                        #clip = VideoFileClip(fnames[view])
+                        #clip.reader.initialize()
+                        #image = img_as_ubyte(clip.reader.read_frame())
 
                         if not origin_checked[view]:
                             init_origin=None
                             if view in video_cfg['origins'] and video_cfg['origins'][view] is not None:
                                 init_origin = np.array(video_cfg['origins'][view])
-                            video_cfg['origins'][view]=select_coordinate.show(image, 'Select origin', init_coords=[init_origin])[0]
+                            video_cfg['origins'][view]=select_coordinate.show(all_videos[view], 'Select origin', init_coords=[init_origin])[0]
                             origin_checked[view]=True
 
                         if not table_corners_checked[view]:
                             init_table_corners=[]
                             if view in video_cfg['table_corners'] and video_cfg['table_corners'][view] is not None:
                                 init_table_corners=video_cfg['table_corners'][view]
-                            selected_corners=select_coordinate.show(image, 'Select table corners', init_coords=init_table_corners)
+                            selected_corners=select_coordinate.show(all_videos[view], 'Select table corners', init_coords=init_table_corners)
                             video_cfg['table_corners'][view]=[]
                             for corner in selected_corners:
                                 video_cfg['table_corners'][view].append(corner)
@@ -198,17 +208,16 @@ def process_videos(subject, date):
                             init_tocchini=[]
                             if view in video_cfg['tocchini'] and video_cfg['tocchini'][view] is not None:
                                 init_tocchini = video_cfg['tocchini'][view]
-                            selected_tocchini = select_coordinate.show(image, 'Select tocchini', init_coords=init_tocchini)
+                            selected_tocchini = select_coordinate.show(all_videos[view], 'Select tocchini', init_coords=init_tocchini)
                             video_cfg['tocchini'][view] = []
                             for tocchino in selected_tocchini:
                                 video_cfg['tocchini'][view].append(tocchino)
                             tocchini_checked[view] = True
-                        clip.close()
 
                     (fname, table_corners_3d, tocchini_3d)=triangulate(dlc_cfg, video_cfg['origins'], video_cfg['table_corners'], video_cfg['tocchini'], fnames,
                                                           filterpredictions=True, destfolder=base_video_path, save_as_csv=True)
-                    vid_fname=create_labeled_video_3d(dlc_cfg, fname, table_corners_3d, tocchini_3d, fps=100, trailpoints=5,
-                                                      xlim=[-.26, .26], ylim=[-.51, 0],zlim=[-0.01,0.1])
+                    vid_fname=create_labeled_video_3d(dlc_cfg, fname, table_corners_3d, tocchini_3d, fps=100,
+                                                      xlim=[-.3, .3], ylim=[-.55, 0.05],zlim=[-0.01,0.1])
                     video_fnames['3d']=os.path.split(vid_fname)[1]
 
                     combine_video(base_video_path, video_fnames, out_path, '%d-%d_%s-%s_labeled.mp4' % (block, trial_num, task, condition))
@@ -275,7 +284,7 @@ def triangulate(config, origins, table_corners, tocchini, video_path, filterpred
 
     table_vec1=table_coords_3d[0]-table_center
     table_vec2=table_coords_3d[1]-table_center
-    table_norm=unit_vector(np.cross(np.transpose(table_vec1),np.transpose(table_vec2)))
+    table_norm = unit_vector(np.cross(np.transpose(table_vec1), np.transpose(table_vec2)))
 
     rot_vec=unit_vector(np.cross(xy_norm, table_norm), axis=1)
     rot_angle=-np.arccos(np.abs(np.sum(xy_norm*table_norm))/np.sqrt(np.sum(table_norm**2)))
@@ -289,6 +298,7 @@ def triangulate(config, origins, table_corners, tocchini, video_path, filterpred
     for idx, coord in enumerate(table_coords_3d):
         coord=np.matmul(rot_mat, coord)-origin
         table_coords_3d[idx]=coord
+        table_coords_3d[idx][2]=-.006
 
     tocchini_coords_3d=[]
     for tocchino_idx in range(len(tocchini['front'])):
@@ -296,7 +306,9 @@ def triangulate(config, origins, table_corners, tocchini, video_path, filterpred
         for view in cam_names:
             tocchino[view]=tocchini[view][tocchino_idx]
         [coord,pairs_used]=locate(cam_names,{'front':1,'side':1,'top':1},tocchino,pcutoff,projections)
-        tocchini_coords_3d.append(np.matmul(rot_mat,coord)-origin)
+        tocchino_coord=np.matmul(rot_mat,coord)-origin
+        tocchino_coord[2]=-.006
+        tocchini_coords_3d.append(tocchino_coord)
 
     file_name_3d_scorer = []
     dataname = []
@@ -461,8 +473,9 @@ def create_labeled_video_3d(config, path, table_corners, tocchini, trailpoints=0
     bodyparts2connect = cfg_3d['skeleton']
     skeleton_color = cfg_3d['skeleton_color']
 
+    cfg_2d = auxiliaryfunctions.read_config(cfg_3d['config_file_front'])
     # Flatten the list of bodyparts to connect
-    bodyparts2plot = list(np.unique([val for sublist in bodyparts2connect for val in sublist]))
+    bodyparts2plot = cfg_2d['bodyparts']#list(np.unique([val for sublist in bodyparts2connect for val in sublist]))
     color = plt.cm.get_cmap(cmap, len(bodyparts2plot))
     df_3d = pd.read_hdf(path, 'df_with_missing')
     plt.rcParams.update({'figure.max_open_warning': 0})
@@ -562,10 +575,11 @@ def plot2D(k, bodyparts2plot, bodyparts2connect, xyz_pts, table_corners, tocchin
 
     # Connecting the bodyparts specified in the config file.3d file is created based on the likelihoods of cam1 and cam2. Using 3d file and check if the body part is nan then dont plot skeleton
     if draw_skeleton:
-        xlines_3d = []
-        ylines_3d = []
-        zlines_3d = []
         for i in range(len(bodyparts2connect)):
+            xlines_3d = []
+            ylines_3d = []
+            zlines_3d = []
+
             if not np.isnan(xyz_pts.iloc[k][scorer_3d][bodyparts2connect[i][0]]['x']) and not np.isnan(xyz_pts.iloc[k][scorer_3d][bodyparts2connect[i][1]]['x']):
                 xlines_3d.append(xyz_pts.iloc[k][scorer_3d][bodyparts2connect[i][0]]['x'])
                 ylines_3d.append(xyz_pts.iloc[k][scorer_3d][bodyparts2connect[i][0]]['y'])
@@ -574,8 +588,8 @@ def plot2D(k, bodyparts2plot, bodyparts2connect, xyz_pts, table_corners, tocchin
                 ylines_3d.append(xyz_pts.iloc[k][scorer_3d][bodyparts2connect[i][1]]['y'])
                 zlines_3d.append(xyz_pts.iloc[k][scorer_3d][bodyparts2connect[i][1]]['z'])
 
-        if len(xlines_3d):
-            axes3.plot(xlines_3d, ylines_3d, zlines_3d, color=skeleton_color, alpha=alphaValue)
+            if len(xlines_3d):
+                axes3.plot(xlines_3d, ylines_3d, zlines_3d, color=skeleton_color, alpha=alphaValue)
 
 
     # Saving the frames
