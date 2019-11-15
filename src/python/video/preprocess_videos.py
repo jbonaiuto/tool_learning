@@ -8,6 +8,7 @@ import subprocess
 import numpy as np
 import os
 import cv2
+from deeplabcut.utils import auxiliaryfunctions, auxiliaryfunctions_3d
 
 from moviepy.video.VideoClip import ImageClip
 from moviepy.video.compositing.concatenate import concatenate_videoclips
@@ -227,6 +228,11 @@ def align_videos(subject, date):
         'side':False,
         'top':False
     }
+    crop_checked={
+        'front':False,
+        'side':False,
+        'top':False
+    }
 
     # For each file (filenames are same in each view directory)
     for fname in fnames:
@@ -384,7 +390,22 @@ def align_videos(subject, date):
             n_frames_after_cutting[view]=video_nframes[view]-start_frames_to_cut[view]
         new_nframes=min(n_frames_after_cutting.values())
 
+        intrinsic_files = {}
+        for view in cfg['camera_views']:
+            dlc3d_cfg = os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data/dlc_projects',
+                                     'visual_grasp_3d-Jimmy-2019-08-19-3d', 'config.yaml')
+
+            cfg_3d = auxiliaryfunctions.read_config(dlc3d_cfg)
+            img_path, path_corners, path_camera_matrix, path_undistort = auxiliaryfunctions_3d.Foldernames3Dproject(
+                cfg_3d)
+            path_intrinsic_file = os.path.join(path_camera_matrix, '%s_intrinsic_params.pickle' % view)
+            intrinsic_file = auxiliaryfunctions.read_pickle(path_intrinsic_file)
+            intrinsic_files[view] = intrinsic_file[view]
+
         for idx, view in enumerate(cfg['camera_views']):
+            camera_matrix = intrinsic_files[view]['mtx']
+            distortion_coefficients = intrinsic_files[view]['dist']
+
             end_frames_to_cut=n_frames_after_cutting[view]-new_nframes
             print('cutting %d frames from beginning and %d frames from end of %s' % (start_frames_to_cut[view], end_frames_to_cut, view))
 
@@ -405,15 +426,21 @@ def align_videos(subject, date):
             clip = VideoFileClip(os.path.join(video_path, fname))
 
             # Crop limits based on view
-            crop_lims = vid_cfg['crop_limits'][view]
-
             frames=[]
             n_frames_approx = int(np.ceil(clip.duration * clip.fps)+frame_buffer)
             for index in range(n_frames_approx):
                 image = img_as_ubyte(clip.reader.read_frame())
-
+                image = cv2.undistort(image, camera_matrix, distortion_coefficients)
                 if index>=start_frames_to_cut[view]:
+                    if not crop_checked[view]:
+                        init_crop_lims = None
+                        if view in vid_cfg['crop_limits'] and vid_cfg['crop_limits'][view] is not None:
+                            init_crop_lims = vid_cfg['crop_limits'][view]
+                        vid_cfg['crop_limits'][view] = select_crop_parameters.show(image, 'Select crop limits',
+                                                                                   init_coords=init_crop_lims)
+                        crop_checked[view]=True
                     # Crop image and save to video
+                    crop_lims=vid_cfg['crop_limits'][view]
                     image=image[crop_lims[2]:crop_lims[3], crop_lims[0]:crop_lims[1], :]
                     frames.append(image)
                 if len(frames)==new_nframes:
@@ -588,4 +615,4 @@ if __name__=='__main__':
     copy_and_rename_videos(subject,date)
     align_videos(subject, date)
     match_video_trials(subject,date)
-    combine_videos(subject,date)
+    #combine_videos(subject,date)
