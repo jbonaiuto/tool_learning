@@ -1,6 +1,7 @@
-function plot_multialign_multiunit_data(exp_info, data, array_idx, e_idx, conditions, varargin)
+function plot_multialign_multiunit_data(data, array_idx, e_idx, conditions, varargin)
 
-defaults = struct('baseline_woi',[-500 0],'baseline_evt','go');  %define default values
+defaults = struct('baseline_woi',[-500 0],'baseline_evt','go',...
+    'win_len', 6, 'baseline_type','condition','ylims',[-1 25]);  %define default values
 params = struct(varargin{:});
 for f = fieldnames(defaults)',  
     if ~isfield(params, f{1}),
@@ -23,10 +24,11 @@ figure();
 
 for ae_idx=1:length(align_evts)
     align_evt=align_evts{ae_idx};
-    %bins=[tlims(ae_idx,1)-50:binwidth:tlims(ae_idx,2)+50];
     aligned_data=realign(data, align_evt);
-    aligned_data=bin_spikes(exp_info, aligned_data, [tlims(ae_idx,1)-50 tlims(ae_idx,2)+50], binwidth);
-    aligned_data=compute_firing_rate(aligned_data);
+    aligned_data=bin_spikes(aligned_data, [tlims(ae_idx,1)-50 tlims(ae_idx,2)+50],...
+        binwidth, 'baseline_woi',params.baseline_woi,'baseline_evt',params.baseline_evt);
+    aligned_data=compute_firing_rate(aligned_data,'baseline_type',params.baseline_type,...
+        'win_len',params.win_len);
     
     subplot(2,length(align_evts),ae_idx);
     hold all
@@ -68,23 +70,24 @@ for ae_idx=1:length(align_evts)
     
     subplot(2,length(align_evts),length(align_evts)+ae_idx);
     hold all
-    condition_labels={};
+    legend_labels={};
     for c_idx=1:length(conditions)
         condition=conditions{c_idx};
     
         if ~strcmp(align_evt,'tool_mvmt_onset') || (strcmp(align_evt,'tool_mvmt_onset') && (strcmp(condition,'visual_pliers_left') || strcmp(condition,'visual_pliers_right') || strcmp(condition,'visual_rake_pull_left') || strcmp(condition,'visual_rake_pull_right')))
             condition_trials=find(strcmp(aligned_data.metadata.condition,condition));
-            condition_labels{end+1}=strrep(conditions{c_idx},'_',' ');
+            legend_labels{end+1}=strrep(conditions{c_idx},'_',' ');
             
             mean_smoothed_rate=squeeze(nanmean(aligned_data.smoothed_firing_rate(array_idx,e_idx,condition_trials,:),3));
             stderr_smoothed_rate=nanstd(aligned_data.smoothed_firing_rate(array_idx,e_idx,condition_trials,:),[],3)./sqrt(length(condition_trials));
             shadedErrorBar(aligned_data.bins,mean_smoothed_rate,stderr_smoothed_rate,'lineprops',{'Color',cond_color(c_idx,:)},'transparent',1);
         end
     end
-    if ae_idx==1
-        legend(condition_labels,'Location','NorthEast');
+    for evt_idx=1:length(event_types)
+        legend_labels{end+1}=strrep(event_types{evt_idx},'_',' ');
     end
-    ylim([-1 25]);
+    ylim(params.ylims);
+    
     yl=ylim();
     for evt_idx=1:length(event_types)
         event_type=event_types{evt_idx};
@@ -98,6 +101,9 @@ for ae_idx=1:length(align_evts)
     end
     ylim(yl);
     xlim(tlims(ae_idx,:));
+    if ae_idx==1
+        legend(legend_labels,'Location','NorthEast');
+    end
     if ae_idx>1
         set(gca,'YTickLabel','');
     end
