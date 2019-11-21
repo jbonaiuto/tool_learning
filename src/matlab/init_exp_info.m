@@ -10,7 +10,7 @@ exp_info.event_types={'exp_place_right', 'exp_grasp_center', 'exp_place_left',..
     'laser_exp_start_center', 'go', 'laser_monkey_tool_center',...
     'trial_start', 'trial_stop', 'tool_start_off'};
 
-exp_info.array_names={'F1','F5hand','F5mouth','46v12r', '45a', 'F2'};
+exp_info.array_names={'F1','F5hand','F5mouth','46v-12r', '45a', 'F2'};
 exp_info.ch_per_array=32;
 
 exp_info.conditions={'visual_grasp_left','visual_grasp_right','motor_grasp_left',...
@@ -20,5 +20,5 @@ exp_info.conditions={'visual_grasp_left','visual_grasp_right','motor_grasp_left'
     'motor_rake_food_left','motor_rake_food_center','motor_rake_food_right',...
     'visual_rake_push_left','visual_rake_push_right','visual_stick_left','visual_stick_right'};
 
-exp_info.base_data_dir='/data/tool_learning';
-exp_info.base_output_dir='/data/tool_learning/output';
+exp_info.base_data_dir='D:/Data/Tooltask';
+exp_info.base_output_dir='D:/Data/Tooltask/output';
