@@ -25,7 +25,12 @@ function data=load_multiunit_data(exp_info, subject, dates, varargin)
 %           ntrials - total number of trials loaded
 %           spikedata - spike data structure containing the following
 %                       fields:
+%                       date - list of date index (from cell array of date
+%                              strings above) each spike belongs to
 %                       trial - list of trial indices each spike belongs to
+%                              (absolute - over all dates in this file)
+%                       rel_trial - list of trial indices each spike
+%                                   belongs to (relative - within this day)
 %                       time - list of time of each spike
 %                       array - list of array index each spike belongs to
 %                       electrode - list of electrode index each spike
@@ -64,7 +69,9 @@ data.ntrials=0;
 
 % Create spikedata structure
 data.spikedata=[];
+data.spikedata.date=[];
 data.spikedata.trial=[];
+data.spikedata.rel_trial=[];
 data.spikedata.time=[];
 data.spikedata.array=[];
 data.spikedata.electrode=[];
@@ -135,8 +142,9 @@ for a_idx=1:length(params.arrays)
             for i=1:length(good_trial_idx)
                 spikes=spike_data.time(spike_data.trial==good_trial_idx(i) & spike_data.electrode==(electrode_idx-1));
                 n_spikes=length(spikes);
-                
+                data.spikedata.date(end+1:end+n_spikes)=d_idx.*ones(1,n_spikes);
                 data.spikedata.trial(end+1:end+n_spikes)=overall_trial_idx.*ones(1,n_spikes);
+                data.spikedata.rel_trial(end+1:end+n_spikes)=i.*ones(1,n_spikes);
                 data.spikedata.time(end+1:end+n_spikes)=spikes.*1000.0;
                 data.spikedata.array(end+1:end+n_spikes)=array_idx.*ones(1,n_spikes);
                 data.spikedata.electrode(end+1:end+n_spikes)=e_idx.*ones(1,n_spikes);
