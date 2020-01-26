@@ -13,5 +13,10 @@
     "visual_rake_pull_right", "visual_rake_pull_left", "visual_pliers_right", "visual_pliers_left",
     "visual_grasp_right", "visual_grasp_left", "fixation", "motor_rake_right", "motor_rake_left","visual_stick_left",
     "visual_stick_right","visual_rake_push_left","visual_rake_push_right"],
-  "collapsed_conditions": ["motor_grasp", "motor_rake", "visual_rake_pull", "visual_pliers", "visual_grasp","fixation","visual_stick","visual_rake_push"]
+  "collapsed_conditions": ["motor_grasp", "motor_rake", "visual_rake_pull", "visual_pliers", "visual_grasp","fixation","visual_stick","visual_rake_push"],
+  "preproc_data_server": "ferrarilab@192.168.10.47",
+  "data_server": "bonaiuto@n18h202",
+  "camera_views": ["front", "side", "top"],
+  "camera_serials": {"front": "22508274", "side": "22524011", "top": "22524012"},
+  "video_dir": "/media/bonaiuto/Maxtor/tool_learning/data/video"
 }
