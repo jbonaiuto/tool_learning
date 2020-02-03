@@ -351,9 +351,13 @@ if __name__=='__main__':
     if len(sys.argv)>4:
         preprocess=sys.argv[4] in ['true','True','1']
 
-    data_dir = os.path.join(cfg['intan_data_dir'], subject, recording_date)
+    data_dir = None
+    for x in cfg['intan_data_dirs']:
+        if os.path.exists(os.path.join(x, subject, recording_date)):
+            data_dir = os.path.join(x, subject, recording_date)
+
     print(data_dir)
-    if os.path.exists(data_dir):
+    if data_dir is not None and os.path.exists(data_dir):
         # Compute total duration (want to use all data for clustering)
         (data_file_names,total_duration)=read_and_sort_data_files(data_dir)
 

@@ -1,3 +1,4 @@
+import copy
 import sys
 from datetime import datetime
 from shutil import copyfile
@@ -26,176 +27,186 @@ def run_compare_catalogues(subject, date, similarity_threshold=0.7):
     bin_size = 1.
     bins = np.arange(bin_min, bin_max, bin_size)
 
-    # Get previous days to compare to
-    sorted_dates, sorted_files = read_previous_sorts(subject)
+    if os.path.exists(os.path.join(cfg['single_unit_spike_sorting_dir'], subject, date)):
+        # Get previous days to compare to
+        sorted_dates, sorted_files = read_previous_sorts(subject)
 
-    new_date = datetime.strptime(date, '%d.%m.%y')
+        new_date = datetime.strptime(date, '%d.%m.%y')
 
-    # Results for report
-    channel_results = []
+        # Results for report
+        channel_results = []
 
-    for array_idx in range(len(cfg['arrays'])):
-        new_output_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, date, 'array_%d' % array_idx)
+        for array_idx in range(len(cfg['arrays'])):
+            new_output_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, date, 'array_%d' % array_idx)
 
-        # Create directory for plots
-        plot_output_dir = os.path.join(new_output_dir, 'figures', 'catalogue_comparison')
-        if not os.path.exists(plot_output_dir):
-            os.mkdir(plot_output_dir)
+            # Create directory for plots
+            plot_output_dir = os.path.join(new_output_dir, 'figures', 'catalogue_comparison')
+            if not os.path.exists(plot_output_dir):
+                os.mkdir(plot_output_dir)
 
-        for ch_grp in range(cfg['n_channels_per_array']):
-            channel_result = {'array': cfg['arrays'][array_idx], 'channel': ch_grp, 'merged': [], 'unmerged': [], 'final': ''}
+            for ch_grp in range(cfg['n_channels_per_array']):
+                channel_result = {'array': cfg['arrays'][array_idx], 'channel': ch_grp, 'merged': [], 'unmerged': [], 'final': ''}
 
-            # load catalogue for this channel
-            new_dataio = DataIO(dirname=new_output_dir, ch_grp=ch_grp)
-            catalogueconstructor = CatalogueConstructor(dataio=new_dataio,chan_grp=ch_grp)
+                # load catalogue for this channel
+                new_dataio = DataIO(dirname=new_output_dir, ch_grp=ch_grp)
+                catalogueconstructor = CatalogueConstructor(dataio=new_dataio,chan_grp=ch_grp)
 
-            # Waveform time range
-            time_range = range(catalogueconstructor.info['waveform_extractor_params']['n_left'],
-                               catalogueconstructor.info['waveform_extractor_params']['n_right'])
+                # Waveform time range
+                time_range = range(catalogueconstructor.info['waveform_extractor_params']['n_left'],
+                                   catalogueconstructor.info['waveform_extractor_params']['n_right'])
 
-            # refresh
-            if catalogueconstructor.centroids_median is None:
-                catalogueconstructor.compute_all_centroid()
-            catalogueconstructor.refresh_colors()
+                # refresh
+                if catalogueconstructor.centroids_median is None:
+                    catalogueconstructor.compute_all_centroid()
+                catalogueconstructor.refresh_colors()
 
-            # cell labels and cluster waveforms for this day
-            nn_idx=np.where(catalogueconstructor.clusters['cell_label']>-1)[0]
+                # cell labels and cluster waveforms for this day
+                nn_idx=np.where(catalogueconstructor.clusters['cell_label']>-1)[0]
 
-            # If there are any clusters for this day
-            if len(nn_idx)>0:
+                # If there are any clusters for this day
+                if len(nn_idx)>0:
 
-                new_cluster_labels, new_cell_labels, new_wfs, new_wfs_stds, new_isis = get_cluster_info(catalogueconstructor,
-                                                                                          new_dataio, ch_grp, bins,
-                                                                                          nn_idx)
+                    new_cluster_labels, new_cell_labels, new_wfs, new_wfs_stds, new_isis = get_cluster_info(catalogueconstructor,
+                                                                                                            new_dataio, ch_grp, bins,
+                                                                                                            nn_idx)
 
-                # Load cell labels and waveforms for all previous days
-                all_old_cluster_labels=[]
-                all_old_cell_labels=[]
-                all_old_wfs=np.zeros((0,50))
-                all_old_wfs_stds = np.zeros((0, 50))
-                all_old_isis=np.zeros((0,len(bins)-1))
+                    # Load cell labels and waveforms for all previous days
+                    all_old_cluster_labels=[]
+                    all_old_cell_labels=[]
+                    all_old_wfs=np.zeros((0,50))
+                    all_old_wfs_stds = np.zeros((0, 50))
+                    all_old_isis=np.zeros((0,len(bins)-1))
+                    recent_sorted_files=copy.copy(sorted_files)
+                    recent_sorted_dates=copy.copy(sorted_dates)
+                    if len(recent_sorted_files)>20:
+                        recent_sorted_files=recent_sorted_files[-20:]
+                        recent_sorted_dates=recent_sorted_dates[-20:]
 
-                for old_date,old_file in zip(sorted_dates,sorted_files):
-                    if old_date<new_date:
-                        old_output_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, old_file, 'array_%d' % array_idx)
-                        old_dataio = DataIO(dirname=old_output_dir, ch_grp=ch_grp, reload_data_source=False)
+                    for old_date,old_file in zip(recent_sorted_dates,recent_sorted_files):
+                        if old_date<new_date:
+                            print('loading %s' % old_date)
+                            old_output_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, old_file, 'array_%d' % array_idx)
+                            old_dataio = DataIO(dirname=old_output_dir, ch_grp=ch_grp, reload_data_source=False)
 
-                        old_catalogueconstructor = CatalogueConstructor(dataio=old_dataio, chan_grp=ch_grp, load_persistent_arrays=False)
-                        old_catalogueconstructor.arrays.load_if_exists('clusters')
-                        old_catalogueconstructor.arrays.load_if_exists('centroids_median')
-                        old_catalogueconstructor.arrays.load_if_exists('centroids_std')
-
-
-                        if old_catalogueconstructor.centroids_median is None:
-                            old_catalogueconstructor.compute_all_centroid()
-
-                        old_cell_labels=old_catalogueconstructor.clusters['cell_label']
-                        to_include = np.where(np.bitwise_and(np.isin(old_cell_labels, all_old_cell_labels) == False,
-                                                             old_cell_labels > -1))[0]
-
-                        if len(to_include):
-                            old_cluster_labels, old_cell_labels, old_wfs, old_wfs_stds, old_isis = get_cluster_info(
-                                old_catalogueconstructor,
-                                old_dataio, ch_grp, bins,
-                                to_include)
+                            old_catalogueconstructor = CatalogueConstructor(dataio=old_dataio, chan_grp=ch_grp, load_persistent_arrays=False)
+                            old_catalogueconstructor.arrays.load_if_exists('clusters')
+                            old_catalogueconstructor.arrays.load_if_exists('centroids_median')
+                            old_catalogueconstructor.arrays.load_if_exists('centroids_std')
 
 
-                            all_old_wfs=np.concatenate((all_old_wfs,old_wfs))
-                            all_old_wfs_stds = np.concatenate((all_old_wfs_stds, old_wfs_stds))
-                            all_old_cell_labels.extend(old_cell_labels)
-                            all_old_cluster_labels.extend(old_cluster_labels)
-                            all_old_isis = np.concatenate((all_old_isis, old_isis))
+                            if old_catalogueconstructor.centroids_median is None:
+                                old_catalogueconstructor.compute_all_centroid()
 
-                if len(all_old_cell_labels):
-                    # Compute cluster similarity
-                    wfs=np.concatenate((new_wfs,all_old_wfs))
-                    cluster_similarity = metrics.cosine_similarity_with_max(wfs)
-                    new_old_cluster_similarity=cluster_similarity[0:new_wfs.shape[0],new_wfs.shape[0]:]
+                            old_cell_labels=old_catalogueconstructor.clusters['cell_label']
+                            to_include = np.where(np.bitwise_and(np.isin(old_cell_labels, all_old_cell_labels) == False,
+                                                                 old_cell_labels > -1))[0]
 
-                    # Plot cluster similarity
-                    fname = 'chan_%d_similarity.png' % ch_grp
-                    plot_new_old_cluster_similarity(all_old_cluster_labels, all_old_cell_labels, new_cluster_labels, new_cell_labels, new_old_cluster_similarity,
-                                                    plot_output_dir, fname)
-                    channel_result['similarity']=os.path.join('array_%d' % array_idx, 'figures','catalogue_comparison',fname)
-
-                    # Go through each cluster in current day
-                    for new_cluster_idx in range(new_wfs.shape[0]):
-                        # Find most similar cluster from previous days
-                        most_similar = np.argmax(new_old_cluster_similarity[new_cluster_idx,:])
-
-                        # Merge if similarity greater than threshold
-                        similarity=new_old_cluster_similarity[new_cluster_idx,most_similar]
-                        if similarity>=similarity_threshold:
-                            print('relabeling unit %d-%d as unit %d-%d' % (ch_grp, new_cell_labels[new_cluster_idx], ch_grp,
-                                                                           all_old_cell_labels[most_similar]))
-                            fname = 'chan_%d_merge_%d-%d.png' % (ch_grp, new_cell_labels[new_cluster_idx], all_old_cell_labels[most_similar])
-
-                            plot_cluster_merge(all_old_cell_labels[most_similar], all_old_cluster_labels[most_similar],
-                                               all_old_isis[most_similar, :], all_old_wfs[most_similar, :],
-                                               all_old_wfs_stds[most_similar, :], new_cell_labels[new_cluster_idx],
-                                               new_cluster_labels[new_cluster_idx], new_isis[new_cluster_idx, :],
-                                               new_wfs[new_cluster_idx, :], new_wfs_stds[new_cluster_idx, :], similarity,
-                                               time_range, bins, plot_output_dir, fname)
-                            channel_result['merged'].append(os.path.join('array_%d' % array_idx, 'figures', 'catalogue_comparison',fname))
+                            if len(to_include):
+                                old_cluster_labels, old_cell_labels, old_wfs, old_wfs_stds, old_isis = get_cluster_info(
+                                    old_catalogueconstructor,
+                                    old_dataio, ch_grp, bins,
+                                    to_include)
 
 
-                            new_cell_labels[new_cluster_idx]=all_old_cell_labels[most_similar]
-                        # Otherwise, add new cluster
-                        else:
-                            new_label = np.max(all_old_cell_labels) + 1
-                            print('adding new unit %d-%d' % (ch_grp, new_label))
-                            all_old_cell_labels.append(new_label)
-                            new_cell_labels[new_cluster_idx] = new_label
+                                all_old_wfs=np.concatenate((all_old_wfs,copy.deepcopy(old_wfs)))
+                                all_old_wfs_stds = np.concatenate((all_old_wfs_stds, copy.deepcopy(old_wfs_stds)))
+                                all_old_cell_labels.extend(copy.deepcopy(old_cell_labels))
+                                all_old_cluster_labels.extend(copy.deepcopy(old_cluster_labels))
+                                all_old_isis = np.concatenate((all_old_isis, copy.deepcopy(old_isis)))
+                            #old_dataio.arrays.detach_array('clusters', mmap_close=True)
+                            #old_dataio.arrays.detach_array('centroids_median', mmap_close=True)
+                            #old_dataio.arrays.detach_array('centroids_std', mmap_close=True)
 
-                            fname = 'chan_%d_nonmerge_%d.png' % (ch_grp, new_cell_labels[new_cluster_idx])
+                    if len(all_old_cell_labels):
+                        # Compute cluster similarity
+                        wfs=np.concatenate((new_wfs,all_old_wfs))
+                        cluster_similarity = metrics.cosine_similarity_with_max(wfs)
+                        new_old_cluster_similarity=cluster_similarity[0:new_wfs.shape[0],new_wfs.shape[0]:]
 
-                            plot_cluster_new(all_old_cluster_labels, all_old_cell_labels, all_old_isis, all_old_wfs, all_old_wfs_stds,
-                                             new_cluster_labels[new_cluster_idx], new_cell_labels[new_cluster_idx], new_isis[new_cluster_idx, :],
-                                             new_wfs[new_cluster_idx, :], new_wfs_stds[new_cluster_idx, :],
-                                             new_old_cluster_similarity[new_cluster_idx:new_cluster_idx+1, :], time_range, bins, plot_output_dir, fname)
-                            channel_result['unmerged'].append(os.path.join('array_%d' % array_idx, 'figures','catalogue_comparison',fname))
+                        # Plot cluster similarity
+                        fname = 'chan_%d_similarity.png' % ch_grp
+                        plot_new_old_cluster_similarity(all_old_cluster_labels, all_old_cell_labels, new_cluster_labels, new_cell_labels, new_old_cluster_similarity,
+                                                        plot_output_dir, fname)
+                        channel_result['similarity']=os.path.join('array_%d' % array_idx, 'figures','catalogue_comparison',fname)
 
+                        # Go through each cluster in current day
+                        for new_cluster_idx in range(new_wfs.shape[0]):
+                            # Find most similar cluster from previous days
+                            most_similar = np.argmax(new_old_cluster_similarity[new_cluster_idx,:])
 
-                    catalogueconstructor.clusters['cell_label'][nn_idx]=new_cell_labels
+                            # Merge if similarity greater than threshold
+                            similarity=new_old_cluster_similarity[new_cluster_idx,most_similar]
+                            if similarity>=similarity_threshold:
+                                print('relabeling unit %d-%d as unit %d-%d' % (ch_grp, new_cell_labels[new_cluster_idx], ch_grp,
+                                                                               all_old_cell_labels[most_similar]))
+                                fname = 'chan_%d_merge_%d-%d.png' % (ch_grp, new_cell_labels[new_cluster_idx], all_old_cell_labels[most_similar])
 
-                # Merge clusters with same labels
-                cluster_removed = True
-                while cluster_removed:
-                    for cell_label in catalogueconstructor.clusters['cell_label']:
-                        cluster_idx=np.where(catalogueconstructor.clusters['cell_label']==cell_label)[0]
-                        if len(cluster_idx)>1:
-                            cluster_label1=catalogueconstructor.cluster_labels[cluster_idx[0]]
-                            cluster_label2 = catalogueconstructor.cluster_labels[cluster_idx[1]]
-
-                            print('auto_merge', cluster_label2, 'with', cluster_label1)
-                            mask = catalogueconstructor.all_peaks['cluster_label'] == cluster_label2
-                            catalogueconstructor.all_peaks['cluster_label'][mask] = cluster_label1
-                            catalogueconstructor.remove_one_cluster(cluster_label2)
-                            break
-                        else:
-                            cluster_removed = False
-
-                catalogueconstructor.make_catalogue_for_peeler()
-
-                fig=plot_clusters_summary(new_dataio, catalogueconstructor, ch_grp)
-                fname='chan_%d_final_clusters.png' % ch_grp
-                fig.savefig(os.path.join(plot_output_dir, fname))
-                fig.clf()
-                plt.close()
-                channel_result['final']=os.path.join('array_%d' % array_idx, 'figures','catalogue_comparison',fname)
-
-            channel_results.append(channel_result)
+                                plot_cluster_merge(all_old_cell_labels[most_similar], all_old_cluster_labels[most_similar],
+                                                   all_old_isis[most_similar, :], all_old_wfs[most_similar, :],
+                                                   all_old_wfs_stds[most_similar, :], new_cell_labels[new_cluster_idx],
+                                                   new_cluster_labels[new_cluster_idx], new_isis[new_cluster_idx, :],
+                                                   new_wfs[new_cluster_idx, :], new_wfs_stds[new_cluster_idx, :], similarity,
+                                                   time_range, bins, plot_output_dir, fname)
+                                channel_result['merged'].append(os.path.join('array_%d' % array_idx, 'figures', 'catalogue_comparison',fname))
 
 
-    env = Environment(loader=FileSystemLoader(cfg['template_dir']))
-    template = env.get_template('spike_sorting_merge_template.html')
-    template_output = template.render(subject=subject, recording_date=date, channel_results=channel_results)
+                                new_cell_labels[new_cluster_idx]=all_old_cell_labels[most_similar]
+                            # Otherwise, add new cluster
+                            else:
+                                new_label = np.max(all_old_cell_labels) + 1
+                                print('adding new unit %d-%d' % (ch_grp, new_label))
+                                all_old_cell_labels.append(new_label)
+                                new_cell_labels[new_cluster_idx] = new_label
 
-    out_filename = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, date, 'spike_sorting_merge_report.html')
-    with open(out_filename, 'w') as fh:
-        fh.write(template_output)
+                                fname = 'chan_%d_nonmerge_%d.png' % (ch_grp, new_cell_labels[new_cluster_idx])
 
-    copyfile(os.path.join(cfg['template_dir'], 'style.css'), os.path.join(cfg['single_unit_spike_sorting_dir'], subject, date, 'style.css'))
+                                plot_cluster_new(all_old_cluster_labels, all_old_cell_labels, all_old_isis, all_old_wfs, all_old_wfs_stds,
+                                                 new_cluster_labels[new_cluster_idx], new_cell_labels[new_cluster_idx], new_isis[new_cluster_idx, :],
+                                                 new_wfs[new_cluster_idx, :], new_wfs_stds[new_cluster_idx, :],
+                                                 new_old_cluster_similarity[new_cluster_idx:new_cluster_idx+1, :], time_range, bins, plot_output_dir, fname)
+                                channel_result['unmerged'].append(os.path.join('array_%d' % array_idx, 'figures','catalogue_comparison',fname))
+
+
+                        catalogueconstructor.clusters['cell_label'][nn_idx]=new_cell_labels
+
+                    # Merge clusters with same labels
+                    cluster_removed = True
+                    while cluster_removed:
+                        for cell_label in catalogueconstructor.clusters['cell_label']:
+                            cluster_idx=np.where(catalogueconstructor.clusters['cell_label']==cell_label)[0]
+                            if len(cluster_idx)>1:
+                                cluster_label1=catalogueconstructor.cluster_labels[cluster_idx[0]]
+                                cluster_label2 = catalogueconstructor.cluster_labels[cluster_idx[1]]
+
+                                print('auto_merge', cluster_label2, 'with', cluster_label1)
+                                mask = catalogueconstructor.all_peaks['cluster_label'] == cluster_label2
+                                catalogueconstructor.all_peaks['cluster_label'][mask] = cluster_label1
+                                catalogueconstructor.remove_one_cluster(cluster_label2)
+                                break
+                            else:
+                                cluster_removed = False
+
+                    catalogueconstructor.make_catalogue_for_peeler()
+
+                    fig=plot_clusters_summary(new_dataio, catalogueconstructor, ch_grp)
+                    fname='chan_%d_final_clusters.png' % ch_grp
+                    fig.savefig(os.path.join(plot_output_dir, fname))
+                    fig.clf()
+                    plt.close()
+                    channel_result['final']=os.path.join('array_%d' % array_idx, 'figures','catalogue_comparison',fname)
+
+                channel_results.append(channel_result)
+
+
+        env = Environment(loader=FileSystemLoader(cfg['template_dir']))
+        template = env.get_template('spike_sorting_merge_template.html')
+        template_output = template.render(subject=subject, recording_date=date, channel_results=channel_results)
+
+        out_filename = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, date, 'spike_sorting_merge_report.html')
+        with open(out_filename, 'w') as fh:
+            fh.write(template_output)
+
+        copyfile(os.path.join(cfg['template_dir'], 'style.css'), os.path.join(cfg['single_unit_spike_sorting_dir'], subject, date, 'style.css'))
 
 
 def plot_cluster_new(all_old_cluster_labels, all_old_cell_labels, all_old_isis, all_old_wfs, all_old_wfs_stds,

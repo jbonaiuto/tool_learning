@@ -217,23 +217,27 @@ def preprocess_data(subject, recording_date):
         # remove is already exists
         shutil.rmtree(output_dir)
 
-    data_dir = os.path.join(cfg['intan_data_dir'], subject, recording_date)
-    (data_file_names, total_duration) = read_and_sort_data_files(data_dir)
+    data_dir = None
+    for x in cfg['intan_data_dirs']:
+        if os.path.exists(os.path.join(x, subject, recording_date)):
+            data_dir=os.path.join(x, subject, recording_date)
+    if data_dir is not None:
+        (data_file_names, total_duration) = read_and_sort_data_files(data_dir)
 
-    ## Setup DataIO
-    dataio = DataIO(dirname=output_dir)
-    # dataio.set_data_source(type='RawData', filenames=data_file_names, dtype='float32', sample_rate=30000, total_channel=192)
-    dataio.set_data_source(type='Intan', filenames=data_file_names)
+        ## Setup DataIO
+        dataio = DataIO(dirname=output_dir)
+        # dataio.set_data_source(type='RawData', filenames=data_file_names, dtype='float32', sample_rate=30000, total_channel=192)
+        dataio.set_data_source(type='Intan', filenames=data_file_names)
 
-    # Setup channel groups
-    for array_idx in range(len(cfg['arrays'])):
-        dataio.add_one_channel_group(channels=range(array_idx * cfg['n_channels_per_array'], (array_idx + 1) * cfg['n_channels_per_array']), chan_grp=array_idx)
+        # Setup channel groups
+        for array_idx in range(len(cfg['arrays'])):
+            dataio.add_one_channel_group(channels=range(array_idx * cfg['n_channels_per_array'], (array_idx + 1) * cfg['n_channels_per_array']), chan_grp=array_idx)
 
-    print(dataio)
+        print(dataio)
 
-    for array_idx in range(len(cfg['arrays'])):
-        print(array_idx)
-        preprocess_array(array_idx, output_dir, total_duration)
+        for array_idx in range(len(cfg['arrays'])):
+            print(array_idx)
+            preprocess_array(array_idx, output_dir, total_duration)
 
 
 def compute_catalogue(subject, recording_date, n_segments, total_duration):

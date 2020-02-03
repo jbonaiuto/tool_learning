@@ -651,6 +651,7 @@ def run_process_trial_info(subj_name, date):
             # Stop looking if last session matched the intan task
             last_session_task_matched=False
             for session_idx in range(current_session_num,len(plexon_set.recordings)):
+                current_plx_trial_num=0
                 if plexon_set.recordings[session_idx].task==intan_task:
                     for plx_t_idx in range(current_plx_trial_num,len(plexon_set.recordings[session_idx].trial_durations)):
 
@@ -1145,9 +1146,13 @@ def check_motor_rake_trial(block_idx, trial_idx, condition, sorted_evts):
         #     print('Error, trial %d, no tool/object contact event' % trial_idx)
         #     error = True
 
-        if not 'trap_bottom' in sorted_evts:
-            print('Error, block %d, trial %d-%s, no trap_bottom event' % (block_idx, trial_idx, condition))
+        if not 'trap_edge' in sorted_evts and not 'trap_bottom' in sorted_evts:
+            print('Error, block %d, trial %d-%s, no trap_edge or trap_bottom event' % (block_idx, trial_idx, condition))
             error = True
+
+        # if not 'trap_bottom' in sorted_evts:
+        #     print('Error, block %d, trial %d-%s, no trap_bottom event' % (block_idx, trial_idx, condition))
+        #     error = True
 
         # if 'monkey_rake_handle' in sorted_evts:
         #     handle_idx = sorted_evts.index('monkey_rake_handle')
@@ -1210,10 +1215,11 @@ def rerun(subject, date_start_str):
     current_date = date_start
     while current_date <= date_now:
         date_str = datetime.strftime(current_date, '%d.%m.%y')
-        recording_path = os.path.join(cfg['intan_data_dir'], subject, date_str)
-        if os.path.exists(recording_path):
+        for x in cfg['intan_data_dirs']:
 
-            run_process_trial_info(subject, date_str)
+            if os.path.exists(os.path.join(x, subject, date_str)):
+
+                run_process_trial_info(subject, date_str)
 
         current_date = current_date + timedelta(days=1)
         date_now = datetime.now()
@@ -1221,5 +1227,5 @@ def rerun(subject, date_start_str):
 if __name__=='__main__':
     subject = sys.argv[1]
     recording_date = sys.argv[2]
-    #run_process_trial_info(subject, recording_date)
-    rerun(subject,recording_date)
+    run_process_trial_info(subject, recording_date)
+    #rerun(subject,recording_date)
