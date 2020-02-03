@@ -18,7 +18,7 @@ evt_color=cbrewer('qual','Paired',length(event_types));
 cond_color=cbrewer('qual','Set1',length(conditions));
 
 align_evts={'go','hand_mvmt_onset','obj_contact','place'};
-tlims=[-250 250;-250 200;-100 250;-250 250];
+tlims=[-250 250;-250 250;-250 250;-250 250];
 
 figure();
 
