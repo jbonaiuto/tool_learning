@@ -47,6 +47,8 @@ concat_data.firing_rate=[];
 concat_data.baseline_type=data{1}.baseline_type;
 concat_data.smoothed_firing_rate=[];
 
+trial_offset=0;
+
 for i=1:length(data)
     curr_data=data{i};
     if curr_data.ntrials>0        
@@ -54,7 +56,8 @@ for i=1:length(data)
             n_spikes=length(curr_data.spikedata.date);
             concat_data.spikedata=[];
             concat_data.spikedata.date(end+1:end+n_spikes)=curr_data.spikedata.date;
-            concat_data.spikedata.trial(end+1:end+n_spikes)=curr_data.spikedata.trial;
+            concat_data.spikedata.trial(end+1:end+n_spikes)=curr_data.spikedata.trial+trial_offset;
+            trial_offset=trial_offset+curr_data.ntrials;
             concat_data.spikedata.rel_trial(end+1:end+n_spikes)=curr_data.spikedata.rel_trial;
             concat_data.spikedata.time(end+1:end+n_spikes)=curr_data.spikedata.time;
             concat_data.spikedata.array(end+1:end+n_spikes)=curr_data.spikedata.array;
