@@ -754,9 +754,9 @@ def run_process_trial_info(subj_name, date):
                 trial_condition=df['condition'][row]
                 status=df['status'][row]
                 reward=df['reward'][row]
+                if not trial_condition in block_good_trials:
+                    block_good_trials[trial_condition] = 0
                 if status=='good' and reward:
-                    if not trial_condition in block_good_trials:
-                        block_good_trials[trial_condition]=0
                     block_good_trials[trial_condition]=block_good_trials[trial_condition]+1
                     if not trial_condition in all_good_trials:
                         all_good_trials[trial_condition]=0
