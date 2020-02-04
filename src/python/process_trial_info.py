@@ -545,7 +545,7 @@ class IntanRecordingSet:
                     self.files.append(file)
                     self.cutoff_trial_files.append(len(self.files) - 1)
 
-            # If there is a trial start and no trial end
+            # If there is a trial start and no trial end - files are split into two if longer than 60s
             elif len(trial_start)>0 and len(trial_end)==0:
                 # Recording goes until end of file
                 dur_step = len(rec_signal) - trial_start
@@ -557,7 +557,7 @@ class IntanRecordingSet:
                     self.tasks.append(task)
                     self.files.append(file)
                     self.cutoff_trial_files.append(len(self.files)-1)
-            # If there is a trial end and no trial start
+            # If there is a trial end and no trial start- files are split into two if longer than 60s
             elif len(trial_start)==0 and len(trial_end)>0:
                 # Recording starts at beginning of file
                 dur_step = trial_end[0]
@@ -636,7 +636,6 @@ def run_process_trial_info(subj_name, date):
 
         # Currently mapped session number and trial
         current_session_num=0
-        current_plx_trial_num=0
         curr_trial_num = -1
         last_block = -1
 
@@ -651,9 +650,8 @@ def run_process_trial_info(subj_name, date):
             # Stop looking if last session matched the intan task
             last_session_task_matched=False
             for session_idx in range(current_session_num,len(plexon_set.recordings)):
-                current_plx_trial_num=0
                 if plexon_set.recordings[session_idx].task==intan_task:
-                    for plx_t_idx in range(current_plx_trial_num,len(plexon_set.recordings[session_idx].trial_durations)):
+                    for plx_t_idx in range(len(plexon_set.recordings[session_idx].trial_durations)):
 
                         # Check trial durations for match within 2ms
                         plx_dur=plexon_set.recordings[session_idx].trial_durations[plx_t_idx]
@@ -661,7 +659,6 @@ def run_process_trial_info(subj_name, date):
                         dur_delta=np.abs(plx_dur-intan_dur)
                         if dur_delta>=0 and dur_delta<=2:
                             matched=True
-                            current_plx_trial_num=plx_t_idx+1
                             current_session_num=session_idx
 
                             if session_idx!=last_block:
@@ -693,9 +690,7 @@ def run_process_trial_info(subj_name, date):
 
                             break
                     # Start at first trial of next session if not matched
-                    if not matched:
-                        current_plx_trial_num=0
-                    else:
+                    if matched:
                         break
                     last_session_task_matched=True
                 elif last_session_task_matched:
@@ -756,7 +751,7 @@ def run_process_trial_info(subj_name, date):
                 reward=df['reward'][row]
                 if not trial_condition in block_good_trials:
                     block_good_trials[trial_condition] = 0
-                if status=='good' and reward:
+                if status=='good':
                     block_good_trials[trial_condition]=block_good_trials[trial_condition]+1
                     if not trial_condition in all_good_trials:
                         all_good_trials[trial_condition]=0
@@ -1227,5 +1222,5 @@ def rerun(subject, date_start_str):
 if __name__=='__main__':
     subject = sys.argv[1]
     recording_date = sys.argv[2]
-    run_process_trial_info(subject, recording_date)
-    #rerun(subject,recording_date)
+    #run_process_trial_info(subject, recording_date)
+    rerun(subject,recording_date)
