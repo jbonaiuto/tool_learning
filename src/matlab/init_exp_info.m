@@ -20,5 +20,5 @@ exp_info.conditions={'visual_grasp_left','visual_grasp_right','motor_grasp_left'
     'motor_rake_food_left','motor_rake_food_center','motor_rake_food_right',...
     'visual_rake_push_left','visual_rake_push_right','visual_stick_left','visual_stick_right'};
 
-exp_info.base_data_dir='D:/Data/Tooltask';
-exp_info.base_output_dir='D:/Data/Tooltask/output';
+exp_info.base_data_dir='C:\Users\jbonaiuto\Dropbox\Projects\inProgress\tool_learning\data';
+exp_info.base_output_dir='C:\Users\jbonaiuto\Projects\tool_learning\output';
