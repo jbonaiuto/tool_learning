@@ -727,7 +727,7 @@ def run_process_trial_info(subj_name, date):
             curr_trial_num = curr_trial_num + 1
 
         # Check that trial durations match
-        assert(np.all(np.isnan(np.array(trial_info['plexon_duration']))) or np.nanmax(np.abs(np.array(trial_info['intan_duration'])-np.array(trial_info['plexon_duration'])))<2)
+        assert(np.all(np.isnan(np.array(trial_info['plexon_duration']))) or np.nanmax(np.abs(np.array(trial_info['intan_duration'])-np.array(trial_info['plexon_duration'])))<=2)
 
         print('Total num trials: log=%d, plexon=%d, intan=%d' % (log_set.total_trials(), plexon_set.total_trials(),
                                                                  len(trial_info['block'])))
