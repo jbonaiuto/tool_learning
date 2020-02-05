@@ -78,7 +78,7 @@ elseif strcmp(params.baseline_type,'condition')
         % Average over all trials in this condition
         condition_baseline_mean_rate=mean(condition_baseline_rate,3);
         % Baseline-correct each trial in this condition
-        condition_baseline_rep=repmat(condition_baseline_mean_rate,1,1,length(condition_trials),size(data.firing_rate,4));
+        condition_baseline_rep=repmat(condition_baseline_mean_rate,[1,1,length(condition_trials),size(data.firing_rate,4)]);
         data.firing_rate(:,:,condition_trials,:)=(data.firing_rate(:,:,condition_trials,:)-condition_baseline_rep)./condition_baseline_rep;                  
     end
     
@@ -92,11 +92,12 @@ elseif strcmp(params.baseline_type,'global')
     % Average over all trials
     baseline_mean_rate=mean(baseline_rate,3);
     % Baseline-correct each trial
-    baseline_rep=repmat(baseline_mean_rate,1,1,size(data.firing_rate,3),size(data.firing_rate,4));    
+    baseline_rep=repmat(baseline_mean_rate,[1,1,size(data.firing_rate,3),size(data.firing_rate,4)]);    
     data.firing_rate=(data.firing_rate-baseline_rep)./baseline_rep;    
 end
 
 % Smooth each trial firing rate using Gaussian filter
+data.win_len=params.win_len;
 data.smoothed_firing_rate=zeros(size(data.firing_rate));
 w=gausswin(params.win_len);
 for a_idx=1:size(data.firing_rate,1)
