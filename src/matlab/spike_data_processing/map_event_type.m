@@ -16,7 +16,7 @@ function mapped_event_type=map_event_type(condition, event_type)
 % Example:
 %     mapped_event_type=map_event_type('visual_grasp_left', 'hand_mvmt_onset')
 
-mapped_event_type='';
+mapped_event_type=event_type;
 if strcmp(condition,'visual_grasp_left')
     if strcmp(event_type,'obj_contact')
         mapped_event_type='exp_grasp_center';
@@ -109,6 +109,28 @@ elseif strcmp(condition,'fixation')
     elseif strcmp(event_type,'trial_start')
         mapped_event_type='trial_start';                
     end
+elseif strcmp(condition,'motor_rake_left') || strcmp(condition,'motor_rake_center') || strcmp(condition,'motor_rake_right') || strcmp(condition,'motor_rake_food_left') || strcmp(condition,'motor_rake_food_center') || strcmp(condition,'motor_rake_food_right') || strcmp(condition,'motor_rake_center_catch')
+    if strcmp(event_type, 'trial_start')
+        mapped_event_type='trial_start';
+    elseif strcmp(event_type, 'go')
+        mapped_event_type='go';
+    elseif strcmp(event_type, 'fix_on')
+        mapped_event_type='laser_monkey_tool_center';
+    elseif strcmp(event_type, 'reward')
+        mapped_event_type='reward';
+    elseif strcmp(event_type,'hand_mvmt_onset')
+        mapped_event_type='monkey_handle_off';
+    elseif strcmp(event_type,'place')
+        mapped_event_type='trap_bottom';
+    elseif strcmp(event_type,'obj_contact')
+        if strcmp(condition,'motor_rake_left') || strcmp(condition,'motor_rake_food_left')
+            mapped_event_type='monkey_tool_left';
+        elseif strcmp(condition, 'motor_rake_center')  || strcmp(condition,'motor_rake_food_center') || strcmp(condition,'motor_rake_center_catch')
+            mapped_event_type='monkey_tool_center';
+        elseif strcmp(condition,'motor_rake_right') || strcmp(condition,'motor_rake_food_right')
+            mapped_event_type='monkey_tool_right';
+        end
+    end
 else
-    disp(condition);
+    disp(sprintf('map_event_type.m: Can''t map event types from condition: %s', condition));
 end
