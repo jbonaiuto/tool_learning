@@ -64,8 +64,8 @@ for i = 1:length(d)
                     data_binned=bin_spikes(data_ali, [-1000 1000], bin_size,...
                         'baseline_evt', 'go','baseline_woi', [-500 0]);
                     % Compute firing rate
-                    data=compute_firing_rate(data_binned, 'baseline_type', 'condition','win_len', 6);
-                    save(out_file,'data');
+                    data=compute_firing_rate(data_binned, 'baseline_type', 'condition','win_len', 60);
+                    save(out_file,'data','-v7.3');
                 end
             end
             
@@ -76,8 +76,8 @@ for i = 1:length(d)
                 data_binned=bin_spikes(array_data, [-1000 10000], bin_size,...
                     'baseline_evt', 'go','baseline_woi', [-500 0]);
                 % Compute firing rate
-                data=compute_firing_rate(data_binned, 'baseline_type', 'condition','win_len', 6);
-                save(out_file,'data');
+                data=compute_firing_rate(data_binned, 'baseline_type', 'condition','win_len', 60);
+                save(out_file,'data','-v7.3');
             end
         end
         toc
