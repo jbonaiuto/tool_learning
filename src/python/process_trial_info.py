@@ -548,7 +548,7 @@ class IntanRecordingSet:
             # If there is a trial start and no trial end - files are split into two if longer than 60s
             elif len(trial_start)>0 and len(trial_end)==0:
                 # Recording goes until end of file
-                dur_step = len(rec_signal) - trial_start
+                dur_step = len(rec_signal) - trial_start[0]
                 # Ignore single time step blups
                 if dur_step > 1:
                     dur_ms = dur_step / self.srate * 1000
@@ -1222,5 +1222,5 @@ def rerun(subject, date_start_str):
 if __name__=='__main__':
     subject = sys.argv[1]
     recording_date = sys.argv[2]
-    #run_process_trial_info(subject, recording_date)
-    rerun(subject,recording_date)
+    run_process_trial_info(subject, recording_date)
+    #rerun(subject,recording_date)
