@@ -417,7 +417,7 @@ class PlexonRecording:
     def filter_events(self):
 
         for t_idx in range(len(self.trial_events)):
-            if self.task == 'visual_task_training' or self.task == 'visual_task_stage1-2':
+            if self.task == 'visual_task_training' or self.task == 'visual_task_stage1-2' or self.task=='visual_task_stage3':
                 self.trial_events[t_idx] = filter_visual_events(self.trial_events[t_idx], self.trial_conditions[t_idx])
 
             elif self.task == 'motor_task_training' or self.task == 'motor_task_grasp':
@@ -548,7 +548,7 @@ class IntanRecordingSet:
             # If there is a trial start and no trial end - files are split into two if longer than 60s
             elif len(trial_start)>0 and len(trial_end)==0:
                 # Recording goes until end of file
-                dur_step = len(rec_signal) - trial_start
+                dur_step = len(rec_signal) - trial_start[0]
                 # Ignore single time step blups
                 if dur_step > 1:
                     dur_ms = dur_step / self.srate * 1000
@@ -954,7 +954,7 @@ def check_trial(task, block_idx, trial_idx, condition, trial_events):
     sorted_times = [x[0] for x in sorted(zip(evt_times, evts))]
 
     error = False
-    if task == 'visual_task_training' or task == 'visual_task_stage1-2':
+    if task == 'visual_task_training' or task == 'visual_task_stage1-2' or task=='visual_task_stage3':
         error = check_visual_trial(block_idx, trial_idx, condition, sorted_evts)
     elif task == 'motor_task_training' or task == 'motor_task_grasp':
         error = check_motor_grasp_trial(block_idx, trial_idx, condition, sorted_evts)
@@ -1222,5 +1222,5 @@ def rerun(subject, date_start_str):
 if __name__=='__main__':
     subject = sys.argv[1]
     recording_date = sys.argv[2]
-    #run_process_trial_info(subject, recording_date)
-    rerun(subject,recording_date)
+    run_process_trial_info(subject, recording_date)
+    #rerun(subject,recording_date)
