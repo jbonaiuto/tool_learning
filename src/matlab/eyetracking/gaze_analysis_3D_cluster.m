@@ -7,6 +7,8 @@ function [ xF,yF,XF,YF ] = gaze_analysis_3D_cluster( file_calibration, file_task
 % G = [28.2,0,76.9]';
 % GD = [0,0,76.9]';
 
+addpath('plexon-matlab');
+
 e = [-24.0611,-20.4308]';
 f = [32.4468,-21.3663]';
 d = [-5.5951,-5.3495]';
