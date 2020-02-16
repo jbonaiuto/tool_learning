@@ -11,7 +11,7 @@ plexon_data_dirs={'/media/ferrarilab/2C042E4D35A4CAFF/tool_learning/data/recordi
     '/media/ferrarilab/Maxtor/tool_learning/data/recordings/plexon'};
 
 while datenum(current_date)<= date_now
-    date_str = datestr(datenum(current_date),'dd.mm.yy');
+    date_str = datestr(datenum(current_date),'dd.mm.yy')
     intan_recording_path = '';
     for x=1:length(intan_data_dirs)
         potential_path=fullfile(intan_data_dirs{x}, subject, date_str);
@@ -29,8 +29,8 @@ while datenum(current_date)<= date_now
         end
     end
     if length(intan_recording_path)>0 && length(plexon_recording_path)>0
-        gaze_calibration(exp_info, subject, date_str);
-        extract_gaze_data(exp_info, subject, date_str);
+        gaze_calibration(exp_info, subject, date_str, plexon_recording_path);
+        extract_gaze_data(exp_info, subject, date_str, plexon_recording_path);
     end    
     current_date(3) = current_date(3)+1;
     date_now = datenum(now);
