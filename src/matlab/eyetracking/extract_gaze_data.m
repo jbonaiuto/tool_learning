@@ -78,17 +78,18 @@ evt_file=fullfile(exp_info.base_data_dir, 'preprocessed_data', subject,...
     date, 'trial_events.csv');
 evts=readtable(evt_file);
 
+
 good_trial_idx=info.overall_trial(find(strcmp(info.status,'good')));
-data.ntrials=length(good_trial_idx);
+data.n_trials=length(good_trial_idx);
     
 for i=1:length(good_trial_idx)
-    t_idx=good_trial_idx(i);
-    condition=info.condition{t_idx+1};
+    row_idx=find(info.overall_trial==good_trial_idx(i));
+    condition=info.condition{row_idx};
     for evt_idx=1:length(event_types)
         event_type=event_types{evt_idx};
         mapped_event_type=map_event_type(condition, event_type);
         if length(mapped_event_type)
-            evt_times=evts.time(intersect(find(evts.trial==t_idx),...
+            evt_times=evts.time(intersect(find(evts.trial==good_trial_idx(i)),...
                 find(strcmp(evts.event,mapped_event_type))));
             if length(evt_times)
                 data.metadata.(event_type)=[data.metadata.(event_type) evt_times(1)];
@@ -101,8 +102,8 @@ for i=1:length(good_trial_idx)
     end
     data.metadata.condition{i}=condition;
 
-    plex_file=info.plexon_file{i};
-    plex_file_idx=info.plexon_trial_idx(i);
+    plex_file=info.plexon_file{row_idx};
+    plex_file_idx=info.plexon_trial_idx(row_idx);
     j=find(strcmp(plex_files,plex_file));
     trial_x=plex_trial_data{j}.X{plex_file_idx+1};
     trial_y=plex_trial_data{j}.Y{plex_file_idx+1};
