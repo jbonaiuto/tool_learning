@@ -19,8 +19,6 @@ function R = axang2rotm( axang )
 
 %#codegen
 
-robotics.internal.validation.validateNumericMatrix(axang, 'axang2rotm', 'axang', ...
-    'ncols', 4);
 
 % For a single axis-angle vector [ax ay az theta] the output rotation
 % matrix R can be computed as follows:
@@ -36,7 +34,7 @@ robotics.internal.validation.validateNumericMatrix(axang, 'axang2rotm', 'axang',
 % z = normalized axis az coordinate
 
 % Normalize the axis
-v = robotics.internal.normalizeRows(axang(:,1:3));
+v = normr(axang(:,1:3));
 
 % Extract the rotation angles and shape them in depth dimension
 numInputs = size(axang,1);
