@@ -30,16 +30,29 @@ date_data={};
 for date_idx=1:length(dates)
     date=dates{date_idx};
     load(fullfile(data_dir, sprintf('fr_b_%s_%s_trial_start.mat', array, date)));
-    date_data{date_idx}=datafr;
+    date_data{date_idx}=data;
 end
 data=concatenate_data(date_data, 'spike_times',false);
 
 %Analysis epoch (-1s to 2s)
-bin_idx=find((data.bins>=-1000) & (data.bins<=2000));
+%bin_idx=find((data.bins>=-1000) & (data.bins<=2000));
+%data.bins=data.bins(bin_idx);
+%data.binned_spikes=data.binned_spikes(:,electrodes,:,bin_idx);
+%data.firing_rate=data.firing_rate(:,electrodes,:,bin_idx);
+%data.smoothed_firing_rate=data.smoothed_firing_rate(:,electrodes,:,bin_idx);
+
+for t=1:data.ntrials
+    rew_time=data.metadata.reward(t);
+    data.binned_spikes(:,electrodes,t,find((data.bins<0) | (data.bins>=rew_time)))=NaN;
+    data.firing_rate(:,electrodes,t,find((data.bins<0) | (data.bins>=rew_time)))=NaN;
+    data.smoothed_firing_rate(:,electrodes,t,find((data.bins<0) | (data.bins>=rew_time)))=NaN;
+end
+bin_idx=find(data.bins>=0);
 data.bins=data.bins(bin_idx);
 data.binned_spikes=data.binned_spikes(:,electrodes,:,bin_idx);
 data.firing_rate=data.firing_rate(:,electrodes,:,bin_idx);
 data.smoothed_firing_rate=data.smoothed_firing_rate(:,electrodes,:,bin_idx);
+
 
 granger_glm_results=[];
 granger_glm_results.bins=data.bins;
@@ -101,8 +114,8 @@ granger_glm_results.LLK=LLK;
 for neuron = 1:CHN
     fig=figure(neuron);
     plot(aic(3:3:60,neuron));
-    saveas(fig, fullfile(params.output_path,sprintf('aic_%d.png', neuron)));
-    saveas(fig, fullfile(params.output_path,sprintf('aic_%d.eps', neuron)),'epsc');
+%     saveas(fig, fullfile(params.output_path,sprintf('aic_%d.png', neuron)));
+%     saveas(fig, fullfile(params.output_path,sprintf('aic_%d.eps', neuron)),'epsc');
 end
 
 %Identify Granger causality
@@ -117,8 +130,8 @@ xlabel('Source');
 ylabel('Target');
 colorbar();
 title('Granger causality matrix');
-saveas(fig, fullfile(params.output_path, 'phi.png'));
-saveas(fig, fullfile(params.output_path, 'phi.eps'),'epsc');
+% saveas(fig, fullfile(params.output_path, 'phi.png'));
+% saveas(fig, fullfile(params.output_path, 'phi.eps'),'epsc');
 
 fig=figure();
 colormap(redblue());
@@ -127,8 +140,8 @@ set(gca,'clim',[-1 1]);
 xlabel('Source');
 ylabel('Target'); 
 title('Causal connectivity matrix');
-saveas(fig, fullfile(params.output_path, 'psi1.png'));
-saveas(fig, fullfile(params.output_path, 'psi1.eps'),'epsc');
+% saveas(fig, fullfile(params.output_path, 'psi1.png'));
+% saveas(fig, fullfile(params.output_path, 'psi1.eps'),'epsc');
 
 fig=figure();
 colormap(redblue());
@@ -137,7 +150,7 @@ set(gca,'clim',[-1 1]);
 xlabel('Source');
 ylabel('Target'); 
 title('Causal connectivity matrix (FDR)');
-saveas(fig, fullfile(params.output_path, 'psi2.png'));
-saveas(fig, fullfile(params.output_path, 'psi2.eps'),'epsc');
-
-save(fullfile(params.output_path, params.output_fname), 'granger_glm_results');
+% saveas(fig, fullfile(params.output_path, 'psi2.png'));
+% saveas(fig, fullfile(params.output_path, 'psi2.eps'),'epsc');
+% 
+% save(fullfile(params.output_path, params.output_fname), 'granger_glm_results');
