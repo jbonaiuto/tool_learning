@@ -641,6 +641,7 @@ def run_process_trial_info(subj_name, date):
         current_session_num=0
         curr_trial_num = -1
         last_block = -1
+        plexon_start=0
 
         # Go through each intan file
         for t_idx in range(len(intan_set.files)):
@@ -654,7 +655,7 @@ def run_process_trial_info(subj_name, date):
             last_session_task_matched=False
             for session_idx in range(current_session_num,len(plexon_set.recordings)):
                 if plexon_set.recordings[session_idx].task==intan_task:
-                    for plx_t_idx in range(len(plexon_set.recordings[session_idx].trial_durations)):
+                    for plx_t_idx in range(plexon_start,len(plexon_set.recordings[session_idx].trial_durations)):
 
                         # Check trial durations for match within 2ms
                         plx_dur=plexon_set.recordings[session_idx].trial_durations[plx_t_idx]
@@ -694,13 +695,19 @@ def run_process_trial_info(subj_name, date):
                             trial_info['intan_duration'].append(intan_dur)
                             trial_event_info.append(trial_events)
 
+                            plexon_start=plx_t_idx+1
                             break
                     # Start at first trial of next session if not matched
                     if matched:
                         break
+                    else:
+                        plexon_start = 0
+
                     last_session_task_matched=True
                 elif last_session_task_matched:
                     break
+                else:
+                    plexon_start = 0
 
             # Add to trial info even if not matched
             if not matched:
@@ -724,6 +731,9 @@ def run_process_trial_info(subj_name, date):
                 trial_info['log_file'].append('')
                 trial_info['plexon_file'].append('')
                 trial_info['intan_file'].append(os.path.split(intan_set.files[t_idx])[1])
+                trial_info['log_trial_idx'].append(float('NaN'))
+                trial_info['plexon_trial_idx'].append(float('NaN'))
+                trial_info['intan_trial_idx'].append(t_idx)
                 trial_info['log_duration'].append(float('NaN'))
                 trial_info['plexon_duration'].append(float('NaN'))
                 trial_info['intan_duration'].append(intan_dur)
@@ -739,7 +749,8 @@ def run_process_trial_info(subj_name, date):
                                                                  len(trial_info['block'])))
 
         df = pd.DataFrame(trial_info, columns=['overall_trial', 'block', 'task', 'trial', 'condition', 'reward',
-                                               'status', 'log_file', 'plexon_file', 'intan_file', 'log_duration',
+                                               'status', 'log_file', 'plexon_file', 'intan_file', 'log_trial_idx',
+                                               'plexon_trial_idx', 'intan_trial_idx', 'log_duration',
                                                'plexon_duration', 'intan_duration'])
         df.to_csv(os.path.join(out_dir, 'trial_info.csv'), index=False)
 
