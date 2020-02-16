@@ -627,6 +627,9 @@ def run_process_trial_info(subj_name, date):
             'log_file': [],
             'plexon_file': [],
             'intan_file': [],
+            'log_trial_idx': [],
+            'plexon_trial_idx': [],
+            'intan_trial_idx': [],
             'log_duration': [],
             'plexon_duration': [],
             'intan_duration': []
@@ -683,6 +686,9 @@ def run_process_trial_info(subj_name, date):
                             trial_info['log_file'].append(os.path.split(log_set.logs[session_idx].file)[1])
                             trial_info['plexon_file'].append(os.path.split(plexon_set.recordings[session_idx].file)[1])
                             trial_info['intan_file'].append(os.path.split(intan_set.files[t_idx])[1])
+                            trial_info['log_trial_idx'].append(plx_t_idx)
+                            trial_info['plexon_trial_idx'].append(plx_t_idx)
+                            trial_info['intan_trial_idx'].append(t_idx)
                             trial_info['log_duration'].append(log_dur)
                             trial_info['plexon_duration'].append(plx_dur)
                             trial_info['intan_duration'].append(intan_dur)
