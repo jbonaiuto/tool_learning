@@ -20,5 +20,37 @@ exp_info.conditions={'visual_grasp_left','visual_grasp_right','motor_grasp_left'
     'motor_rake_food_left','motor_rake_food_center','motor_rake_food_right',...
     'visual_rake_push_left','visual_rake_push_right','visual_stick_left','visual_stick_right'};
 
-exp_info.base_data_dir='C:\Users\jbonaiuto\Dropbox\Projects\inProgress\tool_learning\data';
+exp_info.base_data_dir='/data/tool_learning';
 exp_info.base_output_dir='C:\Users\jbonaiuto\Projects\tool_learning\output';
+
+% Position of the monkey's eye
+exp_info.eye_pos=[4.1 23 -13.1];
+% Position of the eyetracker
+exp_info.eyetracker_pos=[4.1 29.5 138.1];
+% Coordinates of the table corners
+exp_info.table_corner_1=[-32.25 0 60.2];
+exp_info.table_corner_2=[32.25 0 60.2];
+exp_info.table_corner_3=[32.25 0 2];
+exp_info.table_corner_4=[-32.25 0 2];
+% Laser coordinates
+exp_info.monkey_tool_right_laser_pos=exp_info.table_corner_4+[49.5 0 13.8];
+exp_info.monkey_tool_left_laser_pos=exp_info.table_corner_4+[15.25 0 14.2];
+exp_info.laser_exp_start_right_laser_pos=exp_info.table_corner_4+[60.3 0 46];
+exp_info.laser_exp_start_left_laser_pos=exp_info.table_corner_4+[5.5 0 46];
+exp_info.laser_exp_grasp_center_laser_pos=exp_info.table_corner_4+[32.6 0 47.2];
+% Tocchini
+exp_info.exp_start_platform_left=(exp_info.table_corner_4+[5 0 48.1]);
+exp_info.exp_start_platform_right=(exp_info.table_corner_4+[60 0 48.1]);
+exp_info.exp_place_left=(exp_info.table_corner_4+[24.5 0 48.1]);
+exp_info.exp_place_right=(exp_info.table_corner_4+[40.5 0 48.1]);
+exp_info.exp_grasp_center=(exp_info.table_corner_4+[32.5 0 48.1]);
+exp_info.monkey_handle=[0 0 0];
+exp_info.monkey_tool_right=(exp_info.table_corner_4+[49.3 0 12.4]);
+exp_info.monkey_tool_mid_right=(exp_info.table_corner_4+[41.3 0 18]);
+exp_info.monkey_tool_center=(exp_info.table_corner_4+[32.5 0 20.5]);
+exp_info.monkey_tool_mid_left=(exp_info.table_corner_4+[23.2 0 18]);
+exp_info.monkey_tool_left=(exp_info.table_corner_4+[15.5 0 12.4]);
+
+
+
+
