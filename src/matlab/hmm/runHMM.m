@@ -10,4 +10,8 @@ exp_info=init_exp_info();
     %'07.05.19','09.05.19','10.05.19','13.05.19','15.05.19','16.05.19','17.05.19','20.05.19','21.05.19','22.05.19','23.05.19',...
     %'27.05.19'};
     %dates={'13.03.19','14.03.19','15.03.19','18.03.19','19.03.19','21.03.19'};%,'22.03.19','25.03.19','26.03.19'};
-dates={'13.03.19'};
+dates={'13.03.19','14.03.19','15.03.19'};
+model_name='stage1_motor_grasp_right_3dates';
+HMM(exp_info, 'betta', dates, {'motor_grasp_right'}, model_name);
+plotHMM(exp_info, 'betta', model_name)
+plotHMM_aligned(exp_info, 'betta', model_name)

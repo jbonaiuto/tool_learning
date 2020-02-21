@@ -1,7 +1,8 @@
-function plotHMM(exp_info, subject, file_name)
+function plotHMM(exp_info, subject, model_name)
 
 dbstop if error
 
+file_name=fullfile(exp_info.base_output_dir, 'HMM', subject, model_name, 'hmm_results.mat');
 load(file_name);
 model=hmm_results.models(hmm_results.best_model_idx(1),hmm_results.best_model_idx(2));
 
@@ -17,6 +18,8 @@ end
 data=concatenate_data(date_data, 'spike_times', false);
 clear('date_data');
    
+colors=cbrewer('qual','Paired',12);
+
 for n=1:length(hmm_results.SEQ)
     PSTATES = hmmdecode(hmm_results.SEQ{n},model.ESTTR,model.ESTEMIT,'Symbols',[0:32]);
 
@@ -28,7 +31,7 @@ for n=1:length(hmm_results.SEQ)
     set(f, 'Position', get(0, 'Screensize'));
     title(sprintf('Motor grasp : F1 trial %d',hmm_results.trials(n)));
     for m=1:hmm_results.n_states
-        plot(PSTATES(m,:),'LineWidth',2);
+        plot(PSTATES(m,:),'LineWidth',2,'Color',colors(m,:));
         labels{end+1}=sprintf('state %d',m);
     end
     for e=1:length(data.metadata.event_types)
@@ -42,7 +45,7 @@ for n=1:length(hmm_results.SEQ)
     end
     legend(labels);
     
-    bin_idx=find((data.bins>=0) & (data.bins<(data.metadata.reward(hmm_results.trials(n))+100)));
+    bin_idx=find((data.bins>=0) & (data.bins<(data.metadata.reward(hmm_results.trials(n)))));
     raster_data=squeeze(data.binned_spikes(:,:,hmm_results.trials(n),bin_idx));
     neuron_idx=[1:32]./33;
     for n_idx=1:32
@@ -53,7 +56,7 @@ for n=1:length(hmm_results.SEQ)
     plot(xlim(),[0.6 0.6],'-.k');
     
     
-    %saveas(f,fullfile('C:\Users\kirchher\project\tool_learning\output\figures\HMM\betta\motor_grasp_right\',['Motor_grasp_F1_trial_5states(2)_13.03.19_',sprintf('%d',hmm_results.trials(n)) '.png']));
-    %saveas(f,fullfile('C:\Users\kirchher\project\tool_learning\output\figures\HMM\betta\motor_grasp_right\',['Motor_grasp_F1_trial_5states(2)_13.03.19_',sprintf('%d',hmm_results.trials(n)) '.eps']), 'epsc');
-    %close(f);
+    saveas(f,fullfile(exp_info.base_output_dir, 'figures\HMM', subject, [model_name '_',sprintf('%d',hmm_results.trials(n)) '.png']));
+    saveas(f,fullfile(exp_info.base_output_dir, 'figures\HMM', subject, [model_name '_',sprintf('%d',hmm_results.trials(n)) '.eps']), 'epsc');
+    close(f);
 end
