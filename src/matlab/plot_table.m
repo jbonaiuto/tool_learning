@@ -1,7 +1,8 @@
 function plot_table(exp_info, ax)
 
 colors=get(ax,'ColorOrder');
-            
+hold all;
+
 circle(exp_info.laser_exp_start_right_laser_pos(1),exp_info.laser_exp_start_right_laser_pos(3),2.5,colors(1,:));
 circle(exp_info.laser_exp_start_left_laser_pos(1),exp_info.laser_exp_start_left_laser_pos(3),2.5,colors(2,:));
 circle(exp_info.laser_exp_grasp_center_laser_pos(1),exp_info.laser_exp_grasp_center_laser_pos(3),2.5,colors(3,:));
