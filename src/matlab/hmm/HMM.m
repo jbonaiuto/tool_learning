@@ -1,4 +1,9 @@
-function HMM(exp_info, subject, dates, conditions)
+function HMM(exp_info, subject, dates, conditions, model_name)
+
+out_dir=fullfile(exp_info.base_output_dir, 'HMM', subject, model_name);
+if exist(out_dir,'dir')~=7
+    mkdir(out_dir);
+end
 
 addpath('../spike_data_processing');
 date_data={};
@@ -23,7 +28,7 @@ SEQ= {};
 % Loop over each motor trial
 for g = 1:length(cond_trials)
     motor_trials_idx = cond_trials(g);
-    bin_idx=find((data.bins>=0) & (data.bins<(data.metadata.reward(motor_trials_idx)+100)));
+    bin_idx=find((data.bins>=0) & (data.bins<(data.metadata.reward(motor_trials_idx))));
     motor_trial_data=squeeze(cond_data(:,g,bin_idx));
     
     % Debugging figure
@@ -36,6 +41,9 @@ for g = 1:length(cond_trials)
 %         evt_times=data.metadata.(evt_type);
 %         plot([evt_times(motor_trials_idx) evt_times(motor_trials_idx)],ylim(),'- ');
 %     end
+%     title(num2str(motor_trials_idx));
+%     xlim([0 data.metadata.reward(motor_trials_idx)+100]);
+%     ylim([0 33]);
 
     % Create symbol sequence for this trial
     vec = [];
@@ -65,7 +73,6 @@ end
 
 % Number of different states to try
 n_state_possibilities=[2:10];
-%n_state_possibilities=[5];
 % Number of training runs per state
 n_runs=10;
 
@@ -164,8 +171,8 @@ subplot(2,1,2);
 plot(n_state_possibilities,AIC_storing);
 xlabel('nstates');
 ylabel('AIC');
-% saveas(f,fullfile('C:\Users\kirchher\project\tool_learning\output\figures\HMM\betta\stage1_F1_motor_grasp_AIC_maxLL\',['stage1_F1_motor_grasp_right_AIC_maxLL_5states(2)_13.03.19' '.png']));
-% saveas(f,fullfile('C:\Users\kirchher\project\tool_learning\output\figures\HMM\betta\stage1_F1_motor_grasp_AIC_maxLL\',['stage1_F1_motor_grasp_right_AIC_maxLL_5states(2)_13.03.19' '.eps']), 'epsc');
+saveas(f,fullfile(exp_info.base_output_dir, 'figures\HMM', subject,[model_name '_AIC_maxLL.png']));
+saveas(f,fullfile(exp_info.base_output_dir, 'figures\HMM', subject,[model_name '_AIC_maxLL.eps']), 'epsc');
 
 % Find number of states that minimized AIC
 [AIC_min,min_AIC_idx]=min(AIC_storing);
@@ -184,9 +191,8 @@ hmm_results.maxLL_storing=maxLL_storing;
 hmm_results.models=models;
 hmm_results.best_model_idx=[min_AIC_idx maxLL_idx_storing(min_AIC_idx)];
 
-
-%save('C:/Users/kirchher/project/tool_learning/data/HMM/betta/betta_stage1_F1_go_hmm.mat','hmm_results');
-save('C:\Users\kirchher\project\tool_learning\data\HMM\betta\motor_grasp_right\betta_stage1_F1_hmm_test_5states(2)_13.03.19.mat','hmm_results');
+save(fullfile(out_dir,'hmm_results.mat'),'hmm_results');
+save(fullfile(out_dir,'data.mat'),'data');
 
 % mult_state_trials=[];
 % for i=1:length(SEQ)
