@@ -21,6 +21,10 @@ if exist(calib_file,'file')==2
             % Load plexon file
             plex_data=readPLXFileC(fullfile(plexon_data_path, plex_files{plx_idx}),'all');
 
+            [pth,base,ext]=fileparts(plex_files{plx_idx});
+            matched_start_stop=readtable(fullfile(exp_info.base_data_dir, 'preprocessed_data', subject,...
+                date, sprintf('%s_matched_start_stop.csv',base)));
+            
             % Get x, y channel data
             x_chan=find(strcmp({plex_data.ContinuousChannels.Name},'FP31'));
             y_chan=find(strcmp({plex_data.ContinuousChannels.Name},'FP32'));
@@ -30,18 +34,20 @@ if exist(calib_file,'file')==2
             % Filter data into trials
             fs=plex_data.ADFrequency;
             event_data=plex_data.EventChannels;
-            [T,X,Y]=eventide_gaze_filter_task('EVT28','EVT29',event_data,x,y,fs);
+            [T,X,Y]=eventide_gaze_filter_task('EVT28','EVT29',event_data,x,y,fs, matched_start_stop);
 
             for i=1:length(X)
-                X_x=[];
-                Y_y=[];
-                for j=1:length(X{i})
-                    res=backward_projection([X{i}(j) Y{i}(j)]);
-                    X_x(j)=calibration.betaX(1)+calibration.betaX(2)*res(1);
-                    Y_y(j)=calibration.betaY(1)+calibration.betaY(2)*res(3);
+                if length(X{i})>0
+                    res=backward_projection([X{i} Y{i}]);
+                    transformed_gaze=transform_gaze(calibration, [res(1,:)' res(3,:)']);
+                    X{i}=transformed_gaze(:,1);
+                    Y{i}=transformed_gaze(:,2);
+                    %X{i}=calibration.betaX(1)+calibration.betaX(2).*res(1,:)'.^2+calibration.betaX(3).*res(3,:)'.^2+calibration.betaX(4)*res(1,:)'+calibration.betaX(5)*res(3,:)';
+                    %Y{i}=calibration.betaY(1)+calibration.betaY(2).*res(1,:)'.^2+calibration.betaY(3).*res(3,:)'.^2+calibration.betaY(4)*res(1,:)'+calibration.betaY(5)*res(3,:)';
+                else
+                    X{i}=[];
+                    Y{i}=[];
                 end
-                X{i}=X_x';
-                Y{i}=Y_y';
             end
             trial_data=[];
             trial_data.X=X;
