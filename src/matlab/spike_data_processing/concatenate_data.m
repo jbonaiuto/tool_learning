@@ -52,9 +52,11 @@ trial_offset=0;
 for i=1:length(data)
     curr_data=data{i};
     if curr_data.ntrials>0        
+        for j=1:length(curr_data.dates)
+            concat_data.dates{end+1}=curr_data.dates{j};
+        end
         if params.spike_times
             n_spikes=length(curr_data.spikedata.date);
-            concat_data.spikedata=[];
             concat_data.spikedata.date(end+1:end+n_spikes)=curr_data.spikedata.date;
             concat_data.spikedata.trial(end+1:end+n_spikes)=curr_data.spikedata.trial+trial_offset;
             trial_offset=trial_offset+curr_data.ntrials;
