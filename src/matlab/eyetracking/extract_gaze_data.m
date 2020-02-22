@@ -1,4 +1,4 @@
-function extract_gaze_data(exp_info, subject, date, plexon_data_path)
+function data=extract_gaze_data(exp_info, subject, date, plexon_data_path)
 
 addpath('../spike_data_processing');
 
@@ -7,6 +7,19 @@ info_file=fullfile(exp_info.base_data_dir, 'preprocessed_data', subject,...
         date, 'trial_info.csv');
 info=readtable(info_file);
     
+% Create data structure
+data=[];
+data.dates={date};
+data.subject=subject;
+data.ntrials=0;
+data.eyedata=[];
+data.eyedata.date=[];
+data.eyedata.trial=[];
+data.eyedata.rel_trial=[];
+data.eyedata.x={};
+data.eyedata.y={};
+data.eyedata.t={};
+
 % Load calibration
 out_path=fullfile(exp_info.base_data_dir, 'preprocessed_data', subject, date, 'eyetracking');
 calib_file=fullfile(out_path, sprintf('%s_%s_calibration.mat', subject, date));
@@ -56,19 +69,6 @@ if exist(calib_file,'file')==2
             plex_trial_data{plx_idx}=trial_data;
         end
     end
-
-    data=[];
-    data.dates={date};
-    data.subject=subject;
-    data.ntrials=0;
-
-    data.eyedata=[];
-    data.eyedata.date=[];
-    data.eyedata.trial=[];
-    data.eyedata.rel_trial=[];
-    data.eyedata.x={};
-    data.eyedata.y={};
-    data.eyedata.t={};
 
     % Create metadata structure
     event_types={'trial_start','fix_on','go','hand_mvmt_onset','tool_mvmt_onset',...
