@@ -15,6 +15,7 @@ function data=load_multiunit_data(exp_info, subject, dates, varargin)
 %    arrays - list of array indices to load data for (all by default)
 %    electrodes - list of electrode indices to load data for (all by
 %                 default)
+%    eyedata - load eytracking data (true or false, default=false)
 %
 % Outputs:
 %    data - structure containing the following fields:
@@ -51,7 +52,7 @@ function data=load_multiunit_data(exp_info, subject, dates, varargin)
 
 %define default values
 defaults = struct('arrays',[1:length(exp_info.array_names)],...
-    'electrodes',[1:exp_info.ch_per_array]);  
+    'electrodes',[1:exp_info.ch_per_array],'eyedata',false);  
 params = struct(varargin{:});
 for f = fieldnames(defaults)',  
     if ~isfield(params, f{1}),
@@ -75,6 +76,16 @@ data.spikedata.rel_trial=[];
 data.spikedata.time=[];
 data.spikedata.array=[];
 data.spikedata.electrode=[];
+
+if params.eyedata
+    data.eyedata=[];
+    data.eyedata.date=[];
+    data.eyedata.trial=[];
+    data.eyedata.rel_trial=[];
+    data.eyedata.x={};
+    data.eyedata.y={};
+    data.eyedata.t={};
+end
 
 % Create metadata structure
 event_types={'trial_start','fix_on','go','hand_mvmt_onset','tool_mvmt_onset',...
@@ -153,4 +164,24 @@ for a_idx=1:length(params.arrays)
         end 
         data.ntrials=overall_trial_idx-1;
     end    
+end
+
+if params.eyedata
+    trial_offset=0;
+    for d_idx=1:length(dates)
+        curr_data=load(fullfile(exp_info.base_data_dir,'preprocessed_data', subject, dates{d_idx},...
+            'eyetracking', sprintf('%s_%s_eyedata.mat', subject, dates{d_idx})));
+        curr_data=curr_data.data;
+        if curr_data.ntrials>0      
+            data.eyedata.date(end+1:end+curr_data.ntrials)=curr_data.eyedata.date;
+            data.eyedata.trial(end+1:end+curr_data.ntrials)=curr_data.eyedata.trial+trial_offset;
+            trial_offset=trial_offset+curr_data.ntrials;
+            data.eyedata.rel_trial(end+1:end+curr_data.ntrials)=curr_data.eyedata.rel_trial;
+            for j=1:curr_data.ntrials
+                data.eyedata.x{end+1}=curr_data.eyedata.x{j};
+                data.eyedata.y{end+1}=curr_data.eyedata.y{j};
+                data.eyedata.t{end+1}=curr_data.eyedata.t{j};
+            end
+        end
+    end
 end
