@@ -10,8 +10,6 @@ for f=fieldnames(defaults)'
 end
 
 
-spm('defaults','eeg');
-
 % Empty structure to store concatenated data (from all trials)
 concat_data=[];
 concat_data.dates={};
