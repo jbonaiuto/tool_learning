@@ -333,7 +333,15 @@ class PlexonRecording:
             event_times[evt_code]=np.array(event_times[evt_code])
 
         # Match start/stop events
-        self.match_trial_start_stop_times(log, start_times, stop_times)
+        (matched_start_idx,matched_stop_idx)=self.match_trial_start_stop_times(log, start_times, stop_times)
+        d={'matched_start_idx':matched_start_idx, 'matched_stop_idx':matched_stop_idx}
+        df=pd.DataFrame(data=d)
+        (pth,f)=os.path.split(self.file)
+        (base,ext)=os.path.splitext(f)
+        out_dir = os.path.join(cfg['preprocessed_data_dir'], self.subj_name, self.date)
+        if not os.path.exists(out_dir):
+            os.mkdir(out_dir)
+        df.to_csv(os.path.join(out_dir,'%s_matched_start_stop.csv' % base))
 
         # Split events into trial and save event time as relative to trial start
         for i in range(len(self.trial_start_times)):
@@ -356,6 +364,8 @@ class PlexonRecording:
         # List of matched times
         matched_start_times = []
         matched_stop_times = []
+        matched_start_idx=[]
+        matched_stop_idx=[]
 
         # Index of current start time event
         curr_start_idx = 0
@@ -396,20 +406,27 @@ class PlexonRecording:
                 if curr_dur > 0 and np.abs(curr_dur - log_duration) <= 10:
                     matched_start_times.append(start_times[start_idx])
                     matched_stop_times.append(stop_times[matched_end_idx])
+                    matched_start_idx.append(start_idx)
+                    matched_stop_idx.append(matched_end_idx)
                     matched = True
                     break
 
             # Start looking from next start event if matched
             if matched:
+                last_end_idx=matched_end_idx
                 curr_start_idx = curr_start_idx + 1
             else:
                 matched_start_times.append(float('NaN'))
                 matched_stop_times.append(float('NaN'))
+                matched_start_idx.append(-1)
+                matched_stop_idx.append(-1)
 
         self.trial_start_times = np.array(matched_start_times)
         self.trial_stop_times = np.array(matched_stop_times)
         self.trial_durations = self.trial_stop_times - self.trial_start_times
         self.trial_conditions = log.trial_conditions
+
+        return (matched_start_idx,matched_stop_idx)
 
     """
     Filter events

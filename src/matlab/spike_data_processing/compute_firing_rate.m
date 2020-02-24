@@ -10,8 +10,9 @@ function data=compute_firing_rate(data, varargin)
 %    data - structure containing data (created by load_multiunit_data)
 %
 % Optional inputs:
-%    baseline_type - 'trial', 'condition', or 'global' baseline correction.
-%                    (condition by default)
+%    baseline_type - 'none', 'trial', 'condition', or 'global' baseline
+%                    correction. (condition by default)
+%                    none = no baseline correction
 %                    trial = baseline correct each trial based on spikes
 %                            during the baseline period in that trial
 %                    condition = baseline correct each trial based on the

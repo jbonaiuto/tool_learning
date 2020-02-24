@@ -1,4 +1,16 @@
-function plot_eyedata(exp_info, subject, date)
+function plot_eyedata(exp_info, data, varargin)
+
+% Parse optional arguments
+defaults=struct('type','scatter');
+params=struct(varargin{:});
+for f=fieldnames(defaults)'
+    if ~isfield(params, f{1})
+        params.(f{1})=defaults.(f{1});
+    end
+end
+
+
+addpath('..');
 
 conditions=[];
 conditions(1).name='fixation';
@@ -27,23 +39,6 @@ conditions(6).event_pairs={{'fix_on','go'},{'go','hand_mvmt_onset'},...
     {'hand_mvmt_onset','tool_mvmt_onset'},{'tool_mvmt_onset','obj_contact'},...
     {'obj_contact','place'},{'place','reward'}};
 
-% Coordinates of the table corners
-table_corner_1=[-32.25 0 76.9];
-table_corner_2=[32.25 0 76.9];
-table_corner_3=[32.25 0 18];
-table_corner_4=[-32.25 0 18];
-
-% Laser coordinates
-monkey_tool_right_pos=table_corner_4+[49.5 0 13.8];
-monkey_tool_left_pos=table_corner_4+[15.25 0 14.2];
-laser_exp_start_right_pos=table_corner_4+[60.3 0 46];
-laser_exp_start_left_pos=table_corner_4+[5.5 0 46];
-laser_exp_grasp_center_pos=table_corner_4+[32.6 0 47.2];
-
-out_path=fullfile(exp_info.base_data_dir, 'preprocessed_data', subject, date, 'eyetracking');
-out_fname=sprintf('%s_%s_eyedata.mat', subject, date);
-load(fullfile(out_path, out_fname));
-
 for c_idx=1:length(conditions)
     figure();
     condition=conditions(c_idx);
@@ -56,29 +51,41 @@ for c_idx=1:length(conditions)
         for ep_idx=1:length(condition.event_pairs)
             evt_pair=condition.event_pairs{ep_idx};
             
-            subplot(length(condition.sub_conditions),length(condition.event_pairs),...
+            ax=subplot(length(condition.sub_conditions),length(condition.event_pairs),...
                 (cs_idx-1)*length(condition.event_pairs)+ep_idx);
-            colors=get(gca,'ColorOrder');
             hold all
     
             evt1_times=data.metadata.(evt_pair{1});
             evt2_times=data.metadata.(evt_pair{2});
+            all_x=[];
+            all_y=[];
             for k = 1:length(trials)
                 t_idx=trials(k);
                 transformed_gaze=[data.eyedata.x{t_idx} data.eyedata.y{t_idx}];
-                in_table_bounds=(transformed_gaze(:,1)>=table_corner_1(1)) & (transformed_gaze(:,1)<=table_corner_2(1)) & (transformed_gaze(:,2)>=table_corner_3(3)) & (transformed_gaze(:,2)<=table_corner_1(3));
-                
+                in_table_bounds=(transformed_gaze(:,1)>=exp_info.table_corner_1(1)) & (transformed_gaze(:,1)<=exp_info.table_corner_2(1)) & (transformed_gaze(:,2)>=exp_info.table_corner_3(3)) & (transformed_gaze(:,2)<=exp_info.table_corner_1(3));
                 in_bounds=in_table_bounds & (data.eyedata.t{t_idx}>=evt1_times(t_idx)) & (data.eyedata.t{t_idx}<=evt2_times(t_idx));
-                plot(transformed_gaze(in_bounds,1),transformed_gaze(in_bounds,2),'k.');
+                trial_x=transformed_gaze(in_bounds,1);
+                trial_y=transformed_gaze(in_bounds,2);
+                all_x(end+1:end+length(trial_x))=trial_x;
+                all_y(end+1:end+length(trial_y))=trial_y;
             end
-            circle(laser_exp_start_right_pos(1),laser_exp_start_right_pos(3),5,colors(1,:));
-            circle(laser_exp_start_left_pos(1),laser_exp_start_left_pos(3),5,colors(2,:));
-            circle(laser_exp_grasp_center_pos(1),laser_exp_grasp_center_pos(3),5,colors(3,:));
-            circle(monkey_tool_right_pos(1),monkey_tool_right_pos(3),5,colors(4,:));
-            circle(monkey_tool_left_pos(1),monkey_tool_left_pos(3),5,colors(5,:));
-            axis equal
+            table_col='k';
+            if strcmp(params.type,'scatter')
+                plot(all_x,all_y,'.','Color',[.5 .5 .5]);
+            elseif strcmp(params.type,'density') && length(all_x)>0
+                [N,Xbins,Ybins] = hist2d(all_x',all_y',...
+                    linspace(exp_info.table_corner_1(1),exp_info.table_corner_2(1),200),...
+                    linspace(exp_info.table_corner_3(3),exp_info.table_corner_1(3),200),...
+                    'probability');
+                imagesc(Xbins,Ybins,N);
+                set(gca,'ydir','normal');
+                table_col='w';
+            end
+            plot_table(exp_info, ax, 'color', table_col);
             title(sprintf('%s: %s-%s',strrep(sub_condition,'_',' '),...
                 strrep(evt_pair{1},'_',' '),strrep(evt_pair{2},'_',' ')));
         end
     end    
 end
+
+rmpath('..');

@@ -65,7 +65,7 @@ elseif strcmp(condition,'motor_grasp_left') || strcmp(condition,'motor_grasp_cen
     elseif strcmp(event_type,'trial_start')
         mapped_event_type='trial_start';
     end
-elseif strcmp(condition,'visual_pliers_left') || strcmp(condition,'visual_rake_pull_left')
+elseif strcmp(condition,'visual_pliers_left') || strcmp(condition,'visual_rake_pull_left') || strcmp(condition,'visual_stick_left') || strcmp(condition,'visual_rake_push_left')
     if strcmp(event_type,'obj_contact')
         mapped_event_type='exp_grasp_center';
     elseif strcmp(event_type,'place')
@@ -83,7 +83,7 @@ elseif strcmp(condition,'visual_pliers_left') || strcmp(condition,'visual_rake_p
     elseif strcmp(event_type,'tool_mvmt_onset')
         mapped_event_type='tool_start_off';
     end
-elseif strcmp(condition,'visual_pliers_right') || strcmp(condition,'visual_rake_pull_right')
+elseif strcmp(condition,'visual_pliers_right') || strcmp(condition,'visual_rake_pull_right') || strcmp(condition,'visual_stick_right') || strcmp(condition,'visual_rake_push_right')
     if strcmp(event_type,'obj_contact')
         mapped_event_type='exp_grasp_center';
     elseif strcmp(event_type,'place')

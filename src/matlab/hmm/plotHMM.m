@@ -55,7 +55,6 @@ for n=1:length(hmm_results.SEQ)
     xlim([data.bins(bin_idx(1)) data.bins(bin_idx(end))]);
     plot(xlim(),[0.6 0.6],'-.k');
     
-    
     saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_',sprintf('%d',hmm_results.trials(n)) '.png']));
     saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_',sprintf('%d',hmm_results.trials(n)) '.eps']), 'epsc');
     close(f);
