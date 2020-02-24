@@ -40,7 +40,7 @@ concat_data.metadata.reward=[];
 
 % Contains for each trial, the index of the date (in the list of dates),
 % that this trial came from
-condat_data.trial_date=[];
+concat_data.trial_date=[];
 concat_data.bins=data{1}.bins;
 concat_data.baseline_bins=data{1}.baseline_bins;
 concat_data.binned_spikes=[];
