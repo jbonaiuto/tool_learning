@@ -10,8 +10,6 @@ for f=fieldnames(defaults)'
 end
 
 
-spm('defaults','eeg');
-
 % Empty structure to store concatenated data (from all trials)
 concat_data.label=data{1}.label;
 concat_data.fsample=data{1}.fsample;
