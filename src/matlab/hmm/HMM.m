@@ -1,45 +1,65 @@
 function HMM(exp_info, subject, dates, conditions, model_name)
 
+%% Create results structure
+hmm_results=[];
+hmm_results.subject=subject;
+% Dates data were recorded on
+hmm_results.dates=dates;
+% Trials used in these models
+hmm_results.trials=[];
+% Cell array - each element will contain a vector - sequence for each trial
+hmm_results.SEQ={};
+% Number of different states to try
+hmm_results.n_state_possibilities=[2:10];
+% Number of training runs per state
+hmm_results.n_iter=10;
+% List of model structs
+hmm_results.models=[];
+
+%% Create output directory if it doesn't exist
 out_dir=fullfile(exp_info.base_output_dir, 'HMM', subject, model_name);
 if exist(out_dir,'dir')~=7
     mkdir(out_dir);
 end
 
+%% Load and concatenate spike data
 addpath('../spike_data_processing');
 date_data={};
 for i=1:length(dates)
-    load(fullfile(exp_info.base_data_dir, 'preprocessed_data', subject, dates{i},'multiunit','binned',sprintf('fr_b_F1_%s_whole_trial.mat',dates{i})));
+    load(fullfile(exp_info.base_data_dir, 'preprocessed_data', subject,...
+        dates{i},'multiunit','binned',...
+        sprintf('fr_b_F1_%s_whole_trial.mat',dates{i})));
     date_data{i}=data;
     clear('datafr');
 end
 data=concatenate_data(date_data, 'spike_times', false);
 clear('date_data');
    
-cond_trials=zeros(1,length(data.metadata.condition));
+%% Figure out which trials to use and get trial data
+hmm_results.trials=zeros(1,length(data.metadata.condition));
 for i=1:length(conditions)
-    cond_trials = cond_trials | (strcmp(data.metadata.condition,conditions{i}));
+    hmm_results.trials = hmm_results.trials | (strcmp(data.metadata.condition,conditions{i}));
 end
-cond_trials=find(cond_trials);
-cond_data=squeeze(data.binned_spikes(1,:,cond_trials,:));
+hmm_results.trials=find(hmm_results.trials);
+cond_data=squeeze(data.binned_spikes(1,:,hmm_results.trials,:));
 
-% Cell array - each element will contain a vector - sequence for each trial
-SEQ= {};
+%% Create symbol sequence vectors for each trial
+for g = 1:length(hmm_results.trials)
 
-% Loop over each motor trial
-for g = 1:length(cond_trials)
-    motor_trials_idx = cond_trials(g);
-    bin_idx=find((data.bins>=0) & (data.bins<(data.metadata.reward(motor_trials_idx))));
-    motor_trial_data=squeeze(cond_data(:,g,bin_idx));
+    % Get binned spikes for this trial from time 0 to time of reward
+    trial_idx = hmm_results.trials(g);
+    bin_idx=find((data.bins>=0) & (data.bins<(data.metadata.reward(trial_idx))));
+    trial_data=squeeze(cond_data(:,g,bin_idx));
     
     % Debugging figure
 %     figure();
-%     [i,j]=find(motor_trial_data>0);
+%     [i,j]=find(trial_data>0);
 %     plot(j,i,'.');
 %     hold all
 %     for i=1:length(data.metadata.event_types)
 %         evt_type=data.metadata.event_types{i};
 %         evt_times=data.metadata.(evt_type);
-%         plot([evt_times(motor_trials_idx) evt_times(motor_trials_idx)],ylim(),'- ');
+%         plot([evt_times(trial_idx) evt_times(trial_idx)],ylim(),'- ');
 %     end
 %     title(num2str(motor_trials_idx));
 %     xlim([0 data.metadata.reward(motor_trials_idx)+100]);
@@ -50,7 +70,7 @@ for g = 1:length(cond_trials)
     % Go through each bin
     for i = 1:length(bin_idx)
         % Find all electrodes that spiked in this bin
-        x = find(motor_trial_data(:,i) == 1);
+        x = find(trial_data(:,i) == 1);
         % If any electrodes spiked
         if ~isempty(x)
             % Symbol is electrode ID if only one spiked
@@ -68,37 +88,28 @@ for g = 1:length(cond_trials)
     end
     
     % Add vec to SEQ
-    SEQ{end+1}=vec;
+    hmm_results.SEQ{end+1}=vec;
 end
-
-% Number of different states to try
-n_state_possibilities=[2:10];
-% Number of training runs per state
-n_runs=10;
-
-% List of model structs
-models=[];
         
-% Try each possible number of states
-for n=1:length(n_state_possibilities)
-    n_states=n_state_possibilities(n);
+%% Train model using each possible number of states
+for n=1:length(hmm_results.n_state_possibilities)
+    n_states=hmm_results.n_state_possibilities(n);
     disp(sprintf('Trying %d states',n_states));
     
     % Run n times with this number of states
-    for t=1:n_runs
+    for t=1:hmm_results.n_iter
         
         % Initialize transition prob guess
         TRGUESS=[];
         for i=1:n_states
             for j=1:n_states
                 if i==j %the diagonal
-                    % random between .5 and 1, above 0.5 because it is the
-                    % transition probability to stay in the same state.
-                  
-                    TRGUESS(i,j)= .5+rand()*.5;
+                    % random between .8 and 1, above 0.8 because it is the
+                    % transition probability to stay in the same state.                  
+                    TRGUESS(i,j)= .8+rand()*.2;
                 else
                     % random between 0 and .5
-                    TRGUESS(i,j)=rand()*.5;
+                    TRGUESS(i,j)=rand()*.01;
                 end
             end
         end
@@ -115,12 +126,12 @@ for n=1:length(n_state_possibilities)
         end
         
         % Train model
-        [ESTTR,ESTEMIT] = hmmtrain(SEQ,TRGUESS,EMITGUESS,'Symbols',[0:32]);
+        [ESTTR,ESTEMIT] = hmmtrain(hmm_results.SEQ,TRGUESS,EMITGUESS,'Symbols',[0:32]);
         
         % Compute log likelihood for each trial
         all_log_likelihood=[];
-        for k = 1:length(SEQ);
-            [PSTATES,logpseq] = hmmdecode(SEQ{k},ESTTR,ESTEMIT,'Symbols',[0:32]);
+        for k = 1:length(hmm_results.SEQ);
+            [PSTATES,logpseq] = hmmdecode(hmm_results.SEQ{k},ESTTR,ESTEMIT,'Symbols',[0:32]);
             % add logpseq to all_log_likelihood
             all_log_likelihood(end+1) = logpseq;
         end
@@ -128,75 +139,26 @@ for n=1:length(n_state_possibilities)
         sum_log_likelihood = sum(all_log_likelihood);
         
         % Save model results in list
-        models(n,t).n_states=n_states;
-        models(n,t).TRGUESS=TRGUESS;
-        models(n,t).EMITGUESS=EMITGUESS;
-        models(n,t).ESTTR=ESTTR;
-        models(n,t).ESTEMIT=ESTEMIT;
-        models(n,t).sum_log_likelihood=sum_log_likelihood;                
+        hmm_results.models(n,t).n_states=n_states;
+        hmm_results.models(n,t).TRGUESS=TRGUESS;
+        hmm_results.models(n,t).EMITGUESS=EMITGUESS;
+        hmm_results.models(n,t).ESTTR=ESTTR;
+        hmm_results.models(n,t).ESTEMIT=ESTEMIT;
+        hmm_results.models(n,t).sum_log_likelihood=sum_log_likelihood;                        
     end
+    
+    % Save intermediate results
+    save(fullfile(out_dir,'hmm_results.mat'),'hmm_results');
 end
 
-% AIC for each number of possible states
-AIC_storing = zeros(length(n_state_possibilities),1);
-% Index of the run with the maximm log likelihood for each possible number
-% of states
-maxLL_idx_storing = zeros(length(n_state_possibilities),1);
-% Max log likelihood over runs for each possible number of states
-maxLL_storing = zeros(length(n_state_possibilities),1);
-
-% Go through each possible number of states
-for n=1:length(n_state_possibilities)
-    n_states=n_state_possibilities(n);
-    
-    % Find run with the max log likelihood
-    [LL,max_idx]=max([models(n,:).sum_log_likelihood]);
-    
-    % Compute AIC for this run
-    AIC=2*((33-1)*n_states+(n_states-1)*n_states)-(2*LL);
-    
-    % Store results
-    maxLL_storing(n)=LL;
-    maxLL_idx_storing(n)=max_idx;
-    AIC_storing(n) = AIC;
-end
-
-% Plot max log likelihood and AIC
-f=figure();
-subplot(2,1,1);
-plot(n_state_possibilities,maxLL_storing);
-xlabel('nstates');
-ylabel('LL');
-subplot(2,1,2);
-plot(n_state_possibilities,AIC_storing);
-xlabel('nstates');
-ylabel('AIC');
-saveas(f,fullfile(exp_info.base_output_dir, 'figures\HMM', subject,[model_name '_AIC_maxLL.png']));
-saveas(f,fullfile(exp_info.base_output_dir, 'figures\HMM', subject,[model_name '_AIC_maxLL.eps']), 'epsc');
-
-% Find number of states that minimized AIC
-[AIC_min,min_AIC_idx]=min(AIC_storing);
-
-% Save results
-hmm_results=[];
-hmm_results.dates=dates;
-hmm_results.trials=cond_trials;
-hmm_results.SEQ=SEQ;
-hmm_results.n_state_possibilities=n_state_possibilities;
-hmm_results.n_iter=n_runs;
-hmm_results.n_states=n_state_possibilities(min_AIC_idx);
-hmm_results.AIC_storing=AIC_storing;
-hmm_results.maxLL_idx_storing=maxLL_idx_storing;
-hmm_results.maxLL_storing=maxLL_storing;
-hmm_results.models=models;
-hmm_results.best_model_idx=[min_AIC_idx maxLL_idx_storing(min_AIC_idx)];
+hmm_results=select_best_model(exp_info, hmm_results, model_name);
 
 save(fullfile(out_dir,'hmm_results.mat'),'hmm_results');
 save(fullfile(out_dir,'data.mat'),'data');
 
 % mult_state_trials=[];
-% for i=1:length(SEQ)
-%     STATES = hmmviterbi(SEQ{i},hmm_results.ESTTR,hmm_results.ESTEMIT,'Symbols',[0:32]);
+% for i=1:length(hmm_results.SEQ)
+%     STATES = hmmviterbi(hmm_results.SEQ{i},hmm_results.ESTTR,hmm_results.ESTEMIT,'Symbols',[0:32]);
 %     unique_states=unique(STATES);
 %     if length(unique_states)>1
 %         disp(sprintf('Trial %d', i));

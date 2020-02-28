@@ -30,7 +30,7 @@ for n=1:length(hmm_results.SEQ)
     ylim([0 1.2]);
     set(f, 'Position', get(0, 'Screensize'));
     title(sprintf('Motor grasp : F1 trial %d',hmm_results.trials(n)));
-    for m=1:hmm_results.n_states
+    for m=1:model.n_states
         plot(PSTATES(m,:),'LineWidth',2,'Color',colors(m,:));
         labels{end+1}=sprintf('state %d',m);
     end
@@ -55,8 +55,7 @@ for n=1:length(hmm_results.SEQ)
     xlim([data.bins(bin_idx(1)) data.bins(bin_idx(end))]);
     plot(xlim(),[0.6 0.6],'-.k');
     
-    
-    saveas(f,fullfile(exp_info.base_output_dir, 'figures\HMM', subject, [model_name '_',sprintf('%d',hmm_results.trials(n)) '.png']));
-    saveas(f,fullfile(exp_info.base_output_dir, 'figures\HMM', subject, [model_name '_',sprintf('%d',hmm_results.trials(n)) '.eps']), 'epsc');
+    saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_',sprintf('%d',hmm_results.trials(n)) '.png']));
+    saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_',sprintf('%d',hmm_results.trials(n)) '.eps']), 'epsc');
     close(f);
 end
