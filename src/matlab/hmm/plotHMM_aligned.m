@@ -1,10 +1,24 @@
-function plotHMM_aligned(exp_info, subject, model_name)
+function plotHMM_aligned(exp_info, subject, model_name, varargin)
+
+% Parse optional arguments
+defaults=struct('n_states',[]);
+params=struct(varargin{:});
+for f=fieldnames(defaults)'
+    if ~isfield(params, f{1})
+        params.(f{1})=defaults.(f{1});
+    end
+end
 
 dbstop if error
 
 file_name=fullfile(exp_info.base_output_dir, 'HMM', subject, model_name, 'hmm_results.mat');
 load(file_name);
-model=hmm_results.models(hmm_results.best_model_idx(1),hmm_results.best_model_idx(2));
+if length(params.n_states)==0
+    model=hmm_results.models(hmm_results.best_model_idx(1),hmm_results.best_model_idx(2));
+else
+    idx=find(hmm_results.n_state_possibilities==params.n_states);
+    model=hmm_results.models(idx,hmm_results.maxLL_idx_storing(idx));
+end
 
 addpath('../spike_data_processing');
 date_data={};
@@ -15,6 +29,8 @@ for i=1:length(hmm_results.dates)
 end
 
 data=concatenate_data(date_data, 'spike_times', false);
+data=compute_firing_rate(data, 'baseline_type', 'none', 'win_len', 60);
+
 condition_trials=find(strcmp(data.metadata.condition,'motor_grasp_right'));
 clear('date_data');
 
@@ -63,7 +79,8 @@ for r=1:length(align_events)
     
     end
 end
-
+mean_aligned_firing_rates=squeeze(mean(aligned_firing_rates));
+firing_rate_lims=[min(mean_aligned_firing_rates(:))-5 max(mean_aligned_firing_rates(:))+5];
 colors=cbrewer('qual','Paired',12);
 
 f=figure();
@@ -87,7 +104,7 @@ for r=1:length(align_events)
         handles(end+1)=H.mainLine;
         electrode_labels{end+1}=sprintf('electrode %d',m);
     end
-    ylim([-50 2000]);
+    ylim(firing_rate_lims);
     plot([0 0],ylim(),':k');    
     xlabel('Time (ms)');
     if r==length(align_events);
@@ -107,7 +124,7 @@ for r=1:length(align_events)
     end
     handles=[];
     state_labels={};
-    for m=1:hmm_results.n_states
+    for m=1:model.n_states
         %plot([win_size(1):win_size(2)],squeeze(mean(aligned_p_states(:,m,r,:))),'LineWidth',2);
         mean_pstate=squeeze(mean(aligned_p_states(:,m,r,:)));
         stderr_pstate=squeeze(std(aligned_p_states(:,m,r,:)))./sqrt(size(aligned_p_states,1));
@@ -126,7 +143,7 @@ for r=1:length(align_events)
     end
 end
 
-saveas(f,fullfile(exp_info.base_output_dir, 'figures\HMM', subject, [model_name '_average.png']));
-saveas(f,fullfile(exp_info.base_output_dir, 'figures\HMM', subject, [model_name '_average.eps']), 'epsc');
+saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_average.png']));
+saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_average.eps']), 'epsc');
 close(f);
 end
