@@ -13,13 +13,15 @@ monk_cam_coord=ex_mat*[world_coord 1]';
 % Project to image plane in front of monkey's eye
 proj_mat=[projection_plane_f 0 0 0; 0 projection_plane_f 0 0; 0 0 1 0];
 monk_film_coord=proj_mat*monk_cam_coord;
-monk_film_coord=[monk_film_coord(1)/monk_film_coord(3) monk_film_coord(2)/monk_film_coord(3)];
+monk_film_coord=[monk_film_coord(1)/monk_film_coord(3) exp_info.eye_pos(2)+monk_film_coord(2)/monk_film_coord(3)];
 
 
 %% Next convert monkey's image plane coordinates to camera image plane coordinates
 projection_normal=(exp_info.eye_pos-exp_info.eyetracker_pos);
 projection_normal=projection_normal./sqrt(sum(projection_normal.^2));
-proj_mat=[exp_info.eyetracker_pos(3)-(exp_info.eye_pos(3)+projection_plane_f) 0 0 0; 0 exp_info.eyetracker_pos(3)-(exp_info.eye_pos(3)+projection_plane_f) 0 0; 0 0 1 0];
+proj_mat=[exp_info.eyetracker_pos(3)-(exp_info.eye_pos(3)+projection_plane_f) 0 0 0; 
+          0 exp_info.eyetracker_pos(3)-(exp_info.eye_pos(3)+projection_plane_f) 0 0; 
+          0 0 1 0];
 
 rot_axis=cross([0 0 1],projection_normal);
 rot_angle=dot([0 0 1],projection_normal);

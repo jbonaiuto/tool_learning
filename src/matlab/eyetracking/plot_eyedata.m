@@ -61,13 +61,15 @@ for c_idx=1:length(conditions)
             all_y=[];
             for k = 1:length(trials)
                 t_idx=trials(k);
-                transformed_gaze=[data.eyedata.x{t_idx} data.eyedata.y{t_idx}];
-                in_table_bounds=(transformed_gaze(:,1)>=exp_info.table_corner_1(1)) & (transformed_gaze(:,1)<=exp_info.table_corner_2(1)) & (transformed_gaze(:,2)>=exp_info.table_corner_3(3)) & (transformed_gaze(:,2)<=exp_info.table_corner_1(3));
-                in_bounds=in_table_bounds & (data.eyedata.t{t_idx}>=evt1_times(t_idx)) & (data.eyedata.t{t_idx}<=evt2_times(t_idx));
-                trial_x=transformed_gaze(in_bounds,1);
-                trial_y=transformed_gaze(in_bounds,2);
-                all_x(end+1:end+length(trial_x))=trial_x;
-                all_y(end+1:end+length(trial_y))=trial_y;
+                if length(data.eyedata.x{t_idx})>0
+                    transformed_gaze=[data.eyedata.x{t_idx} data.eyedata.y{t_idx}];
+                    in_table_bounds=(transformed_gaze(:,1)>=exp_info.table_corner_1(1)) & (transformed_gaze(:,1)<=exp_info.table_corner_2(1)) & (transformed_gaze(:,2)>=exp_info.table_corner_3(3)) & (transformed_gaze(:,2)<=exp_info.table_corner_1(3));
+                    in_bounds=in_table_bounds & (data.eyedata.t{t_idx}>=evt1_times(t_idx)) & (data.eyedata.t{t_idx}<=evt2_times(t_idx));
+                    trial_x=transformed_gaze(in_bounds,1);
+                    trial_y=transformed_gaze(in_bounds,2);
+                    all_x(end+1:end+length(trial_x))=trial_x;
+                    all_y(end+1:end+length(trial_y))=trial_y;
+                end
             end
             table_col='k';
             if strcmp(params.type,'scatter')
@@ -79,7 +81,7 @@ for c_idx=1:length(conditions)
                     'probability');
                 imagesc(Xbins,Ybins,N);
                 set(gca,'ydir','normal');
-                table_col='w';
+                table_col=[.65 .65 .65];
             end
             plot_table(exp_info, ax, 'color', table_col);
             title(sprintf('%s: %s-%s',strrep(sub_condition,'_',' '),...

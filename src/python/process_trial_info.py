@@ -498,7 +498,10 @@ class IntanRecordingSet:
             else:
                 # Read recording signal
                 data=rhd.read_data(file, no_floats=True)
-                rec_signal=data['board_dig_in_data'][2,:]
+                if data['board_dig_in_data'].shape[0]>1:
+                    rec_signal=data['board_dig_in_data'][2,:]
+                else:
+                    rec_signal = data['board_dig_in_data'][0, :]
                 rec_signal=rec_signal.astype(int)
 
                 # Write recording signal to output

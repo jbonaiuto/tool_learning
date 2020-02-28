@@ -40,13 +40,15 @@ plot(xy(1,:),xy(2,:)+3,'Color',params.color,'LineWidth',2);
 plot([-12.5 -10],[3 3],'Color',params.color,'LineWidth',2);
 plot([10 12.5],[3 3],'Color',params.color,'LineWidth',2);
 
-plot([exp_info.table_corner_4(1) exp_info.table_corner_1(1)],[exp_info.table_corner_4(3) exp_info.table_corner_1(3)],params.color,'LineWidth',2);
-plot([exp_info.table_corner_1(1) exp_info.table_corner_2(1)],[exp_info.table_corner_1(3) exp_info.table_corner_2(3)],params.color,'LineWidth',2);
-plot([exp_info.table_corner_2(1) exp_info.table_corner_3(1)],[exp_info.table_corner_2(3) exp_info.table_corner_3(3)],params.color,'LineWidth',2);
-plot([exp_info.table_corner_4(1) exp_info.table_corner_4(1)+22.5],[exp_info.table_corner_4(3) exp_info.table_corner_4(3)],params.color,'LineWidth',2);
-plot([exp_info.table_corner_4(1)+22.5 exp_info.table_corner_4(1)+22.5],[exp_info.table_corner_4(3) exp_info.table_corner_4(3)-6.9],params.color,'LineWidth',2);
-plot([exp_info.table_corner_4(1)+22.5 exp_info.table_corner_4(1)+22.5+20],[exp_info.table_corner_4(3)-6.9 exp_info.table_corner_4(3)-6.9],params.color,'LineWidth',2);
-plot([exp_info.table_corner_4(1)+22.5+20 exp_info.table_corner_4(1)+22.5+20],[exp_info.table_corner_4(3)-6.9 exp_info.table_corner_4(3)],params.color,'LineWidth',2);
-plot([exp_info.table_corner_4(1)+22.5+20 exp_info.table_corner_3(1)],[exp_info.table_corner_4(3) exp_info.table_corner_3(3)],params.color,'LineWidth',2);
+plot([exp_info.table_corner_4(1) exp_info.table_corner_1(1)],[exp_info.table_corner_4(3) exp_info.table_corner_1(3)],'Color',params.color,'LineWidth',2);
+plot([exp_info.table_corner_1(1) exp_info.table_corner_2(1)],[exp_info.table_corner_1(3) exp_info.table_corner_2(3)],'Color',params.color,'LineWidth',2);
+plot([exp_info.table_corner_2(1) exp_info.table_corner_3(1)],[exp_info.table_corner_2(3) exp_info.table_corner_3(3)],'Color',params.color,'LineWidth',2);
+plot([exp_info.table_corner_4(1) exp_info.table_corner_4(1)+22.5],[exp_info.table_corner_4(3) exp_info.table_corner_4(3)],'Color',params.color,'LineWidth',2);
+plot([exp_info.table_corner_4(1)+22.5 exp_info.table_corner_4(1)+22.5],[exp_info.table_corner_4(3) exp_info.table_corner_4(3)-6.9],'Color',params.color,'LineWidth',2);
+plot([exp_info.table_corner_4(1)+22.5 exp_info.table_corner_4(1)+22.5+20],[exp_info.table_corner_4(3)-6.9 exp_info.table_corner_4(3)-6.9],'Color',params.color,'LineWidth',2);
+plot([exp_info.table_corner_4(1)+22.5+20 exp_info.table_corner_4(1)+22.5+20],[exp_info.table_corner_4(3)-6.9 exp_info.table_corner_4(3)],'Color',params.color,'LineWidth',2);
+plot([exp_info.table_corner_4(1)+22.5+20 exp_info.table_corner_3(1)],[exp_info.table_corner_4(3) exp_info.table_corner_3(3)],'Color',params.color,'LineWidth',2);
 
 axis equal
+xlim([-35 35]);
+ylim([-7.5 65]);

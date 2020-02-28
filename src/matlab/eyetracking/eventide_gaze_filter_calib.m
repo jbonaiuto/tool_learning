@@ -66,7 +66,7 @@ for j = 1 : n_targets
                 filtered_coords=filter_gaze_data_outliers(filtered_coords(:,1), filtered_coords(:,2));
                 flicker_t_x{i}=filtered_coords(:,1);
                 flicker_t_y{i}=filtered_coords(:,2);
-                plot(t_x,t_y,'.');
+                plot(flicker_t_x{i},flicker_t_y{i},'.');
                 labels{end+1}=num2str(i);
             end
             legend(labels);
