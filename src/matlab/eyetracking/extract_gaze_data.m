@@ -87,7 +87,7 @@ if exist(calib_file,'file')==2
 
 
     good_trial_idx=info.overall_trial(find(strcmp(info.status,'good')));
-    data.n_trials=length(good_trial_idx);
+    data.ntrials=length(good_trial_idx);
 
     for i=1:length(good_trial_idx)
         row_idx=find(info.overall_trial==good_trial_idx(i));
