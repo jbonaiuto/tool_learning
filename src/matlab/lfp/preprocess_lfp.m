@@ -85,7 +85,11 @@ if length(raw_data_dir)>0
                 false);
 
             % Get recording signal
-            rec_signal=dig_in_data(3,:);
+            if(size(dig_in_data,1)>1)
+                rec_signal=dig_in_data(3,:);
+            else
+                rec_signal=dig_in_data;
+            end
 
             % PCA-based cleaning
             cleaned_data=zeros(size(ampl_data));
