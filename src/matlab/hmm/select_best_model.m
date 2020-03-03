@@ -47,19 +47,19 @@ end
 % Plot max log likelihood and AIC
 f=figure();
 subplot(4,1,1);
-plot(hmm_results.n_state_possibilities,hmm_results.maxLL_storing);
+plot(hmm_results.n_state_possibilities(1:size(hmm_results.models,1)),hmm_results.maxLL_storing);
 xlabel('nstates');
 ylabel('LL');
 subplot(4,1,2);
-plot(hmm_results.n_state_possibilities,hmm_results.AIC_storing);
+plot(hmm_results.n_state_possibilities(1:size(hmm_results.models,1)),hmm_results.AIC_storing);
 xlabel('nstates');
 ylabel('AIC');
 subplot(4,1,3);
-plot(hmm_results.n_state_possibilities,hmm_results.BIC_storing);
+plot(hmm_results.n_state_possibilities(1:size(hmm_results.models,1)),hmm_results.BIC_storing);
 xlabel('nstates');
 ylabel('BIC');
 subplot(4,1,4);
-plot(hmm_results.n_state_possibilities,hmm_results.AIC_storing+hmm_results.BIC_storing);
+plot(hmm_results.n_state_possibilities(1:size(hmm_results.models,1)),hmm_results.AIC_storing+hmm_results.BIC_storing);
 xlabel('nstates');
 ylabel('AIC+BIC');
 saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', hmm_results.subject,[model_name '_AIC-BIC_maxLL.png']));
