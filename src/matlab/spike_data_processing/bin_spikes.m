@@ -39,12 +39,11 @@ for f = fieldnames(defaults)',
     end
 end
 
-tic
-
 % Time of baseline event in each trial
 baseline_evt_times=data.metadata.(params.baseline_evt);
 
 % Add new fields to data
+data.binwidth=binwidth;
 data.bins=[woi(1):binwidth:woi(2)];
 data.baseline_bins=[params.baseline_woi(1):binwidth:params.baseline_woi(2)];
 binned_spikes=zeros(length(data.arrays), length(data.electrodes),...
@@ -103,5 +102,3 @@ for a_idx=1:length(data.arrays)
 end
 data.binned_spikes=binned_spikes;
 data.binned_baseline_spikes=binned_baseline_spikes;
-
-toc
