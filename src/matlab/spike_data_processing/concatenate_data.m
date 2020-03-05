@@ -1,4 +1,21 @@
 function concat_data=concatenate_data(data, varargin)
+% CONCATENATE_DATA Concatenate multiunit data
+%
+% Syntax: data=concatenate_data({data1, data2, data3})
+%
+% Inputs:
+%    data - cell array of data objects
+%
+% Optional inputs:
+%    spike_times - whether or not to concatenate spike times as well
+%                  (true or false, default=true)
+%
+% Outputs:
+%    concat_data - data structure containing data from each data object in
+%                  the data cell array
+% 
+% Example:
+%     data=concatenate_data({data1, data2, data3}, 'spike_times', false);
 
 % Parse optional arguments
 defaults=struct('spike_times',true);
