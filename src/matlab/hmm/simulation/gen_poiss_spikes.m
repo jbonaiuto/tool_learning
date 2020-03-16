@@ -34,7 +34,7 @@ for i=1:length(state_seq)
     % Number of time points in this state
     n_time_pts=ceil(state_seq_durs(i)/dt);
     % Add state index n times to state sequence vector
-    state_seq_vec(i) = [state_seq_vec repelem(state_idx,n_time_pts)];
+    state_seq_vec = [state_seq_vec repelem(state_idx,n_time_pts)];
 end
 
 % Spike matrix
