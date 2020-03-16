@@ -24,16 +24,35 @@ for n=1:size(hmm_results.models,1)
     n_states=hmm_results.n_state_possibilities(n);
     
     % Find run with the max log likelihood
-    [max_LL,max_idx]=max([hmm_results.models(n,:).sum_log_likelihood]);
+    [max_LL,max_idx]=max(real([hmm_results.models(n,:).sum_log_likelihood]));
     
     % Compute AIC for this run
-    n_emissions=size(hmm_results.models(n,1).EMITGUESS,2);
-    num_params=n_states*(n_states-1)+n_states*(n_emissions-1)+(n_states-1);
+    if isfield(hmm_results.models(n,1),'EMITGUESS')
+        n_emissions=size(hmm_results.models(n,1).EMITGUESS,2);
+        num_params=n_states*(n_states-1)+n_states*(n_emissions-1)+(n_states-1);
+    else
+        n_emissions=size(hmm_results.models(n,1).GLOBAL_EMITGUESS,2);
+        n_days=size(hmm_results.models(n,1).DAY_EMITGUESS,1);
+        num_params=n_states*(n_states-1)+n_states*(n_emissions-1)+n_days*n_states*(n_emissions-1)+(n_states-1);
+    end
     AIC=-(2*max_LL)+(2*num_params);
     
     n_obs=0;
-    for i=1:length(hmm_results.SEQ)
-        n_obs=n_obs+size(hmm_results.SEQ{i},2);
+    if isfield(hmm_results,'SEQ')
+        for i=1:length(hmm_results.SEQ)
+            n_obs=n_obs+length(hmm_results.SEQ{i});
+        end
+    elseif isfield(hmm_results,'trial_spikes')        
+        for i=1:length(hmm_results.trial_spikes)
+            n_obs=n_obs+size(hmm_results.trial_spikes{i},2);
+        end
+    elseif isfield(hmm_results,'day_spikes')
+        for i=1:length(hmm_results.day_spikes)
+            trial_spikes=hmm_results.day_spikes{i};
+            for j=1:length(trial_spikes)
+                n_obs=n_obs+size(trial_spikes{j},2);
+            end
+        end
     end
     BIC=-(2*max_LL)+num_params*log(n_obs);            
     
@@ -51,15 +70,24 @@ plot(hmm_results.n_state_possibilities(1:size(hmm_results.models,1)),hmm_results
 xlabel('nstates');
 ylabel('LL');
 subplot(4,1,2);
+hold all;
 plot(hmm_results.n_state_possibilities(1:size(hmm_results.models,1)),hmm_results.AIC_storing);
+[minAIC, minAICIdx]=min(hmm_results.AIC_storing);
+plot([hmm_results.n_state_possibilities(minAICIdx) hmm_results.n_state_possibilities(minAICIdx)],ylim(),'k--');
 xlabel('nstates');
 ylabel('AIC');
 subplot(4,1,3);
+hold all;
 plot(hmm_results.n_state_possibilities(1:size(hmm_results.models,1)),hmm_results.BIC_storing);
+[minBIC, minBICIdx]=min(hmm_results.BIC_storing);
+plot([hmm_results.n_state_possibilities(minBICIdx) hmm_results.n_state_possibilities(minBICIdx)],ylim(),'k--');
 xlabel('nstates');
 ylabel('BIC');
 subplot(4,1,4);
+hold all;
 plot(hmm_results.n_state_possibilities(1:size(hmm_results.models,1)),hmm_results.AIC_storing+hmm_results.BIC_storing);
+[minAICBIC, minAICBICIdx]=min(hmm_results.AIC_storing+hmm_results.BIC_storing);
+plot([hmm_results.n_state_possibilities(minAICBICIdx) hmm_results.n_state_possibilities(minAICBICIdx)],ylim(),'k--');
 xlabel('nstates');
 ylabel('AIC+BIC');
 saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', hmm_results.subject,[model_name '_AIC-BIC_maxLL.png']));

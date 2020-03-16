@@ -11,7 +11,11 @@ exp_info=init_exp_info();
     %'27.05.19'};
     %dates={'13.03.19','14.03.19','15.03.19','18.03.19','19.03.19','21.03.19'};%,'22.03.19','25.03.19','26.03.19'};
 dates={'13.03.19','14.03.19','15.03.19'};
-model_name='stage1_motor_grasp_right_3dates';
-HMM(exp_info, 'betta', dates, {'motor_grasp_right'}, model_name);
-plotHMM(exp_info, 'betta', model_name)
-plotHMM_aligned(exp_info, 'betta', model_name)
+%for d_idx=1:length(dates)
+    %model_name=sprintf('%s_motor_grasp_right_poisson',dates{d_idx});
+    model_name='13-15.03.19_motor_grasp_right_multilevel_poisson';
+    %HMM(exp_info, 'betta', {dates{d_idx}}, {'motor_grasp_right'}, model_name);
+    HMM(exp_info, 'betta', dates, {'motor_grasp_right'}, model_name);
+    %plotHMM(exp_info, 'betta', model_name)
+    plotHMM_aligned(exp_info, 'betta', model_name)
+%end

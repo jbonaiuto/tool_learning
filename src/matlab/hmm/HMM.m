@@ -1,4 +1,13 @@
-function HMM(exp_info, subject, dates, conditions, model_name)
+function HMM(exp_info, subject, dates, conditions, model_name, varargin)
+
+% Parse optional arguments
+defaults=struct('type','multilevel_multivariate_poisson');
+params=struct(varargin{:});
+for f=fieldnames(defaults)'
+    if ~isfield(params, f{1})
+        params.(f{1})=defaults.(f{1});
+    end
+end
 
 %% Create results structure
 hmm_results=[];
@@ -7,8 +16,15 @@ hmm_results.subject=subject;
 hmm_results.dates=dates;
 % Trials used in these models
 hmm_results.trials=[];
-% Cell array - each element will contain a vector - sequence for each trial
-hmm_results.SEQ={};
+hmm_results.trial_date=[];
+if strcmp(params.type,'univariate_multinomial')
+    % Cell array - each element will contain a vector - sequence for each trial
+    hmm_results.SEQ={};
+elseif strcmp(params.type,'multivariate_poisson')
+    hmm_results.trial_spikes={};
+elseif strcmp(params.type,'multilevel_multivariate_poisson')
+    hmm_results.day_spikes={};
+end
 % Number of different states to try
 hmm_results.n_state_possibilities=[2:10];
 % Number of training runs per state
@@ -41,7 +57,11 @@ for i=1:length(conditions)
     hmm_results.trials = hmm_results.trials | (strcmp(data.metadata.condition,conditions{i}));
 end
 hmm_results.trials=find(hmm_results.trials);
+hmm_results.trial_date=data.trial_date(hmm_results.trials);
 cond_data=squeeze(data.binned_spikes(1,:,hmm_results.trials,:));
+
+SEQ={};
+trial_spikes={};
 
 %% Create symbol sequence vectors for each trial
 for g = 1:length(hmm_results.trials)
@@ -50,6 +70,7 @@ for g = 1:length(hmm_results.trials)
     trial_idx = hmm_results.trials(g);
     bin_idx=find((data.bins>=0) & (data.bins<(data.metadata.reward(trial_idx))));
     trial_data=squeeze(cond_data(:,g,bin_idx));
+    trial_spikes{end+1}=trial_data;
     
     % Debugging figure
 %     figure();
@@ -88,9 +109,19 @@ for g = 1:length(hmm_results.trials)
     end
     
     % Add vec to SEQ
-    hmm_results.SEQ{end+1}=vec;
+    SEQ{end+1}=vec;
 end
-        
+    
+if strcmp(params.type,'univariate_multinomial')
+    hmm_results.SEQ=SEQ;
+elseif strcmp(params.type,'multivariate_poisson')
+    hmm_results.trial_spikes=trial_spikes;
+elseif strcmp(params.type,'multilevel_multivariate_poisson')
+    for i=1:length(dates)
+        hmm_results.day_spikes{i}=trial_spikes(hmm_results.trial_date==i);
+    end
+end
+
 %% Train model using each possible number of states
 for n=1:length(hmm_results.n_state_possibilities)
     n_states=hmm_results.n_state_possibilities(n);
@@ -106,7 +137,7 @@ for n=1:length(hmm_results.n_state_possibilities)
                 if i==j %the diagonal
                     % random between .8 and 1, above 0.8 because it is the
                     % transition probability to stay in the same state.                  
-                    TRGUESS(i,j)= .8+rand()*.2;
+                    TRGUESS(i,j)= .99+.1*randn();
                 else
                     % random between 0 and .5
                     TRGUESS(i,j)=rand()*.01;
@@ -117,23 +148,42 @@ for n=1:length(hmm_results.n_state_possibilities)
         TRGUESS=TRGUESS./repmat(sum(TRGUESS,2),1,n_states);
         
         % Initialize emission prob guess
-        EMITGUESS=[];
-        for i=1:n_states
-            state_emission=rand(1,33);
-            % Normalize so probabilities add to 1
-            state_emission=state_emission./sum(state_emission);
-            EMITGUESS(i,:)=state_emission;
-        end
+        GLOBAL_EMITGUESS=rand(n_states,32);
+        DAY_EMITGUESS=rand(length(dates),n_states,32).*.1;
         
         % Train model
-        [ESTTR,ESTEMIT] = hmmtrain(hmm_results.SEQ,TRGUESS,EMITGUESS,'Symbols',[0:32]);
+        if strcmp(params.type,'univariate_multinomial')
+            [ESTTR,ESTEMIT] = hmmtrain(hmm_results.SEQ,TRGUESS,GLOBAL_EMITGUESS,'Symbols',[0:32]);
+        elseif strcmp(params.type,'multivariate_poisson')
+            [ESTTR,ESTEMIT] = hmmtrainPoiss(hmm_results.trial_spikes,TRGUESS,GLOBAL_EMITGUESS,.001,'verbose',true);
+        elseif strcmp(params.type,'multilevel_multivariate_poisson')
+            [ESTTR,GLOBAL_ESTEMIT,DAY_ESTEMIT] = hmmtrainMultilevelPoiss(hmm_results.day_spikes,TRGUESS,...
+                GLOBAL_EMITGUESS,DAY_EMITGUESS,.001,'verbose',true);
+        end
         
         % Compute log likelihood for each trial
         all_log_likelihood=[];
-        for k = 1:length(hmm_results.SEQ);
-            [PSTATES,logpseq] = hmmdecode(hmm_results.SEQ{k},ESTTR,ESTEMIT,'Symbols',[0:32]);
-            % add logpseq to all_log_likelihood
-            all_log_likelihood(end+1) = logpseq;
+        if strcmp(params.type,'univariate_multinomial')
+            for k = 1:length(hmm_results.trial_spikes);
+               [PSTATES,logpseq] = hmmdecode(hmm_results.SEQ{k},ESTTR,ESTEMIT,'Symbols',[0:32]);
+               % add logpseq to all_log_likelihood
+               all_log_likelihood(end+1) = logpseq;
+            end
+        elseif strcmp(params.type,'multivariate_poisson')
+            for k = 1:length(hmm_results.trial_spikes);
+                [PSTATES,logpseq] = hmmdecodePoiss(hmm_results.trial_spikes{k},ESTTR,ESTEMIT,.001);
+                % add logpseq to all_log_likelihood
+                all_log_likelihood(end+1) = logpseq;
+            end
+        elseif strcmp(params.type,'multilevel_multivariate_poisson')
+            for i=1:length(dates)
+                trial_spikes=hmm_results.day_spikes{i};
+                effectiveE=GLOBAL_ESTEMIT+squeeze(DAY_ESTEMIT(i,:,:));
+                for k = 1:length(trial_spikes)
+                    [PSTATES,logpseq] = hmmdecodePoiss(trial_spikes{k},ESTTR,effectiveE,.001);
+                    all_log_likelihood(end+1) = logpseq;
+                end
+            end
         end
         % compute sum log likelihood
         sum_log_likelihood = sum(all_log_likelihood);
@@ -141,9 +191,16 @@ for n=1:length(hmm_results.n_state_possibilities)
         % Save model results in list
         hmm_results.models(n,t).n_states=n_states;
         hmm_results.models(n,t).TRGUESS=TRGUESS;
-        hmm_results.models(n,t).EMITGUESS=EMITGUESS;
+        if strcmp(params.type,'multilevel_multivariate_poisson')
+            hmm_results.models(n,t).GLOBAL_EMITGUESS=GLOBAL_EMITGUESS;
+            hmm_results.models(n,t).DAY_EMITGUESS=DAY_EMITGUESS;
+            hmm_results.models(n,t).GLOBAL_ESTEMIT=GLOBAL_ESTEMIT;
+            hmm_results.models(n,t).DAY_ESTEMIT=DAY_ESTEMIT;
+        else
+            hmm_results.models(n,t).EMITGUESS=EMITGUESS;
+            hmm_results.models(n,t).ESTEMIT=ESTEMIT;
+        end
         hmm_results.models(n,t).ESTTR=ESTTR;
-        hmm_results.models(n,t).ESTEMIT=ESTEMIT;
         hmm_results.models(n,t).sum_log_likelihood=sum_log_likelihood;                        
     end
     
