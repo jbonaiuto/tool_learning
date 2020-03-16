@@ -1,4 +1,18 @@
 function SEQ=create_symbol_vectors(trial_data)
+% CREATE_SYMBOL_VECTORS Create symbol vectors for each trial
+%
+% Syntax: SEQ=create_symbol_vectors(trial_data)
+%
+% Inputs:
+%    trial_data - cell array with a matrix of spikes for each trial
+%
+% Outputs:
+%    SEQ - cell array of vector for each trial, with each element being the
+%        index of the neuron that fired a spike in that time step. If
+%        several fired at once, a random one is chosen
+% 
+% Example:
+%     SEQ=create_symbol_vectors(trial_data)
 
 SEQ={};
 for j=1:length(trial_data)

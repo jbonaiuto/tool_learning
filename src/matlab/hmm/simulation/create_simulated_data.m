@@ -1,5 +1,5 @@
 function [trial_data, state_rates, state_seq_vecs]=create_simulated_data(params)
-% CREATE_SIMULATED_DATA Crate simulated data for HMM
+% CREATE_SIMULATED_DATA Create simulated data for HMM
 %
 % Syntax: [trial_data, state_rates, state_seq_vecs]=create_simulated_data(params)
 %
