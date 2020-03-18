@@ -19,15 +19,15 @@ condition =0; % 1: motor, 0: visual
 
 %% loading data 
 
-datapath = '/Users/thomasquettier/Desktop/multiunit_binned_data'; % data folder path
-addpath('../../../../src/matlab/spm12'); 
+datapath = '/Users/thomasquettier/Desktop/multiunit_binned_data/betta'; % data folder path
+addpath('/Users/thomasquettier/Documents/GitHub/tool_learning/src/matlab/spm12'); 
 
 
 %% saving data
-for week_number = 1:14
+for week_number = 1:2
 dates = week(week_number); 
 
-parentdir = '../../../../output/functional_connectivity';
+parentdir = '/Users/thomasquettier/Desktop/multiunit_binned_data/output/functional_connectivity';
  if condition == 1
         foldername = sprintf('Week_%d_motor_%s', week_number,period); 
     elseif condition == 0      
@@ -67,6 +67,7 @@ end
 
 % file plot
 weeks=[1:14 16:24];
-plot_table(weeks,'visual_grasp_fix_on');
+weeks=[1:2];
+plot_table(weeks,'visual_fix_on', 'input_path',parentdir, 'output_path',parentdir);
 
 %% END

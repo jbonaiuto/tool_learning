@@ -1,3 +1,5 @@
+%% trial selection from 0 to 2000
+
 % Run Granger GLM functional connectivity
 % Parameters:
 %   data_dir = directory containing the date (string)
