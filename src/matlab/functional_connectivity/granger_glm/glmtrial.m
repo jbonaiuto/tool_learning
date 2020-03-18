@@ -32,9 +32,9 @@ function [beta_new] = glmtrial(X,n,ht,w)
 %================================================================
 
 % Counting window
-WIN = zeros(ht/w,ht);
-for iwin = 1:ht/w
-    WIN(iwin,(iwin-1)*w+1:iwin*w) = 1;
+WIN = zeros(ht/w,ht); %windows 3 ms
+for iwin = 1:ht/w     % number of windows
+    WIN(iwin,(iwin-1)*w+1:iwin*w) = 1; % matrix
 end
 
 % CG parameters
@@ -46,12 +46,19 @@ Irmax = 100;
 Ireps = 0.05;
 
 % Design matrix, including DC column of all ones (1st or last)
-[CHN SAM TRL] = size(X); % Dimension of X (# Channels x # Samples x # Trials)
-for itrial = 1:TRL       
+[CHN ,SAM, TRL] = size(X);
+for itrial = 1:TRL  
+    SAM = max(find(~isnan(X(1,:,itrial))));
+     % Dimension of X (# Channels x # Samples x # Trials)
     for isample = ht+1:SAM 
-        temp = [1];
+        temp = zeros(1,(ht/w)*CHN+1);                       % added thomas
+        temp(1)= 1;                                         % added thomas
+        %temp = [1];
         for ichannel = 1:CHN  
-            temp = [temp X(ichannel,isample-1:-1:isample-ht,itrial)*WIN'];
+            %temp = [temp X(ichannel,isample-1:-1:isample-ht,itrial)*WIN'];
+            maxi=((ht/w)*ichannel+1);                       % added thomas
+            mini= maxi-(ht/w-1);                            % added thomas
+            temp(mini:maxi) = X(ichannel,isample-1:-1:isample-ht,itrial)*WIN'; % added thomas
             % temp = [temp (WIN*X(ichannel,isample-1:-1:isample-ht,itrial)')'];
         end
         BIGXsub{itrial}(isample-ht,:) = temp;
@@ -64,6 +71,8 @@ end
 
 % Making output matrix Ysub{}
 for itrial = 1:TRL
+    SAM = max(find(~isnan(X(1,:,itrial))));
+    int_leng = fix((SAM-ht)/10);
     BIGYsub{itrial} = X(n,ht+1:SAM,itrial)';
     for isplit = 1:10
         Ysub{isplit+(itrial-1)*10} = BIGYsub{itrial}(int_leng*(isplit-1)+1:int_leng*isplit);
