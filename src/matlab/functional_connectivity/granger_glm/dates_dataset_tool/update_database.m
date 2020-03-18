@@ -36,8 +36,8 @@ for cal_idx = 1:length(calendario(:,1))
 % _fix_on
                              
                              
-                             copydatafile(source,destination,{'F1'},date,'fix_on'); % cf note î
-                             copydatafile(source,destination,{'F5hand'},date,'fix_on'); 
+                             copydatafile(source,destination,{'F1'},date,'hand_mvmt_onset'); % cf note î
+                             copydatafile(source,destination,{'F5hand'},date,'hand_mvmt_onset'); 
                              
                           else
                         calendario(cal_idx,1) = NaN; % delete the date from calendar if no available data 
