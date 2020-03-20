@@ -66,7 +66,9 @@ end
 % Dimension of new Yc
 [CHN SAM TRL] = size(Yc);
 % Design matrix, including DC column of all ones (1st or last)
-for itrial = 1:TRL       
+for itrial = 1:TRL 
+    SAM = max(find(~isnan(Yc(1,:,itrial))));
+    
     temp = ones(SAM-ht,1);
     for ichannel = 1:CHN 
         for hh = 0:3:ht-3
@@ -84,6 +86,10 @@ end
 
 % Making output matrix Ysub{}
 for itrial = 1:TRL
+ 
+    SAM = max(find(~isnan(Y(1,:,itrial))));
+    int_leng = fix((SAM-ht)/10);
+    
     BIGYsub{itrial} = Y(y,ht+1:SAM,itrial)';
     for isplit = 1:10
         Ysub{isplit+(itrial-1)*10} = BIGYsub{itrial}(int_leng*(isplit-1)+1:int_leng*isplit);

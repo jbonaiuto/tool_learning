@@ -8,6 +8,8 @@ loglike = 0;
 [CHN SAM TRL] = size(Y);
 for itrial = 1:TRL
     
+    SAM = max(find(~isnan(Y(1,:,itrial))));
+    
     temp = ones(SAM-ht,1);
     for ichannel = 1:CHN
         if ichannel == trigger

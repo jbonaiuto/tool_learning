@@ -1,3 +1,5 @@
+%% trial selection from 0 to 2000
+
 % Run Granger GLM functional connectivity
 % Parameters:
 %   data_dir = directory containing the date (string)
@@ -13,7 +15,7 @@
 %   func_connectivity('C:\functional_connectivity',{'01.02.19','04.02.19'},...
 %       'F1',[0:31],{'motor_grasp_left','motor_grasp_center','motor_grasp_right','visual_grasp_left'},'mua',true,'output_path','output/f1-f5hand',...
 %       'output_fname','granger_result.mat');
-function func_connectivity_within_array(data_dir, dates, array, electrodes, condition,alignment,varargin)
+function func_connectivity_within_array_Y(data_dir, dates, array, electrodes, condition,varargin)
 
 % Parse optional arguments
 defaults=struct('output_fname', 'granger_glm_results.mat',...
@@ -38,30 +40,23 @@ for array_idx=1:length(array)
     date_data={};
     for date_idx=1:length(dates)
         date=dates{date_idx};
-        load(fullfile(data_dir, sprintf('fr_b_%s_%s_%s.mat', array{array_idx}, date,alignment)));
+        load(fullfile(data_dir, sprintf('fr_b_%s_%s_copied_trial.mat', array{array_idx}, date)));
         date_data{date_idx}=data;
     end
     data=concatenate_data(date_data, 'spike_times',false);
 
 
-    %Analysis epoch (0s to reward)
-    
-    for t=1:data.ntrials
-rew_time=data.metadata.reward(t);
-data.binned_spikes(:,electrodes,t,find((data.bins<0) | (data.bins>=rew_time)))=NaN;
-data.firing_rate(:,electrodes,t,find((data.bins<0) | (data.bins>=rew_time)))=NaN;
-data.smoothed_firing_rate(:,electrodes,t,find((data.bins<0) | (data.bins>=rew_time)))=NaN;
-    end
-
-bin_idx=find(data.bins>=0);
+  %Analysis epoch (-1s to 2s)
+bin_idx=find((data.bins>=0) & (data.bins<=2000)); 
 data.bins=data.bins(bin_idx);
 data.binned_spikes=data.binned_spikes(:,electrodes,:,bin_idx);
 data.firing_rate=data.firing_rate(:,electrodes,:,bin_idx);
 data.smoothed_firing_rate=data.smoothed_firing_rate(:,electrodes,:,bin_idx);
 
-    granger_glm_results.bins=data.bins;
 
-    num_units=length(electrodes);
+granger_glm_results.bins=data.bins;
+
+num_units=length(electrodes);
 
     % Figure out total number of trials (to initialize X with the right size)
     trials=zeros(1,length(data.metadata.condition));

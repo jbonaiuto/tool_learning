@@ -1,3 +1,5 @@
+%% trial selection from 0 to reward
+
 % Run Granger GLM functional connectivity
 % Parameters:
 %   data_dir = directory containing the date (string)
@@ -13,7 +15,7 @@
 %   func_connectivity('C:\functional_connectivity',{'01.02.19','04.02.19'},...
 %       'F1',[0:31],{'motor_grasp_left','motor_grasp_center','motor_grasp_right','visual_grasp_left'},'mua',true,'output_path','output/f1-f5hand',...
 %       'output_fname','granger_result.mat');
-function func_connectivity_within_array(data_dir, dates, array, electrodes, condition,alignment,varargin)
+function func_connectivity_within_array_X(data_dir, dates, array, electrodes, condition,varargin)
 
 % Parse optional arguments
 defaults=struct('output_fname', 'granger_glm_results.mat',...
@@ -38,7 +40,7 @@ for array_idx=1:length(array)
     date_data={};
     for date_idx=1:length(dates)
         date=dates{date_idx};
-        load(fullfile(data_dir, sprintf('fr_b_%s_%s_%s.mat', array{array_idx}, date,alignment)));
+        load(fullfile(data_dir, sprintf('fr_b_%s_%s_copied_trial.mat', array{array_idx}, date)));
         date_data{date_idx}=data;
     end
     data=concatenate_data(date_data, 'spike_times',false);
@@ -86,7 +88,7 @@ data.smoothed_firing_rate=data.smoothed_firing_rate(:,electrodes,:,bin_idx);
     data.smoothed_firing_rate=data.smoothed_firing_rate(:,:,trials,:);
 
     X=permute(squeeze(data.binned_spikes),[1 3 2]); 
-    X(X>1) = 1;
+   % X(X>1) = 1;
 
         if array_idx==1
             M=X;
