@@ -56,7 +56,7 @@ csvwrite(foldername,table)
 table=table(table(:,3)>0,:);
 weeks=[table(:,1)];
 
-
+%% function
 for week_number = 1:length(weeks) 
 dates = week(weeks(week_number)); 
 
@@ -69,30 +69,11 @@ newfolder = fullfile(parentdir, foldername);
     end
 output = sprintf('%s/%s',parentdir,foldername);
 
-
-
-
-
-%% function
 func_connectivity_within_array(data_dir, dates, array, electrodes, condition,event, 'output_path', output)
 
 end
-% 0 sec  to 2 sec
-%     if condition == 1
-%         foldername = sprintf('Week_%d_motor_Z', week_number); 
-%     elseif condition == 0      
-%         foldername = sprintf('Week_%d_visual_Z',week_number);
-%     end
-% newfolder = fullfile(parentdir, foldername);
-%     if ~exist(newfolder, 'dir')
-%        mkdir(newfolder)
-%     end
-% output = sprintf('%s/%s',parentdir,foldername);
-% 
-% func_connectivity_within_array_Z(datapath, dates, arrays, electrode, conditions, 'output_path', output)
 
-% file plot
-%weeks=[1:14 16:24 26];
+%file plot
 %plot_table(weeks,'visual_grasp_fix_on', 'input_path',parentdir, 'output_path',parentdir);
 
 %% END
