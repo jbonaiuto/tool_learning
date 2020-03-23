@@ -14,8 +14,8 @@ close all
 
 %% Parameters
 
-array = {'F1'}; % ,'F5hand'
-electrodes = 1:2;
+array = {'F1','F5hand'}; % ,'F5hand'
+electrodes = 1:32;
 event = 'whole_trial';
 condition= {'fixation'};
 weeks=[4:14 16:24 26];
