@@ -13,7 +13,7 @@
 %   func_connectivity('C:\functional_connectivity',{'01.02.19','04.02.19'},...
 %       'F1',[0:31],{'motor_grasp_left','motor_grasp_center','motor_grasp_right','visual_grasp_left'},'mua',true,'output_path','output/f1-f5hand',...
 %       'output_fname','granger_result.mat');
-function func_connectivity_within_array(data_dir, dates, array, electrodes, condition,alignment,varargin)
+function func_connectivity_within_array(data_dir, dates, array, electrodes, condition,event,varargin)
 
 % Parse optional arguments
 defaults=struct('output_fname', 'granger_glm_results.mat',...
@@ -38,7 +38,7 @@ for array_idx=1:length(array)
     date_data={};
     for date_idx=1:length(dates)
         date=dates{date_idx};
-        load(fullfile(data_dir, sprintf('fr_b_%s_%s_%s.mat', array{array_idx}, date,alignment)));
+        load(fullfile(data_dir, sprintf('fr_b_%s_%s_%s.mat', array{array_idx}, date,event)));
         date_data{date_idx}=data;
     end
     data=concatenate_data(date_data, 'spike_times',false);
@@ -99,6 +99,7 @@ X=M;
 
 % Dimension of X (# Channels x # Samples x # Trials)
 [CHN SMP TRL] = size(X);
+
 
 granger_glm_results.dates=dates;
 granger_glm_results.arrays={array};

@@ -1,4 +1,7 @@
 %% Working script 01/2020
+%
+%% VISUAL GRASPING
+%
 % analysis of functional connectivity of spykes train
 % INPUT:     preprocess data (set path in laoding data)
 % OUTPUT:    Plot and table (set path in saving data)
