@@ -1,7 +1,4 @@
 %% Working script
-%
-%% Fixation task
-%
 % analysis of functional connectivity of spykes train
 % INPUT:     preprocess data (set path in laoding data)
 % OUTPUT:    Plot and table (set path in saving data)
@@ -14,6 +11,7 @@ close all
 
 %% Parameters
 
+
 array = {'F1','F5hand'}; % ,'F5hand'
 electrodes = 1:32;
 event = 'whole_trial';
@@ -21,59 +19,58 @@ condition= {'fixation'};
 weeks=[4:14 16:24 26];
 
 
+
 %% loading data 
 
-data_dir = '/Users/thomasquettier/Desktop/multiunit_binned_data/betta'; % data folder path
-addpath('/Users/thomasquettier/Documents/GitHub/tool_learning/src/matlab/spm12'); 
-parentdir = '/Users/thomasquettier/Desktop/multiunit_binned_data/output/functional_connectivity';
+datapath = '/Users/quettier/Desktop/multiunit_binned_data/betta'; % data folder path
+addpath('C:\Users\quettier\Documents\GitHub\tool_learning\src\matlab\spm12'); 
 
 
- %% week selection
- 
+%% saving data
+for week_number = 1:2
+dates = week(week_number); 
 
-table = zeros(length(weeks),5);
-for week_number = 1:length(weeks)  
-date = week(weeks(week_number));   
-X=select_week_trials(data_dir, date, array, electrodes, condition,event);
-[CHN SMP TRL] = size(X);
-size_trial = zeros(1,TRL);
-for itrial = 1:TRL
-size_trial(itrial) = length(find(~isnan(X(1,:,itrial))));
-end
-table(weeks(week_number), 1) = weeks(week_number);
-table(weeks(week_number), 5) = TRL;
-if TRL == 0
-else   
-table(weeks(week_number), 2) = round(min(size_trial));
-table(weeks(week_number), 3) = round(max(size_trial));
-table(weeks(week_number), 4) = round(mean(size_trial));
-end
-end
-
-foldername = fullfile(parentdir,sprintf('trial_table_%s_%s.csv', condition{1},event));
-csvwrite(foldername,table)
-
-table=table(table(:,3)>0,:);
-weeks=[table(:,1)];
-
-%% function
-for week_number = 1:length(weeks) 
-dates = week(weeks(week_number)); 
-
-
-foldername = sprintf('Week_%d_%s_%s', week_number,condition{1},event); 
-  
+parentdir = '/Users/quettier/Desktop/multiunit_binned_data/output/functional_connectivity';
+ if condition == 1
+        foldername = sprintf('Week_%d_motor_%s', week_number,period); 
+    elseif condition == 0      
+        foldername = sprintf('Week_%d_visual_%s',week_number,period);
+    end
 newfolder = fullfile(parentdir, foldername);
     if ~exist(newfolder, 'dir')
        mkdir(newfolder)
     end
 output = sprintf('%s/%s',parentdir,foldername);
 
-func_connectivity_within_array(data_dir, dates, array, electrodes, condition,event, 'output_path', output)
 
+%% function
+% full trial
+if condition == 0
+    conditions={'visual_grasp_left','visual_grasp_right'};
+elseif condition == 1
+    conditions={'motor_grasp_left','motor_grasp_center','motor_grasp_right'};
 end
 
-%file plot
-%plot_table(weeks,'visual_grasp_fix_on', 'input_path',parentdir, 'output_path',parentdir);
+func_connectivity_within_array(datapath, dates, arrays, electrode, conditions,period, 'output_path', output)
+
+end
+% 0 sec  to 2 sec
+%     if condition == 1
+%         foldername = sprintf('Week_%d_motor_Z', week_number); 
+%     elseif condition == 0      
+%         foldername = sprintf('Week_%d_visual_Z',week_number);
+%     end
+% newfolder = fullfile(parentdir, foldername);
+%     if ~exist(newfolder, 'dir')
+%        mkdir(newfolder)
+%     end
+% output = sprintf('%s/%s',parentdir,foldername);
+% 
+% func_connectivity_within_array_Z(datapath, dates, arrays, electrode, conditions, 'output_path', output)
+
+% file plot
+weeks=[1:14 16:24];
+weeks=[1:2];
+plot_table(weeks,'visual_fix_on', 'input_path',parentdir, 'output_path',parentdir);
 
 %% END
