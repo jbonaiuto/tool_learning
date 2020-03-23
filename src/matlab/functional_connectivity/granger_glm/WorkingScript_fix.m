@@ -19,15 +19,15 @@ condition =0; % 1: motor, 0: visual
 
 %% loading data 
 
-datapath = '/Users/thomasquettier/Desktop/multiunit_binned_data/betta'; % data folder path
-addpath('/Users/thomasquettier/Documents/GitHub/tool_learning/src/matlab/spm12'); 
+datapath = '/Users/quettier/Desktop/multiunit_binned_data/betta'; % data folder path
+addpath('C:\Users\quettier\Documents\GitHub\tool_learning\src\matlab\spm12'); 
 
 
 %% saving data
 for week_number = 1:2
 dates = week(week_number); 
 
-parentdir = '/Users/thomasquettier/Desktop/multiunit_binned_data/output/functional_connectivity';
+parentdir = '/Users/quettier/Desktop/multiunit_binned_data/output/functional_connectivity';
  if condition == 1
         foldername = sprintf('Week_%d_motor_%s', week_number,period); 
     elseif condition == 0      
