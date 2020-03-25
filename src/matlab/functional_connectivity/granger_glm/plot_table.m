@@ -78,7 +78,7 @@ end
 
 
 
-csvwrite(fullfile(params.output_path,'plot.csv'),data)
+csvwrite(fullfile(params.output_path,sprintf('%s_plot.csv',condition)),data)
 end
 
 
