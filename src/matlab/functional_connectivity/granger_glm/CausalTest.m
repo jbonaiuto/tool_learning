@@ -1,5 +1,13 @@
 % Dimension of X (# Channels x # Samples x # Trials)
 function causal_results=CausalTest(X, aic, bhat, LLK)
+defaults=struct('split_size', 10);
+params=struct(varargin{:});
+for f=fieldnames(defaults)'
+    if ~isfield(params, f{1})
+        params.(f{1})=defaults.(f{1});
+    end
+end
+
 % Load  data
 %load data_real_catM1.mat;
 %load data_real_nonmove.mat;
@@ -27,7 +35,7 @@ for target = 1:CHN
     LLK0(target) = LLK(3*ht(target),target);
     for trigger = 1:CHN
         % MLE after excluding trigger neuron
-        [bhatc{target,trigger},devnewc{target,trigger}] = glmtrialcausal(X,target,trigger,3*ht(target),3);
+        [bhatc{target,trigger},devnewc{target,trigger}] = glmtrialcausal(X,target,trigger,3*ht(target),3,'split_size',params.split_size);
         
         % Log likelihood obtained using a new GLM parameter and data, which
         % exclude trigger
