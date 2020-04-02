@@ -16,7 +16,7 @@
 function func_connectivity_within_array(data_dir, dates, array, electrodes, condition,event,varargin)
 
 % Parse optional arguments
-defaults=struct('output_fname', 'granger_glm_results.mat',...
+defaults=struct('n_splits', 20, 'output_fname', 'granger_glm_results.mat',...
     'output_path', '../../../../output/functional_connectivity');
 params=struct(varargin{:});
 for f=fieldnames(defaults)'
@@ -114,7 +114,7 @@ h = waitbar(0,'Please wait...');
 s = clock;
 for neuron = 1:CHN
     for ht = 3:3:60                             % history, W=3ms
-        [bhat{ht,neuron}] = glmtrial(X,neuron,ht,3,'split_size',50);
+        [bhat{ht,neuron}] = glmtrial(X,neuron,ht,3,'n_splits',params.n_splits);
     end
     
     % estimate remaining time
@@ -153,7 +153,7 @@ for neuron = 1:CHN
 end
 
 %Identify Granger causality
-causal_results=CausalTest(X, aic, bhat, LLK);
+causal_results=CausalTest(X, aic, bhat, LLK,'n_splits',params.n_splits);
 granger_glm_results.causal_results=causal_results;
 
 % Plot the results
