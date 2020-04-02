@@ -11,11 +11,15 @@ exp_info=init_exp_info();
     %'27.05.19'};
     %dates={'13.03.19','14.03.19','15.03.19','18.03.19','19.03.19','21.03.19'};%,'22.03.19','25.03.19','26.03.19'};
 dates={'13.03.19','14.03.19','15.03.19'};
-%for d_idx=1:length(dates)
-    %model_name=sprintf('%s_motor_grasp_right_poisson',dates{d_idx});
-    model_name='13-15.03.19_motor_grasp_right_multilevel_poisson';
-    %HMM(exp_info, 'betta', {dates{d_idx}}, {'motor_grasp_right'}, model_name);
-    HMM(exp_info, 'betta', dates, {'motor_grasp_right'}, model_name);
-    %plotHMM(exp_info, 'betta', model_name)
-    plotHMM_aligned(exp_info, 'betta', model_name)
-%end
+%dates={'19.03.19','21.03.19','22.03.19'};
+%dates={'25.03.19','27.03.19','28.03.19','29.03.19'};
+
+
+model_name='13-15.03.19_motor_grasp_right_multilevel_poisson';
+%model_name='19-22.03.19_motor_grasp_right_multilevel_poisson';
+%model_name='25-29.03.19_motor_grasp_right_multilevel_poisson';
+
+HMM(exp_info, 'betta', dates, 'F1', {'motor_grasp_right'}, model_name);
+model=get_model(exp_info, 'betta', model_name);
+
+plotHMM_aligned(exp_info, 'betta', dates, 'F1', {'motor_grasp_right'}, model);
