@@ -34,9 +34,28 @@ clear('date_data');
    
 colors=cbrewer('qual','Paired',12);
 
-for n=1:length(hmm_results.SEQ)
-    PSTATES = hmmdecode(hmm_results.SEQ{n},model.ESTTR,model.ESTEMIT,'Symbols',[0:32]);
+ALL_PSTATES={};
+if isfield(hmm_results,'trial_spikes')
+    for n=1:length(hmm_results.trial_spikes)
+        ALL_PSTATES{n} = hmmdecodePoiss(hmm_results.trial_spikes{n},model.ESTTR,model.ESTEMIT,.001);
+    end
+elseif isfield(hmm_results,'day_spikes')
+    for d=1:length(hmm_results.day_spikes)
+        trial_spikes=hmm_results.day_spikes{d};
+        effectiveE=model.GLOBAL_ESTEMIT+squeeze(model.DAY_ESTEMIT(d,:,:));
+        for n=1:length(trial_spikes)
+            ALL_PSTATES{end+1} = hmmdecodePoiss(trial_spikes{n},model.ESTTR,effectiveE,.001);
+        end
+    end
+else
+    for n=1:length(hmm_results.SEQ)
+        ALL_PSTATES{n} = hmmdecode(hmm_results.SEQ{n},model.ESTTR,model.ESTEMIT,'Symbols',[0:32]);
+    end
+end
 
+for n=1:length(ALL_PSTATES)
+    PSTATES=ALL_PSTATES{n};
+    
     f=figure();
     hold all 
     
@@ -69,7 +88,7 @@ for n=1:length(hmm_results.SEQ)
     xlim([data.bins(bin_idx(1)) data.bins(bin_idx(end))]);
     plot(xlim(),[0.6 0.6],'-.k');
     
-    saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_',sprintf('%d',hmm_results.trials(n)) '.png']));
-    saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_',sprintf('%d',hmm_results.trials(n)) '.eps']), 'epsc');
-    close(f);
+    %saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_',sprintf('%d',hmm_results.trials(n)) '.png']));
+    %saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_',sprintf('%d',hmm_results.trials(n)) '.eps']), 'epsc');
+    %close(f);
 end
