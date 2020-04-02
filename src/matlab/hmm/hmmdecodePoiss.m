@@ -138,19 +138,20 @@ end
 %  scales = cumprod(s, 'reverse'); 
 %  b = bs.*repmat([scales(2:end), 1],size(bs,1),1);
 
-T1 = zeros(numStates,L);
-PI=zeros(1,numStates);
-PI(1)=1;
-T1(:,1)=log(PI) + log(poiss_prod(:,1)');
-for j=2:L
+%T1 = zeros(numStates,L);
+%PI=zeros(1,numStates);
+%PI(1)=1;
+%T1(:,1)=log(PI) + log(poiss_prod(:,1)');
+%for j=2:L
 %     for i=1:numStates
 %         vec1 = T1(:,j-1) + log(tr(:,i)) + log(poiss_prod(i,j));
 %         T1(i,j) = max(vec1);
 %     end
-T1(:,j)=max(repmat(T1(:,j-1),1,numStates)+log(tr(:,:)) + repmat(log(poiss_prod(:,j))',numStates,1));    
-end
+%T1(:,j)=max(repmat(T1(:,j-1),1,numStates)+log(tr(:,:)) + repmat(log(poiss_prod(:,j))',numStates,1));    
+%end
+%pSeq=max(T1(:,end));
 
-pSeq=max(T1(:,end));
+pSeq = sum(log(s(s>0)));
 
 pStates = fs.*bs;
 
