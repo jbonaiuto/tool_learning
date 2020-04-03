@@ -244,7 +244,9 @@ for iteration = 1:params.maxiterations
         inv_temp=1./iteration;
         accept_prob=min([1,inv_temp*exp(-.003*deltaLL)]);
         if rand()<accept_prob
-            disp(sprintf('inv_temp=%.4f, deltaLL=%.4f, accept_prob=%.4f, perturbing', inv_temp, deltaLL, accept_prob));
+            if params.verbose
+                disp(sprintf('inv_temp=%.4f, deltaLL=%.4f, accept_prob=%.4f, perturbing', inv_temp, deltaLL, accept_prob));
+            end
             guessTR_global=perturbedTR;
             loglik=perturbedLL;
         end
