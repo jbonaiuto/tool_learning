@@ -1,4 +1,4 @@
-function [beta_new,devnew,stats] = glmtrialcausal(Y,y,trigger,ht,w)
+function [beta_new,devnew,stats] = glmtrialcausal(Y,y,trigger,ht,w,varargin)
 
 %================================================================
 %  GLM fitting based on submatrices after excluding the effect
