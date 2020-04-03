@@ -67,49 +67,26 @@ function [guessTR,guessE,logliks] = hmmtrainPoiss(seqs,guessTR,guessE,dt,varargi
 
 poiss = @(lambda,n) (((lambda*dt).^repmat(n,1,size(lambda,2)))./repmat(factorial(n),1,size(lambda,2))).*exp(-lambda*dt); % formula for computing probability of each neurons spike count assuming Poisson spiking
 
-tol = 1e-6;
-trtol = tol;
-etol = tol;
-maxiter = 500;
-verbose = false;
+defaults = struct('tolerance', 1e-6, 'maxiterations', 500,...
+    'verbose', false, 'trtol', 1e-6, 'etol', 1e-6,...
+    'annealing', true);  %define default values
+params = struct(varargin{:});
+for f = fieldnames(defaults)',  
+    if ~isfield(params, f{1}),
+        params.(f{1}) = defaults.(f{1});
+    end
+end
+
 [numStates, checkTr] = size(guessTR);
 if checkTr ~= numStates
-    error(message('stats:hmmtrain:BadTransitions'));
+    error('Size of transition matrix guess doesnt match number of states');
 end
 
 % number of rows of e must be same as number of states
-
 [checkE, numEmissions] = size(guessE);
 if checkE ~= numStates
-    error(message('stats:hmmtrain:InputSizeMismatch'));
+    error('Size of global emission matrix guess doesnt match number of states');
 end
-if (numStates ==0 || numEmissions == 0)
-    guessTR = [];
-    guessE = [];
-    return
-end
-
-if nargin > 4
-    okargs = {'tolerance','maxiterations','verbose','trtol','etol'};
-    dflts  = {[]         maxiter         verbose   []      []};
-    [tol,maxiter,verbose,trtol,etol] = ...
-        internal.stats.parseArgs(okargs, dflts, varargin{:});
-    
-    if ischar(verbose)
-        verbose = any(strcmpi(verbose,{'on','true','yes'}));
-    end    
-end
-
-if isempty(tol)
-    tol = 1e-6;
-end
-if isempty(trtol)
-    trtol = tol;
-end
-if isempty(etol)
-    etol = tol;
-end
-
 
 if isnumeric(seqs)
     [numSeqs, seqLength] = size(seqs);
@@ -118,7 +95,7 @@ elseif iscell(seqs)
     numSeqs = numel(seqs);
     cellflag = true;
 else
-    error(message('stats:hmmtrain:BadSequence'));
+    error('seqs must either be a matrix (one trial) or a cell array of matrices (one for each trial)');
 end
 
 % initialize the counters
@@ -131,8 +108,8 @@ pseudoEdenom = Edenom;
 
 converged = false;
 loglik = 1; % loglik is the log likelihood of all sequences given the TR and E
-logliks = zeros(1,maxiter);
-for iteration = 1:maxiter
+logliks = zeros(1,params.maxiterations);
+for iteration = 1:params.maxiterations
     oldLL = loglik;
     loglik = 0;
     oldGuessE = guessE;
@@ -182,7 +159,53 @@ for iteration = 1:maxiter
     guessTR(isnan(guessTR)) = 0;
     guessE(isnan(guessE)) = 0;
     
-    if verbose
+    % Simulated annealing
+    if params.annealing
+        perturbedTR=guessTR;
+        % Randomly select half of TR matrix rows
+        selected_rows=randperm(numStates,round(numStates/2));
+        % for each selected row i, choose a single column j
+        for i=1:length(selected_rows)
+            probs=ones(1,numStates).*(.5/(numStates-1));
+            probs(selected_rows(i))=.5;
+            j=randsample(numStates,1,true,probs);
+            % Transition probabilities in the resulting matrix indices were then
+            % each increased by a random factor
+            perturbedTR(selected_rows(i),j)=perturbedTR(selected_rows(i),j)+.1*rand();
+            % followed by a normalization of the rest of the transition 
+            % probabilities in the same row, such that each row will still sum
+            % to 1. 
+            perturbedTR(selected_rows(i),:)=perturbedTR(selected_rows(i),:)./sum(perturbedTR(selected_rows(i),:));
+        end
+        % Next, the difference between the log-likelihoods of the original and
+        % the candidate parameters was computed:
+        perturbedLL=0;
+        for count = 1:numSeqs
+            if cellflag
+                seq = seqs{count};
+                seqLength = size(seq,2);
+            else
+                seq = seqs(count,:);
+            end
+
+            % get the scaled forward and backward probabilities
+            [~,logPseq,fs,bs,scale] = hmmdecodePoiss(seq,perturbedTR,guessE,dt);
+
+            perturbedLL = perturbedLL + logPseq;
+        end
+        deltaLL=loglik-perturbedLL;
+
+        % The candidate parameters were then accepted with probability
+        inv_temp=1./iteration;
+        accept_prob=min([1,inv_temp.*exp(-.003*deltaLL)]);
+        if rand()<accept_prob
+            disp('perturbing');
+            guessTR=perturbedTR;
+            loglik=perturbedLL;
+        end
+    end
+        
+    if params.verbose
         if iteration == 1
             fprintf('%s\n',getString(message('stats:hmmtrain:RelativeChanges')));
             fprintf('   Iteration       Log Lik    Transition     Emmission\n');
@@ -198,10 +221,10 @@ for iteration = 1:maxiter
     % etol to set the convergence tolerance for these independently.
     %
     logliks(iteration) = loglik;
-    if (abs(loglik-oldLL)/(1+abs(oldLL))) < tol
-        if norm(guessTR - oldGuessTR,inf)/numStates < trtol
-            if norm(guessE - oldGuessE,inf)/numEmissions < etol
-                if verbose
+    if (abs(loglik-oldLL)/(1+abs(oldLL))) < params.tolerance
+        if norm(guessTR - oldGuessTR,inf)/numStates < params.trtol
+            if norm(guessE - oldGuessE,inf)/numEmissions < params.etol
+                if params.verbose
                     fprintf('%s\n',getString(message('stats:hmmtrain:ConvergedAfterIterations',iteration)))
                 end
                 converged = true;
@@ -214,6 +237,6 @@ for iteration = 1:maxiter
     TR = pseudoTR;
 end
 if ~converged
-    warning(message('stats:hmmtrain:NoConvergence', num2str( tol ), maxiter));
+    warning(message('stats:hmmtrain:NoConvergence', num2str( params.tolerance ), params.maxiterations));
 end
 logliks(logliks ==0) = [];

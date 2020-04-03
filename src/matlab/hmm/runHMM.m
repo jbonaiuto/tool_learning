@@ -15,7 +15,7 @@ dates={'13.03.19','14.03.19','15.03.19'};
 %dates={'25.03.19','27.03.19','28.03.19','29.03.19'};
 
 
-model_name='13-15.03.19_motor_grasp_right_multilevel_poisson';
+model_name='13-15.03.19_motor_grasp_right_multilevel_poisson_simulated_annealing';
 %model_name='19-22.03.19_motor_grasp_right_multilevel_poisson';
 %model_name='25-29.03.19_motor_grasp_right_multilevel_poisson';
 
