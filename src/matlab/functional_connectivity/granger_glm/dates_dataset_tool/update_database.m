@@ -1,4 +1,4 @@
-%% Dates Dataset management script
+ %% Dates Dataset management script
 %
 % check if folder exist and add new files in "destination"
 % create table with available dates
