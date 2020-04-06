@@ -1,4 +1,5 @@
-function [guessTR_global,guessE_global,guessE_day,logliks] = hmmtrainMultilevelPoiss(seqs,guessTR_global,guessE_global,guessE_day,dt,varargin)
+function [guessTR_global,guessE_global,guessE_day,logliks] = hmmtrainMultilevelPoiss(seqs,...
+    guessTR_global, guessE_global, guessE_day, dt, varargin)
 %HMMTRAIN maximum likelihood estimator of model parameters for an HMM.
 %   [ESTTR, ESTEMIT] = HMMTRAIN(SEQS,TRGUESS,EMITGUESS) estimates the
 %   transition and emission probabilities for a Hidden Markov Model from
@@ -67,55 +68,39 @@ function [guessTR_global,guessE_global,guessE_day,logliks] = hmmtrainMultilevelP
 
 poiss = @(lambda,n) (((lambda*dt).^repmat(n,1,size(lambda,2)))./repmat(factorial(n),1,size(lambda,2))).*exp(-lambda*dt); % formula for computing probability of each neurons spike count assuming Poisson spiking
 
-tol = 1e-6;
-trtol = tol;
-etol = tol;
-maxiter = 500;
-verbose = false;
+defaults = struct('tolerance', 1e-6, 'maxiterations', 500,...
+    'verbose', false, 'trtol', 1e-6, 'etol', 1e-6,...
+    'annealing', true);  %define default values
+params = struct(varargin{:});
+for f = fieldnames(defaults)',  
+    if ~isfield(params, f{1}),
+        params.(f{1}) = defaults.(f{1});
+    end
+end
+
 [numStates, checkTr] = size(guessTR_global);
 if checkTr ~= numStates
-    error(message('stats:hmmtrain:BadTransitions'));
+    error('Size of transition matrix guess doesnt match number of states');
 end
 
 % number of rows of e must be same as number of states
-
 [checkE, numEmissions] = size(guessE_global);
 if checkE ~= numStates
-    error(message('stats:hmmtrain:InputSizeMismatch'));
+    error('Size of global emission matrix guess doesnt match number of states');
 end
-if (numStates ==0 || numEmissions == 0)
-    guessTR_global = [];
-    guessE_global = [];
-    return
+[numDays, checkE, numEmissions] = size(guessE_day);
+if checkE ~= numStates
+    error('Size of day emission matrix guess doesnt match number of states');
 end
-
-if nargin > 4
-    okargs = {'tolerance','maxiterations','verbose','trtol','etol'};
-    dflts  = {[]         maxiter         verbose   []      []};
-    [tol,maxiter,verbose,trtol,etol] = ...
-        internal.stats.parseArgs(okargs, dflts, varargin{:});
-    
-    if ischar(verbose)
-        verbose = any(strcmpi(verbose,{'on','true','yes'}));
-    end    
-end
-
-if isempty(tol)
-    tol = 1e-6;
-end
-if isempty(trtol)
-    trtol = tol;
-end
-if isempty(etol)
-    etol = tol;
-end
-
 
 if iscell(seqs)
     %numSeqs = numel(seqs);
-    numDays = numel(seqs);
+    checkD = numel(seqs);
+    if checkD ~= numDays
+        error('seqs must include a cell array for each day');
+    end
 else
-    error(message('stats:hmmtrain:BadSequence'));
+    error('seqs must be a cell array');
 end
 
 % initialize the counters
@@ -127,8 +112,8 @@ Edenom_day=zeros(numDays,numStates);
 
 converged = false;
 loglik = 1; % loglik is the log likelihood of all sequences given the TR and E
-logliks = zeros(1,maxiter);
-for iteration = 1:maxiter
+logliks = zeros(1,params.maxiterations);
+for iteration = 1:params.maxiterations
     oldLL = loglik;
     loglik = 0;
     oldGuessE_global = guessE_global;
@@ -147,7 +132,7 @@ for iteration = 1:maxiter
 
             % get the scaled forward and backward probabilities
             [~,logPseq,fs,bs,scale] = hmmdecodePoiss(seq,guessTR_global,guessE_global,dt);
-
+            
             % f and b start at 0 so offset seq by one
             seq = [zeros(size(seq,1),1)  seq];
 
@@ -219,14 +204,63 @@ for iteration = 1:maxiter
         guessE_day(day_idx,:,:)=guesseffectiveE-guessE_global;
     end
         
+    % Simulated annealing
+    if params.annealing
+        perturbedTR=guessTR_global;
+        % Randomly select half of TR matrix rows
+        selected_rows=randperm(numStates,round(numStates/2));
+        % for each selected row i, choose a single column j
+        for i=1:length(selected_rows)
+            probs=ones(1,numStates).*(.5/(numStates-1));
+            probs(selected_rows(i))=.5;
+            j=randsample(numStates,1,true,probs);
+            % Transition probabilities in the resulting matrix indices were then
+            % each increased by a random factor
+            perturbedTR(selected_rows(i),j)=perturbedTR(selected_rows(i),j)+.1*rand();
+            % followed by a normalization of the rest of the transition 
+            % probabilities in the same row, such that each row will still sum
+            % to 1. 
+            perturbedTR(selected_rows(i),:)=perturbedTR(selected_rows(i),:)./sum(perturbedTR(selected_rows(i),:));
+        end
+        % Next, the difference between the log-likelihoods of the original and
+        % the candidate parameters was computed:
+        perturbedLL=0;
+        for day_idx = 1:numDays
+            effectiveE=guessE_global+squeeze(guessE_day(day_idx,:,:));
+            day_seqs = seqs{day_idx};
+            numSeqs=numel(day_seqs);
+            for seq_idx=1:numSeqs
+                seq=day_seqs{seq_idx};
+                seqLength = size(seq,2);
+
+                % get the scaled forward and backward probabilities
+                [~,logPseq,fs,bs,scale] = hmmdecodePoiss(seq,perturbedTR,effectiveE,dt);
+                perturbedLL = perturbedLL + logPseq;
+            end
+        end
+        deltaLL=loglik-perturbedLL;
+    
+        % The candidate parameters were then accepted with probability
+        inv_temp=1./iteration;
+        accept_prob=min([1,inv_temp*exp(-.003*deltaLL)]);
+        if rand()<accept_prob
+            if params.verbose
+                disp(sprintf('inv_temp=%.4f, deltaLL=%.4f, accept_prob=%.4f, perturbing', inv_temp, deltaLL, accept_prob));
+            end
+            guessTR_global=perturbedTR;
+            loglik=perturbedLL;
+        end
+    end
+
     delta_LL=(abs(loglik-oldLL)/(1+abs(oldLL)));
     delta_TR=norm(guessTR_global - oldGuessTR_global,inf)./numStates;
     delta_E_global=norm(guessE_global - oldGuessE_global,inf)./numEmissions;
-    delta_E_day=0;
+    delta_E_day=zeros(1,numDays);
     for day_idx = 1:numDays
-        delta_E_day=delta_E_day+norm(squeeze(guessE_day(day_idx,:,:)) - squeeze(oldGuessE_day(day_idx,:,:)),inf)./numEmissions;
+        delta_E_day(day_idx)=norm(squeeze(guessE_day(day_idx,:,:)) - squeeze(oldGuessE_day(day_idx,:,:)),inf)./numEmissions;
     end
-    if verbose
+    delta_E_day=max(delta_E_day);
+    if params.verbose
         if iteration == 1
             fprintf('%s\n',getString(message('stats:hmmtrain:RelativeChanges')));
             fprintf('   Iteration       Log Lik    Transition     Global Emmission     Day Emission\n');
@@ -240,11 +274,11 @@ for iteration = 1:maxiter
     % etol to set the convergence tolerance for these independently.
     %
     logliks(iteration) = loglik;
-    if delta_LL < tol
-        if delta_TR < trtol
-            if delta_E_global < etol
-                if delta_E_day < etol*numDays
-                    if verbose
+    if delta_LL < params.tolerance
+        if delta_TR < params.trtol
+            if delta_E_global < params.etol
+                if delta_E_day < params.etol
+                    if params.verbose
                         fprintf('%s\n',getString(message('stats:hmmtrain:ConvergedAfterIterations',iteration)))
                     end
                     converged = true;
@@ -255,6 +289,6 @@ for iteration = 1:maxiter
     end
 end
 if ~converged
-    warning(message('stats:hmmtrain:NoConvergence', num2str( tol ), maxiter));
+    warning(message('stats:hmmtrain:NoConvergence', num2str( params.tolerance ), params.maxiterations));
 end
 logliks(logliks ==0) = [];
