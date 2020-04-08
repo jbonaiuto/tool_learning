@@ -157,16 +157,35 @@ causal_results=CausalTest(X, aic, bhat, LLK,'n_splits',params.n_splits);
 granger_glm_results.causal_results=causal_results;
 
 % Plot the results
+
+label={ 'F1_0_1','F1_0_2','F1_0_3','F1_0_4','F1_0_5','F1_0_6','F1_0_7','F1_0_8','F1_0_9','F1_1_0',...
+        'F1_1_1','F1_1_2','F1_1_3','F1_1_4','F1_1_5','F1_1_6','F1_1_7','F1_1_8','F1_1_9','F1_2_0',...
+        'F1_2_1','F1_2_2','F1_2_3','F1_2_4','F1_2_5','F1_2_6','F1_2_7','F1_2_8','F1_2_9','F1_3_0','F1_3_1','F1_3_2',...
+        'F5h_0_1','F5h_0_2','F5h_0_3','F5h_0_4','F5h_0_5','F5h_0_6','F5h_0_7','F5h_0_8','F5h_0_9','F5h_1_0',...
+        'F5h_1_1','F5h_1_2','F5h_1_3','F5h_1_4','F5h_1_5','F5h_1_6','F5h_1_7','F5h_1_8','F5h_1_9','F5h_2_0',...
+        'F5h_2_1','F5h_2_2','F5h_2_3','F5h_2_4','F5h_2_5','F5h_2_6','F5h_2_7','F5h_2_8','F5h_2_9','F5h_3_0','F5h_3_1','F5h_3_2'};
+
 fig=figure();
 colormap('parula');
 imagesc(causal_results.Phi);
 xlabel('Source');
 ylabel('Target');
 set(gca,'YDir','reverse')
+xticks([1:64])
+xticklabels(label)
+yticks([1:64])
+yticklabels(label)
 colorbar();
 title('Granger causality matrix');
+axisHandle = gca;
+axisHandle.XAxis.TickLabelRotation = -90;
+hold on;
+plot([32.5 32.5], [.5 64.5], 'k:')
+plot([.5 64.5],[32.5 32.5], 'k:')
 saveas(fig, fullfile(params.output_path, 'phi.png'));
 saveas(fig, fullfile(params.output_path, 'phi.eps'),'epsc');
+
+
 
 fig=figure();
 colormap(redblue());
@@ -175,9 +194,20 @@ set(gca,'clim',[-1 1]);
 set(gca,'YDir','reverse')
 xlabel('Source');
 ylabel('Target');
+xticks([1:64])
+xticklabels(label)
+yticks([1:64])
+yticklabels(label)
 title('Causal connectivity matrix');
+axisHandle = gca;
+axisHandle.XAxis.TickLabelRotation = -90;
+hold on;
+plot([32.5 32.5], [.5 64.5], 'k:')
+plot([.5 64.5],[32.5 32.5], 'k:')
 saveas(fig, fullfile(params.output_path, 'psi1.png'));
 saveas(fig, fullfile(params.output_path, 'psi1.eps'),'epsc');
+
+
 
 fig=figure();
 colormap(redblue());
@@ -186,7 +216,16 @@ set(gca,'clim',[-1 1]);
 set(gca,'YDir','reverse')
 xlabel('Source');
 ylabel('Target');
+xticks([1:64])
+xticklabels(label)
+yticks([1:64])
+yticklabels(label)
 title('Causal connectivity matrix (FDR)');
+axisHandle = gca;
+axisHandle.XAxis.TickLabelRotation = -90;
+hold on;
+plot([32.5 32.5], [.5 64.5], 'k:')
+plot([.5 64.5],[32.5 32.5], 'k:')
 saveas(fig, fullfile(params.output_path, 'psi2.png'));
 saveas(fig, fullfile(params.output_path, 'psi2.eps'),'epsc');
 
