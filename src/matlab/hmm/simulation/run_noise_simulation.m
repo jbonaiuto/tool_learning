@@ -61,10 +61,6 @@ for i=1:length(noise_levels)
     poiss_errs(i,:)=compute_errors(params, trial_data, poissonModel, state_seq_vecs);
     multinomial_errs(i,:)=compute_errors(params, trial_data, multinomialModel, state_seq_vecs);
     
-    noise_simulation_results.mean_poiss_err(i)=mean_poiss_err;
-    noise_simulation_results.stderr_poiss_err(i)=stderr_poiss_err;
-    noise_simulation_results.mean_multinomial_err(i)=mean_multinomial_err;
-    noise_simulation_results.stderr_multinomial_err(i)=stderr_multinomial_err;
     noise_simulation_results.trial_data{i}=trial_data;
     noise_simulation_results.state_rates{i}=state_rates;
     noise_simulation_results.state_seq_vecs{i}=state_seq_vecs;
