@@ -14,9 +14,9 @@ params.nPredictedStates = 3;
 % Maximum firing rate
 params.maxFR = 30;
 % Length of state sequence to simulate
-params.stateSeqLength = 10;
+params.stateSeqLength = 3;
 % Time step
-params.dt = .01;
+params.dt = .001;
 % Maximum number of iterations in Baum-Welch
 params.maxIterations = 500;
 % Number of times to run Baum-Welch (to find model with max LL)
@@ -85,6 +85,10 @@ for i=1:length(noise_levels)
 
 end
 
+noise_simulation_results.params=params;
+noise_simulation_results.noise_levels=noise_levels;
+save('noise_simulation_results.mat', 'noise_simulation_results','-v7.3');
+
 % Plot
 f=figure(1);
 colors=get(gca,'ColorOrder');
@@ -95,10 +99,3 @@ shadedErrorBar(noise_levels,mean_multinomial_err,stderr_multinomial_err,...
 xlabel('Noise level');
 ylabel('Mean RMSE');
 legend({'Poisson','Multinomial'});
-
-saveas(f, fullfile('C:\Users\kirchher\project\tool_learning\output\figures\HMM\betta\noise_simulation', 'noise_simulation_15levels_100trials_2.png'));
-saveas(f, fullfile('C:\Users\kirchher\project\tool_learning\output\figures\HMM\betta\noise_simulation', 'noise_simulation_15levels_100trials_2.eps'));
-
-noise_simulation_results.params=params;
-noise_simulation_results.noise_levels=noise_levels;
-save(fullfile('C:\Users\kirchher\project\tool_learning\output\HMM\betta\noise_simulation','noise_simulation_results_15levels_100trials_2.mat'), 'noise_simulation_results');
