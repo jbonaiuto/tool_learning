@@ -29,57 +29,58 @@ def generate_spike_sorting_report(subject, recording_date):
 
             array_data_dir=os.path.join(data_dir, 'array_%d' % array_idx)
 
-            export_path = os.path.join(array_data_dir, 'figures')
-            if not os.path.exists(export_path):
-                os.makedirs(export_path)
+            if os.path.exists(array_data_dir):
+                export_path = os.path.join(array_data_dir, 'figures')
+                if not os.path.exists(export_path):
+                    os.makedirs(export_path)
 
-            for chan_grp in range(cfg['n_channels_per_array']):
-                print(chan_grp)
+                for chan_grp in range(cfg['n_channels_per_array']):
+                    print(chan_grp)
 
-                dataio = DataIO(array_data_dir, ch_grp=chan_grp)
-                dataio.datasource.bit_to_microVolt = 0.195
-                catalogueconstructor = CatalogueConstructor(dataio=dataio, chan_grp=chan_grp)
-                catalogueconstructor.refresh_colors()
-                catalogue = dataio.load_catalogue(chan_grp=chan_grp)
+                    dataio = DataIO(array_data_dir, ch_grp=chan_grp)
+                    dataio.datasource.bit_to_microVolt = 0.195
+                    catalogueconstructor = CatalogueConstructor(dataio=dataio, chan_grp=chan_grp)
+                    catalogueconstructor.refresh_colors()
+                    catalogue = dataio.load_catalogue(chan_grp=chan_grp)
 
-                channel_result={'array': array, 'channel': chan_grp, 'init_waveforms': '', 'clean_waveforms': '',
-                                'noise': '', 'init_clusters': '', 'merge_clusters':[], 'final_clusters':[],
-                                'all_clusters':''}
+                    channel_result={'array': array, 'channel': chan_grp, 'init_waveforms': '', 'clean_waveforms': '',
+                                    'noise': '', 'init_clusters': '', 'merge_clusters':[], 'final_clusters':[],
+                                    'all_clusters':''}
 
-                clusters = catalogue['clusters']
+                    clusters = catalogue['clusters']
 
-                cluster_labels = clusters['cluster_label']
-                cell_labels = clusters['cell_label']
+                    cluster_labels = clusters['cluster_label']
+                    cell_labels = clusters['cell_label']
 
-                channel_result['init_waveforms'] = os.path.join('array_%d' % array_idx, 'figures',
-                                                                'chan_%d_init_waveforms.png' % chan_grp)
-                channel_result['clean_waveforms'] = os.path.join('array_%d' % array_idx, 'figures',
-                                                                 'chan_%d_clean_waveforms.png' % chan_grp)
-                channel_result['noise']=os.path.join('array_%d' % array_idx, 'figures', 'chan_%d_noise.png' % chan_grp)
-                channel_result['init_clusters'] = os.path.join('array_%d' % array_idx, 'figures',
-                                                                'chan_%d_init_clusters.png' % chan_grp)
+                    channel_result['init_waveforms'] = os.path.join('array_%d' % array_idx, 'figures',
+                                                                    'chan_%d_init_waveforms.png' % chan_grp)
+                    channel_result['clean_waveforms'] = os.path.join('array_%d' % array_idx, 'figures',
+                                                                     'chan_%d_clean_waveforms.png' % chan_grp)
+                    channel_result['noise']=os.path.join('array_%d' % array_idx, 'figures', 'chan_%d_noise.png' % chan_grp)
+                    channel_result['init_clusters'] = os.path.join('array_%d' % array_idx, 'figures',
+                                                                    'chan_%d_init_clusters.png' % chan_grp)
 
-                merge_files=glob.glob(os.path.join(export_path,'chan_%d_merge_*.png' % chan_grp))
-                for merge_file in merge_files:
-                    [path,file]=os.path.split(merge_file)
-                    channel_result['merge_clusters'].append(os.path.join('array_%d' % array_idx, 'figures', file))
+                    merge_files=glob.glob(os.path.join(export_path,'chan_%d_merge_*.png' % chan_grp))
+                    for merge_file in merge_files:
+                        [path,file]=os.path.split(merge_file)
+                        channel_result['merge_clusters'].append(os.path.join('array_%d' % array_idx, 'figures', file))
 
-                for cluster_label in cluster_labels:
-                    fig = plot_cluster_summary(dataio, catalogue, chan_grp, cluster_label)
-                    fname = 'chan_%d_cluster_%d.png' % (chan_grp, cluster_label)
+                    for cluster_label in cluster_labels:
+                        fig = plot_cluster_summary(dataio, catalogue, chan_grp, cluster_label)
+                        fname = 'chan_%d_cluster_%d.png' % (chan_grp, cluster_label)
+                        fig.savefig(os.path.join(export_path, fname))
+                        fig.clf()
+                        plt.close()
+                        channel_result['final_clusters'].append(os.path.join('array_%d' % array_idx, 'figures', fname))
+
+                    fig = plot_clusters_summary(dataio, catalogueconstructor, chan_grp)
+                    fname = 'chan_%d_clusters.png' % chan_grp
                     fig.savefig(os.path.join(export_path, fname))
                     fig.clf()
                     plt.close()
-                    channel_result['final_clusters'].append(os.path.join('array_%d' % array_idx, 'figures', fname))
+                    channel_result['all_clusters'] = os.path.join('array_%d' % array_idx, 'figures', fname)
 
-                fig = plot_clusters_summary(dataio, catalogueconstructor, chan_grp)
-                fname = 'chan_%d_clusters.png' % chan_grp
-                fig.savefig(os.path.join(export_path, fname))
-                fig.clf()
-                plt.close()
-                channel_result['all_clusters'] = os.path.join('array_%d' % array_idx, 'figures', fname)
-
-                channel_results.append(channel_result)
+                    channel_results.append(channel_result)
 
         env=Environment(loader=FileSystemLoader(cfg['template_dir']))
         template=env.get_template('spike_sorting_results_template.html')
