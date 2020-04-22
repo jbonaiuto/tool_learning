@@ -1,7 +1,7 @@
 function hmm_results=HMM(exp_info, subject, dates, array, conditions, model_name, varargin)
 
 % Parse optional arguments
-defaults=struct('type','multilevel_multivariate_poisson');
+defaults=struct('type','multilevel_multivariate_poisson','resume',false);
 params=struct(varargin{:});
 for f=fieldnames(defaults)'
     if ~isfield(params, f{1})
@@ -9,36 +9,44 @@ for f=fieldnames(defaults)'
     end
 end
 
-%% Create results structure
-hmm_results=[];
-hmm_results.subject=subject;
-% Dates data were recorded on
-hmm_results.dates=dates;
-% Array data used 
-hmm_results.array=array;
-% Trials used in these models
-hmm_results.trials=[];
-% Index of date in list of dates that each trial comes from
-hmm_results.trial_date=[];
-if strcmp(params.type,'univariate_multinomial')
-    % Cell array - each element will contain a vector - sequence for each trial
-    hmm_results.SEQ={};
-elseif strcmp(params.type,'multivariate_poisson')
-    hmm_results.trial_spikes={};
-elseif strcmp(params.type,'multilevel_multivariate_poisson')
-    hmm_results.day_spikes={};
-end
-% Number of different states to try
-hmm_results.n_state_possibilities=[2:10];
-% Number of training runs per state
-hmm_results.n_iter=10;
-% List of model structs
-hmm_results.models=[];
-
 %% Create output directory if it doesn't exist
 out_dir=fullfile(exp_info.base_output_dir, 'HMM', subject, model_name);
 if exist(out_dir,'dir')~=7
     mkdir(out_dir);
+end
+
+if params.resume
+    load(fullfile(out_dir,'hmm_results.mat'));
+    iter_start_idx=hmm_results.n_iter+1;
+    hmm_results.n_iter=hmm_results.n_iter+10;
+else
+    %% Create results structure
+    hmm_results=[];
+    hmm_results.subject=subject;
+    % Dates data were recorded on
+    hmm_results.dates=dates;
+    % Array data used 
+    hmm_results.array=array;
+    % Trials used in these models
+    hmm_results.trials=[];
+    % Index of date in list of dates that each trial comes from
+    hmm_results.trial_date=[];
+    if strcmp(params.type,'univariate_multinomial')
+        % Cell array - each element will contain a vector - sequence for each trial
+        hmm_results.SEQ={};
+    elseif strcmp(params.type,'multivariate_poisson')
+        hmm_results.trial_spikes={};
+    elseif strcmp(params.type,'multilevel_multivariate_poisson')
+        hmm_results.day_spikes={};
+    end
+    % Number of different states to try
+    hmm_results.n_state_possibilities=[2:10];
+    % Number of training runs per state
+    hmm_results.n_iter=10;
+    % List of model structs
+    hmm_results.models=[];
+    
+    iter_start_idx=1;
 end
 
 %% Load and concatenate spike data
@@ -111,40 +119,48 @@ for n=1:length(hmm_results.n_state_possibilities)
     n_states=hmm_results.n_state_possibilities(n);
     disp(sprintf('Trying %d states',n_states));
     
+    iter_idx=iter_start_idx;
+    
     % Run n times with this number of states
     for t=1:hmm_results.n_iter
         
-        % Initialize transition prob guess
-        TRGUESS=[];
-        for i=1:n_states
-            for j=1:n_states
-                if i==j %the diagonal
-                    % random around .99 because it is the
-                    % transition probability to stay in the same state.                  
-                    TRGUESS(i,j)= .99+.1*randn();
-                else
-                    % random between 0 and .01
-                    TRGUESS(i,j)=rand()*.01;
+        converged=false;
+        
+        while ~converged
+            % Initialize transition prob guess
+            TRGUESS=[];
+            for i=1:n_states
+                for j=1:n_states
+                    if i==j %the diagonal
+                        % random around .99 because it is the
+                        % transition probability to stay in the same state.                  
+                        TRGUESS(i,j)= .99+.1*randn();
+                    else
+                        % random between 0 and .01
+                        TRGUESS(i,j)=rand()*.01;
+                    end
                 end
             end
-        end
-        % Normalize so probabilities add to 1
-        TRGUESS=TRGUESS./repmat(sum(TRGUESS,2),1,n_states);
-        
-        % Initialize emission prob guess
-        GLOBAL_EMITGUESS=500.*rand(n_states,32);
-        DAY_EMITGUESS=(1000*rand(length(dates),n_states,32))-500.0;
-        
-        % Train model
-        if strcmp(params.type,'univariate_multinomial')
-            [ESTTR,ESTEMIT] = hmmtrain(hmm_results.SEQ, TRGUESS,...
-                GLOBAL_EMITGUESS, 'Symbols', [0:32]);
-        elseif strcmp(params.type,'multivariate_poisson')
-            [ESTTR,ESTEMIT] = hmmtrainPoiss(hmm_results.trial_spikes,...
-                TRGUESS, GLOBAL_EMITGUESS, dt, 'verbose', true);
-        elseif strcmp(params.type,'multilevel_multivariate_poisson')
-            [ESTTR,GLOBAL_ESTEMIT,DAY_ESTEMIT] = hmmtrainMultilevelPoiss(hmm_results.day_spikes,...
-                TRGUESS, GLOBAL_EMITGUESS, DAY_EMITGUESS, dt, 'verbose', true);
+            % Normalize so probabilities add to 1
+            TRGUESS=TRGUESS./repmat(sum(TRGUESS,2),1,n_states);
+
+            % Initialize emission prob guess
+            GLOBAL_EMITGUESS=500.*rand(n_states,32);
+            DAY_EMITGUESS=(1000*rand(length(dates),n_states,32))-500.0;
+
+            % Train model
+            if strcmp(params.type,'univariate_multinomial')
+                [ESTTR,ESTEMIT] = hmmtrain(hmm_results.SEQ, TRGUESS,...
+                    GLOBAL_EMITGUESS, 'Symbols', [0:32]);
+                converged=true;
+            elseif strcmp(params.type,'multivariate_poisson')
+                [ESTTR,ESTEMIT,converged] = hmmtrainPoiss(hmm_results.trial_spikes,...
+                    TRGUESS, GLOBAL_EMITGUESS, dt, 'verbose', true);
+            elseif strcmp(params.type,'multilevel_multivariate_poisson')
+                [ESTTR,GLOBAL_ESTEMIT,DAY_ESTEMIT,converged] = hmmtrainMultilevelPoiss(hmm_results.day_spikes,...
+                    TRGUESS, GLOBAL_EMITGUESS, DAY_EMITGUESS, dt, 'verbose', true,...
+                    'annealing',false);
+            end
         end
         
         % Compute log likelihood for each trial
@@ -178,24 +194,26 @@ for n=1:length(hmm_results.n_state_possibilities)
         sum_log_likelihood = sum(all_log_likelihood);
         
         % Save model results in list
-        hmm_results.models(n,t).type=params.type;
-        hmm_results.models(n,t).n_states=n_states;
-        hmm_results.models(n,t).TRGUESS=TRGUESS;
+        hmm_results.models(n,iter_idx).type=params.type;
+        hmm_results.models(n,iter_idx).n_states=n_states;
+        hmm_results.models(n,iter_idx).TRGUESS=TRGUESS;
         if strcmp(params.type,'multilevel_multivariate_poisson')
-            hmm_results.models(n,t).GLOBAL_EMITGUESS=GLOBAL_EMITGUESS;
-            hmm_results.models(n,t).DAY_EMITGUESS=DAY_EMITGUESS;
-            hmm_results.models(n,t).GLOBAL_ESTEMIT=GLOBAL_ESTEMIT;
-            hmm_results.models(n,t).DAY_ESTEMIT=DAY_ESTEMIT;
+            hmm_results.models(n,iter_idx).GLOBAL_EMITGUESS=GLOBAL_EMITGUESS;
+            hmm_results.models(n,iter_idx).DAY_EMITGUESS=DAY_EMITGUESS;
+            hmm_results.models(n,iter_idx).GLOBAL_ESTEMIT=GLOBAL_ESTEMIT;
+            hmm_results.models(n,iter_idx).DAY_ESTEMIT=DAY_ESTEMIT;
         else
-            hmm_results.models(n,t).EMITGUESS=EMITGUESS;
-            hmm_results.models(n,t).ESTEMIT=ESTEMIT;
+            hmm_results.models(n,iter_idx).EMITGUESS=EMITGUESS;
+            hmm_results.models(n,iter_idx).ESTEMIT=ESTEMIT;
         end
-        hmm_results.models(n,t).ESTTR=ESTTR;
-        hmm_results.models(n,t).sum_log_likelihood=sum_log_likelihood;
-        hmm_results.models(n,t).state_labels={};
+        hmm_results.models(n,iter_idx).ESTTR=ESTTR;
+        hmm_results.models(n,iter_idx).sum_log_likelihood=sum_log_likelihood;
+        hmm_results.models(n,iter_idx).state_labels={};
         for i=1:n_states
-            hmm_results.models(n,t).state_labels{i}=num2str(i);
+            hmm_results.models(n,iter_idx).state_labels{i}=num2str(i);
         end
+        
+        iter_idx=iter_idx+1;
     end
     
     % Save intermediate results
