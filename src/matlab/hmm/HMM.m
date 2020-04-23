@@ -122,7 +122,7 @@ for n=1:length(hmm_results.n_state_possibilities)
     iter_idx=iter_start_idx;
     
     % Run n times with this number of states
-    for t=1:hmm_results.n_iter
+    for t=1:10
         
         converged=false;
         
