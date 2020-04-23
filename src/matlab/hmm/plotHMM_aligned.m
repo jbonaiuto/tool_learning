@@ -80,7 +80,7 @@ for r=1:length(align_events)
                 trial_spikes=squeeze(data.binned_spikes(1,:,day_trials(n),bin_idx));
                 
                 PSTATES = hmmdecodePoiss(trial_spikes, model.ESTTR,...
-                    effectiveE, .001);
+                    effectiveE, dt);
                 
                 % Find time of alignment event in this trial
                 event_time = align_event_times(condition_trials(t_idx));
