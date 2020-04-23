@@ -54,8 +54,8 @@ if isfield(data,'binned_baseline_spikes')
     data.binned_baseline_spikes=data.binned_baseline_spikes(:,:,good_trials,:);
 end
 if isfield(data,'firing_rate')
-    data.firing_rate=data.firing_rate(:,:,good_trials);
+    data.firing_rate=data.firing_rate(:,:,good_trials,:);
 end
 if isfield(data,'smoothed_firing_rate')
-    data.smoothed_firing_rate=data.smoothed_firing_rate(:,:,good_trials);
+    data.smoothed_firing_rate=data.smoothed_firing_rate(:,:,good_trials,:);
 end
