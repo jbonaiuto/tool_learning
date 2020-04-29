@@ -1,4 +1,4 @@
-function [guessTR,guessE,logliks] = hmmtrainPoiss(seqs,guessTR,guessE,dt,varargin)
+function [guessTR,guessE,logliks,converged] = hmmtrainPoiss(seqs,guessTR,guessE,dt,varargin)
 %HMMTRAIN maximum likelihood estimator of model parameters for an HMM.
 %   [ESTTR, ESTEMIT] = HMMTRAIN(SEQS,TRGUESS,EMITGUESS) estimates the
 %   transition and emission probabilities for a Hidden Markov Model from
