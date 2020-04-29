@@ -146,23 +146,27 @@ for a_idx=1:length(params.arrays)
 
             spike_file=fullfile(exp_info.base_data_dir, 'preprocessed_data', subject,...
                 dates{d_idx}, 'spikes', sprintf('%s_%d_spikes.csv', array_name, (e_idx-1)));
-            spike_data=readtable(spike_file);
+            if exist(spike_file,'file')==2
+                spike_data=readtable(spike_file);
 
-            good_trial_idx=info.overall_trial(find(strcmp(info.status,'good')));
+                good_trial_idx=info.overall_trial(find(strcmp(info.status,'good')));
 
-            for i=1:length(good_trial_idx)
-                spikes=spike_data.time(spike_data.trial==good_trial_idx(i) & spike_data.electrode==(electrode_idx-1));
-                n_spikes=length(spikes);
-                data.spikedata.date(end+1:end+n_spikes)=d_idx.*ones(1,n_spikes);
-                data.spikedata.trial(end+1:end+n_spikes)=overall_trial_idx.*ones(1,n_spikes);
-                data.spikedata.rel_trial(end+1:end+n_spikes)=i.*ones(1,n_spikes);
-                data.spikedata.time(end+1:end+n_spikes)=spikes.*1000.0;
-                data.spikedata.array(end+1:end+n_spikes)=array_idx.*ones(1,n_spikes);
-                data.spikedata.electrode(end+1:end+n_spikes)=e_idx.*ones(1,n_spikes);
-                overall_trial_idx=overall_trial_idx+1;
+                for i=1:length(good_trial_idx)
+                    spikes=spike_data.time(spike_data.trial==good_trial_idx(i) & spike_data.electrode==(electrode_idx-1));
+                    n_spikes=length(spikes);
+                    data.spikedata.date(end+1:end+n_spikes)=d_idx.*ones(1,n_spikes);
+                    data.spikedata.trial(end+1:end+n_spikes)=overall_trial_idx.*ones(1,n_spikes);
+                    data.spikedata.rel_trial(end+1:end+n_spikes)=i.*ones(1,n_spikes);
+                    data.spikedata.time(end+1:end+n_spikes)=spikes.*1000.0;
+                    data.spikedata.array(end+1:end+n_spikes)=array_idx.*ones(1,n_spikes);
+                    data.spikedata.electrode(end+1:end+n_spikes)=e_idx.*ones(1,n_spikes);
+                    overall_trial_idx=overall_trial_idx+1;
+                end
             end
         end 
-        data.ntrials=overall_trial_idx-1;
+        if data.ntrials==0
+            data.ntrials=overall_trial_idx-1;
+        end
     end    
 end
 
