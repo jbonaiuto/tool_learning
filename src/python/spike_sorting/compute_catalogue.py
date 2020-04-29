@@ -313,8 +313,31 @@ def preprocess_data(subject, recording_date):
         dataio.set_data_source(type='Intan', filenames=data_file_names)
 
         # Setup channel groups
+        grp_idx=0
         for array_idx in range(len(cfg['arrays'])):
-            dataio.add_one_channel_group(channels=range(array_idx * cfg['n_channels_per_array'], (array_idx + 1) * cfg['n_channels_per_array']), chan_grp=array_idx)
+            first_chan = ''
+            if array_idx == 0:
+                first_chan = 'A-000'
+            elif array_idx == 1:
+                first_chan = 'A-032'
+            elif array_idx == 2:
+                first_chan = 'B-000'
+            elif array_idx == 3:
+                first_chan = 'B-032'
+            elif array_idx == 4:
+                first_chan = 'C-000'
+            elif array_idx == 5:
+                first_chan = 'C-032'
+            found = False
+            for i in range(len(dataio.datasource.sig_channels)):
+                if dataio.datasource.sig_channels[i][0] == first_chan:
+                    found = True
+                    break
+            chan_range=[]
+            if found:
+                chan_range=range(grp_idx * cfg['n_channels_per_array'], (grp_idx + 1) * cfg['n_channels_per_array'])
+                grp_idx=grp_idx+1
+            dataio.add_one_channel_group(channels=chan_range, chan_grp=array_idx)
 
         print(dataio)
 
