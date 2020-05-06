@@ -48,7 +48,7 @@ for cond_idx=1:length(conditions)
     
     % File containing correlations for this condition
     corr_file=fullfile(exp_info.base_data_dir,'preprocessed_data',...
-        data.subject,sprintf('corr_each_day_F1-F5hand_%s.mat',condition));
+        data.subject,sprintf('corr_days_F1_F5hand_%s.mat',condition));
     
     % If the correlation file exists
     if exist(corr_file,'file')==2
