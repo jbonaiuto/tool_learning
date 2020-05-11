@@ -96,7 +96,7 @@ for i=1:n
             metric_values(i) = getCosineSimilarity(permutedA(:),origA(:));
         end    
     %Covariance
-    elseif strcmp(metric, 'cosine')
+    elseif strcmp(metric, 'covar')
         if strcmp(variable,'EMIT')
             m=cov(permutedESTEMIT,origESTEMIT);
             metric_values(i)=m(1,2);
