@@ -13,8 +13,10 @@ function data=filter_data(exp_info, data, varargin)
 %             default=200)
 %    max_rt - maximum response time in ms (excluding fixation;
 %             default=1000)
-%    thresh_percentage - percentage of the correlation range to use as the
+%    thresh_percentile - percentile of the correlation range to use as the
 %                        threshold (default=10)
+%    plot_corrs - whether or not to plot the correlation distribution and
+%                 computed threshold (default=false)
 %
 % Outputs:
 %    data - data structure containing filtered data
@@ -22,7 +24,8 @@ function data=filter_data(exp_info, data, varargin)
 % Example:
 %     data=filter_data(data);
 
-defaults = struct('min_rt',200,'max_rt',1000,'thresh_percentage', 10);  %define default values
+defaults = struct('min_rt',200,'max_rt',1000,'thresh_percentile', 10,...
+    'plot_corrs', false);  %define default values
 params = struct(varargin{:});
 for f = fieldnames(defaults)',  
     if ~isfield(params, f{1}),
@@ -56,10 +59,18 @@ for cond_idx=1:length(conditions)
 
         % Figure out the range of correlations for this condition
         all_corrs=horzcat(data_corr{:,2});
-        corr_range=[min(all_corrs) max(all_corrs)];
         
         % Compute the correlation threshold
-        corr_thresh=corr_range(1)+params.thresh_percentage/100.0*(corr_range(2)-corr_range(1));
+        corr_thresh=prctile(all_corrs,params.thresh_percentile);
+        
+        if params.plot_corrs
+            figure();
+            hist(all_corrs,100);
+            hold all;
+            plot([corr_thresh corr_thresh],ylim(),'r--');
+            xlabel('Correlation');
+            ylabel('Number of trials');
+        end
         
         % Go through each date in the data
         for dat_idx=1:length(data.dates)
