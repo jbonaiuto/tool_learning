@@ -107,6 +107,7 @@ new_trials(~isnan(new_trials))=[1:data.ntrials-length(bad_trials)];
 
 % Update number of trials
 data.ntrials=data.ntrials-length(bad_trials);
+data.trial_date=data.trial_date(good_trials);
 
 % Remove bad trials from metadata
 for evt_idx=1:length(data.metadata.event_types)
