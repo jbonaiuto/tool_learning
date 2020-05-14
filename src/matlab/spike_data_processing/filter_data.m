@@ -89,7 +89,10 @@ for cond_idx=1:length(conditions)
             % Add trials with correlation less than threshold to the list
             % of bad trials
             bad_date_trials=find(correlations<corr_thresh);
-            corr_bad_trials(end+1:end+length(bad_date_trials))=setdiff(date_trials(bad_date_trials),bad_trials);
+            if length(bad_date_trials)>0
+                date_trials_to_remove=setdiff(date_trials(bad_date_trials),bad_trials);
+                corr_bad_trials(end+1:end+length(date_trials_to_remove))=date_trials_to_remove;
+            end
         end
     end
 end
