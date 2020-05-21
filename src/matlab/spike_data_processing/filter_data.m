@@ -124,11 +124,11 @@ data.metadata.condition(bad_trials)=[];
 % Remove spike data from bad trials
 if isfield(data,'spikedata')
     spike_rts=rts(data.spikedata.trial);
-    bad_spikes=union(find(spike_rts<200),find(spike_rts>1000));
-    data.spikedata.trial(bad_spikes)=[];
-    data.spikedata.time(bad_spikes)=[];
-    data.spikedata.array(bad_spikes)=[];
-    data.spikedata.electrode(bad_spikes)=[];
+    good_spikes=find(ismember(data.spikedata.trial,good_trials));
+    data.spikedata.time=data.spikedata.time(good_spikes);
+    data.spikedata.array=data.spikedata.array(good_spikes);
+    data.spikedata.electrode=data.spikedata.electrode(good_spikes);
+    data.spikedata.trial=data.spikedata.trial(good_spikes);
     data.spikedata.trial=new_trials(data.spikedata.trial);
 end
 
