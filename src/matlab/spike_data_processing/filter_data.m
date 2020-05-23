@@ -84,14 +84,16 @@ for cond_idx=1:length(conditions)
             
             % Find all correlations for this date
             corr_dat_idx=find(strcmp([data_corr{:,1}],corr_date));
-            correlations=data_corr{corr_dat_idx,2};
+            if length(corr_dat_idx)
+                correlations=data_corr{corr_dat_idx,2};
             
-            % Add trials with correlation less than threshold to the list
-            % of bad trials
-            bad_date_trials=find(correlations<corr_thresh);
-            if length(bad_date_trials)>0
-                date_trials_to_remove=setdiff(date_trials(bad_date_trials),bad_trials);
-                corr_bad_trials(end+1:end+length(date_trials_to_remove))=date_trials_to_remove;
+                % Add trials with correlation less than threshold to the list
+                % of bad trials
+                bad_date_trials=find(correlations<corr_thresh);
+                if length(bad_date_trials)>0
+                    date_trials_to_remove=setdiff(date_trials(bad_date_trials),bad_trials);
+                    corr_bad_trials(end+1:end+length(date_trials_to_remove))=date_trials_to_remove;
+                end
             end
         end
     end
