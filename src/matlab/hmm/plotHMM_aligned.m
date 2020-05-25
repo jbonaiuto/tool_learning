@@ -1,4 +1,4 @@
-function plotHMM_aligned(exp_info, subject, dates, array, conditions, model)
+function aligned_p_states=plotHMM_aligned(exp_info, subject, dates, array, conditions, model)
 
 addpath('../spike_data_processing');
 date_data={};
