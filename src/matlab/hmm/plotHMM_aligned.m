@@ -191,13 +191,17 @@ for r=1:length(align_events)
     end
     handles=[];
     state_labels={};
-    for m=1:model.n_states
-        %plot([win_size(1):win_size(2)],squeeze(mean(aligned_p_states(:,m,r,:))),'LineWidth',2);
-        mean_pstate=squeeze(nanmean(aligned_p_states(:,m,r,:)));
-        stderr_pstate=squeeze(nanstd(aligned_p_states(:,m,r,:)))./sqrt(size(aligned_p_states,1));
-        H=shadedErrorBar([win_size(1):orig_binwidth:win_size(2)],mean_pstate,stderr_pstate,'LineProps',{'Color',colors(str2num(model.state_labels{m}),:)});
-        handles(end+1)=H.mainLine;
-        state_labels{end+1}=model.state_labels{m};
+    state_nums=cellfun(@str2num,model.state_labels);
+    for m=1:max(state_nums)
+        state_idx=find(strcmp(model.state_labels,num2str(m)));
+        if length(state_idx)
+            %plot([win_size(1):win_size(2)],squeeze(mean(aligned_p_states(:,m,r,:))),'LineWidth',2);
+            mean_pstate=squeeze(nanmean(aligned_p_states(:,state_idx,r,:)));
+            stderr_pstate=squeeze(nanstd(aligned_p_states(:,state_idx,r,:)))./sqrt(size(aligned_p_states,1));
+            H=shadedErrorBar([win_size(1):orig_binwidth:win_size(2)],mean_pstate,stderr_pstate,'LineProps',{'Color',colors(str2num(model.state_labels{state_idx}),:)});
+            handles(end+1)=H.mainLine;
+            state_labels{end+1}=model.state_labels{state_idx};
+        end
     end
     
     plot([0 0],ylim(),':k');
