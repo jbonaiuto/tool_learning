@@ -133,6 +133,8 @@ for i=1:n
             metric_values(i)=norm(permutedESTTR-origESTR,1);
         elseif strcmp(variable,'A')
             metric_values(i)=norm(permutedA-origA,1);
+        elseif strcmp(variable,'PSTATES')
+            metric_values(i)=norm(permutedPSTATES-origPSTATES,1);
         end
     %Pearson correlation
     elseif strcmp(metric, 'pearson')
@@ -142,6 +144,8 @@ for i=1:n
             metric_values(i)=corr(permutedESTTR(:),origESTR(:));
         elseif strcmp(variable,'A')
             metric_values(i)=corr(permutedA(:),origA(:));
+        elseif strcmp(variable,'PSTATES')
+            metric_values(i)=corr(permutedPSTATES(:),origPSTATES(:));
         end    
     %Spearman correlation
     elseif strcmp(metric, 'spearman')
@@ -150,7 +154,9 @@ for i=1:n
         elseif strcmp(variable,'TR')
             metric_values(i)=corr(permutedESTTR(:),origESTR(:), 'Type', 'Spearman');    
         elseif strcmp(variable,'A')
-            metric_values(i)=corr(permutedA(:),origA(:), 'Type', 'Spearman');    
+            metric_values(i)=corr(permutedA(:),origA(:), 'Type', 'Spearman');  
+        elseif strcmp(variable,'PSTATES')
+            metric_values(i)=corr(permutedPSTATES(:),origPSTATES(:), 'Type', 'Spearman');  
         end
     %cosinus similarity
     elseif strcmp(metric, 'cosine')
@@ -160,6 +166,8 @@ for i=1:n
             metric_values(i) = getCosineSimilarity(permutedESTTR(:),origESTR(:));
         elseif strcmp(variable,'A')
             metric_values(i) = getCosineSimilarity(permutedA(:),origA(:));
+        elseif strcmp(variable,'PSTATES')
+            metric_values(i) = getCosineSimilarity(permutedPSTATES(:),origPSTATES(:));
         end    
     %Covariance
     elseif strcmp(metric, 'covar')
@@ -172,6 +180,9 @@ for i=1:n
         elseif strcmp(variable,'A')
             m=cov(permutedA,origA);
             metric_values(i)=m(1,2);
+        elseif strcmp(variable,'PSTATES')
+            m=cov(permutedPSTATES,origPSTATES);
+            metric_values(i)=m(1,2);
         end
     %jaccard index
     elseif strcmp(metric, 'jaccard')
@@ -181,6 +192,8 @@ for i=1:n
             metric_values(i) = 1 - sum(permutedESTTR & origESTR)/sum(permutedESTTR | origESTR);
         elseif strcmp(variable,'A')
             metric_values(i) = 1 - sum(permutedA & origA)/sum(permutedA | origA);
+        elseif strcmp(variable,'PSTATES')
+            metric_values(i) = 1 - sum(permutedPSTATES & origPSTATES)/sum(permutedPSTATES | origPSTATES);
         end
     end
 end
