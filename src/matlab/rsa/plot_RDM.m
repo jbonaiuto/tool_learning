@@ -10,11 +10,16 @@ end
 if length(lims)==0
     lims=[-max(abs(RDM(RDM(:)<1))) max(abs(RDM(RDM(:)<1)))];
 end
-imagesc([1:length(conditions)],[1:length(conditions)],RDM,'Parent',ax,lims);
+[nr,nc]=size(RDM);
+%imagesc([1:length(conditions)],[1:length(conditions)],RDM,'Parent',ax,lims);
+pcolor(ax,[1:length(conditions)+1],[1:length(conditions)+1],[RDM nan(nr,1); nan(1,nc+1)]);
+caxis(lims);
+set(gca,'ydir','reverse');
+shading flat;
 colormap hot;
 axis square;
-set(ax,'ytick',[1:length(conditions)],'yticklabel',conditions);
-set(gca,'xtick',[1:length(conditions)],'xticklabel',conditions,'XTickLabelRotation',45);
+set(ax,'ytick',[1:length(conditions)]+.5,'yticklabel',conditions);
+set(gca,'xtick',[1:length(conditions)]+.5,'xticklabel',conditions,'XTickLabelRotation',45);
 title(plt_title);
 freezeColors;
 if params.colorbar
