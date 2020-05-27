@@ -20,5 +20,5 @@ dimsize = size(x,dim);
 dimrep = ones(1,length(dims));
 dimrep(dim) = dimsize;
 
-x = x - repmat(mean(x,dim),dimrep);
-x = x./repmat(std(x,0,dim),dimrep);
+x = x - repmat(nanmean(x,dim),dimrep);
+x = x./repmat(nanstd(x,0,dim),dimrep);
