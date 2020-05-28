@@ -97,6 +97,9 @@ elseif strcmp(params.baseline_type,'global')
     data.firing_rate=(data.firing_rate-baseline_rep)./baseline_rep;    
 end
 
+% Replace nan with 0
+data.firing_rate(isnan(data.firing_rate(:)))=0;
+
 % Smooth each trial firing rate using Gaussian filter
 data.win_len=params.win_len;
 data.smoothed_firing_rate=zeros(size(data.firing_rate));
