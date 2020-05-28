@@ -6,6 +6,8 @@ function data=filter_data(exp_info, data, varargin)
 % Syntax: data=filter_data(exp_info, data, varargin);
 %
 % Inputs:
+%    exp_info - experimental info data structure (created with
+%               init_exp_info.m)
 %    data - structure containing data (created by load_multiunit_data)
 %
 % Optional inputs:
