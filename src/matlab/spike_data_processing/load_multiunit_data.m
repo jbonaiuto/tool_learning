@@ -162,7 +162,9 @@ for a_idx=1:length(params.arrays)
                     data.spikedata.array(end+1:end+n_spikes)=array_idx.*ones(1,n_spikes);
                     data.spikedata.electrode(end+1:end+n_spikes)=e_idx.*ones(1,n_spikes);
                     overall_trial_idx=overall_trial_idx+1;
-                end
+                end               
+            else
+                overall_trial_idx=overall_trial_idx+length(good_trial_idx);
             end
             if a_idx==1 && e_idx==1
                 data.trial_date(end+1:end+length(good_trial_idx))=d_idx;

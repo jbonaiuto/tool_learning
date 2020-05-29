@@ -6,6 +6,8 @@ function data=filter_data(exp_info, data, varargin)
 % Syntax: data=filter_data(exp_info, data, varargin);
 %
 % Inputs:
+%    exp_info - experimental info data structure (created with
+%               init_exp_info.m)
 %    data - structure containing data (created by load_multiunit_data)
 %
 % Optional inputs:
@@ -84,14 +86,16 @@ for cond_idx=1:length(conditions)
             
             % Find all correlations for this date
             corr_dat_idx=find(strcmp([data_corr{:,1}],corr_date));
-            correlations=data_corr{corr_dat_idx,2};
+            if length(corr_dat_idx)
+                correlations=data_corr{corr_dat_idx,2};
             
-            % Add trials with correlation less than threshold to the list
-            % of bad trials
-            bad_date_trials=find(correlations<corr_thresh);
-            if length(bad_date_trials)>0
-                date_trials_to_remove=setdiff(date_trials(bad_date_trials),bad_trials);
-                corr_bad_trials(end+1:end+length(date_trials_to_remove))=date_trials_to_remove;
+                % Add trials with correlation less than threshold to the list
+                % of bad trials
+                bad_date_trials=find(correlations<corr_thresh);
+                if length(bad_date_trials)>0
+                    date_trials_to_remove=setdiff(date_trials(bad_date_trials),bad_trials);
+                    corr_bad_trials(end+1:end+length(date_trials_to_remove))=date_trials_to_remove;
+                end
             end
         end
     end
@@ -124,11 +128,11 @@ data.metadata.condition(bad_trials)=[];
 % Remove spike data from bad trials
 if isfield(data,'spikedata')
     spike_rts=rts(data.spikedata.trial);
-    bad_spikes=union(find(spike_rts<200),find(spike_rts>1000));
-    data.spikedata.trial(bad_spikes)=[];
-    data.spikedata.time(bad_spikes)=[];
-    data.spikedata.array(bad_spikes)=[];
-    data.spikedata.electrode(bad_spikes)=[];
+    good_spikes=find(ismember(data.spikedata.trial,good_trials));
+    data.spikedata.time=data.spikedata.time(good_spikes);
+    data.spikedata.array=data.spikedata.array(good_spikes);
+    data.spikedata.electrode=data.spikedata.electrode(good_spikes);
+    data.spikedata.trial=data.spikedata.trial(good_spikes);
     data.spikedata.trial=new_trials(data.spikedata.trial);
 end
 
