@@ -107,5 +107,11 @@ for day_idx = 1:size(rec_days_concat,2)
     data_corr{day_idx,1} = wta.Date(day_idx);
 end
 
+figure();
+hist([data_corr{:,2}],100);
+xlabel('Correlation');
+ylabel('Num Trials');
+title(condname);
+
 % Saves data in directory
 save(fullfile(exp_info.base_data_dir, 'preprocessed_data', subject, sprintf('corr_days_%s_%s.mat',strjoin(arraynames,'_'), condname)), 'data_corr');
