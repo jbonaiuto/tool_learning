@@ -201,7 +201,7 @@ for array_idx=1:length(exp_info.array_names)
     data=filter_data(exp_info,data,'plot_corrs',true);
     disp(sprintf('filtering took %.2fs', toc));
 
-    align_evts={'go','hand_mvmt_onset','obj_contact','place,'tool_mvmt_onset'};
+    align_evts={'go','hand_mvmt_onset','obj_contact','place','tool_mvmt_onset'};
     align_wois=[-250 250;-250 250;-250 250;-250 250];
 
     for ae_idx=1:length(align_evts)
