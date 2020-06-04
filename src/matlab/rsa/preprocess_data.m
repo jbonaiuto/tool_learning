@@ -74,7 +74,7 @@ for array_idx=1:length(exp_info.array_names)
     disp(sprintf('filtering took %.2fs', toc));
  
     align_evts={'go','hand_mvmt_onset','obj_contact','place','tool_mvmt_onset'};
-    align_wois=[-250 250;-250 250;-250 250;-250 250];
+    align_wois=[-250 250;-250 250;-250 250;-250 250;-250 250];
  
     for ae_idx=1:length(align_evts)
         align_event=align_evts{ae_idx};
@@ -106,7 +106,7 @@ for array_idx=1:length(exp_info.array_names)
     disp(sprintf('filtering took %.2fs', toc));
 
     align_evts={'go','hand_mvmt_onset','obj_contact','place','tool_mvmt_onset'};
-    align_wois=[-250 250;-250 250;-250 250;-250 250];
+    align_wois=[-250 250;-250 250;-250 250;-250 250;-250 250];
 
     for ae_idx=1:length(align_evts)
         align_event=align_evts{ae_idx};
@@ -138,7 +138,7 @@ for array_idx=1:length(exp_info.array_names)
     disp(sprintf('filtering took %.2fs', toc));
 
     align_evts={'go','hand_mvmt_onset','obj_contact','place','tool_mvmt_onset'};
-    align_wois=[-250 250;-250 250;-250 250;-250 250];
+    align_wois=[-250 250;-250 250;-250 250;-250 250;-250 250];
 
     for ae_idx=1:length(align_evts)
         align_event=align_evts{ae_idx};
@@ -170,7 +170,7 @@ for array_idx=1:length(exp_info.array_names)
     disp(sprintf('filtering took %.2fs', toc));
 
     align_evts={'go','hand_mvmt_onset','obj_contact','place','tool_mvmt_onset'};
-    align_wois=[-250 250;-250 250;-250 250;-250 250];
+    align_wois=[-250 250;-250 250;-250 250;-250 250;-250 250];
 
     for ae_idx=1:length(align_evts)
         align_event=align_evts{ae_idx};
@@ -202,7 +202,7 @@ for array_idx=1:length(exp_info.array_names)
     disp(sprintf('filtering took %.2fs', toc));
 
     align_evts={'go','hand_mvmt_onset','obj_contact','place','tool_mvmt_onset'};
-    align_wois=[-250 250;-250 250;-250 250;-250 250];
+    align_wois=[-250 250;-250 250;-250 250;-250 250;-250 250];
 
     for ae_idx=1:length(align_evts)
         align_event=align_evts{ae_idx};
