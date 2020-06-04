@@ -17,7 +17,7 @@ function func_connectivity_within_array(data_dir, dates, array, electrodes, cond
 
 % Parse optional arguments
 defaults=struct('n_splits', 20, 'output_fname', 'granger_glm_results.mat',...
-    'output_path', '../../../../output/functional_connectivity','trial_selection',10);
+    'output_path', '../../../../output/functional_connectivity');
 params=struct(varargin{:});
 for f=fieldnames(defaults)'
     if ~isfield(params, f{1})
@@ -40,7 +40,7 @@ for array_idx=1:length(array)
         date=dates{date_idx};
         load(fullfile(data_dir, date, 'multiunit','binned',sprintf('fr_b_%s_%s_%s.mat', array{array_idx}, date,event)));
          data=concatenate_data({data});
-        data=filter_data(exp_info, data,'thresh_percentile',trial_selection );
+        data=filter_data(exp_info, data,'thresh_percentile' );
         
         date_data{date_idx}=data;
     end
