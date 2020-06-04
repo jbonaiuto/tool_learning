@@ -1,12 +1,14 @@
-%% Working script
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%% Fixation task
+%% Working script
 %
 % analysis of functional connectivity of spykes train
 % INPUT:     preprocess data (set path in laoding data)
 % OUTPUT:    Plot and table (set path in saving data)
 %
 % Thomas Quettier 
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 clc
 clear all
@@ -14,54 +16,55 @@ close all
 
 %% Parameters
 
-array = {'F1'}; % ,'F5hand'
-electrodes = 1:2;
+array = {'F1','F5hand'}; 
+electrodes = 1:32;
 event = 'whole_trial';
 condition= {'fixation'};
-weeks=[4:14 16:24 26];
 
 
-%% loading data 
-
-data_dir = '/Users/thomasquettier/Desktop/multiunit_binned_data/betta'; % data folder path
+%% loading data
+%
+% %loading data SERVEUR
+% data_dir = '/home/bonaiuto/tool_learning/preprocessed_data/betta/'; % data folder path
+% addpath('/home/tquettier/Desktop/spm12/'); 
+% parentdir = '/home/tquettier/output/functional_connectivity/';% output folder
+% 
+% %loading data ICS
+% data_dir = 'C:\Users\quettier\Documents\GitHub\tool_learning\preprocessed_data\betta'; % data folder path
+% addpath('C:\Users\quettier\Documents\GitHub\tool_learning\src\matlab\spm12'); 
+% parentdir = 'C:\Users\quettier\Documents\GitHub\tool_learning\output\functional_connectivity';
+%
+% %loading data mac
+data_dir = '/Users/thomasquettier/Documents/GitHub/tool_learning/preprocessed_data/betta'; % data folder path
 addpath('/Users/thomasquettier/Documents/GitHub/tool_learning/src/matlab/spm12'); 
-parentdir = '/Users/thomasquettier/Desktop/multiunit_binned_data/output/functional_connectivity';
+parentdir = '/Users/thomasquettier/Documents/GitHub/tool_learning/output/functional_connectivity';
+
+%% exp_info.base_data_dir 
+%
+% %CHANGE row 23 !!!!!!!!!!!
+%
+% %serveur
+% exp_info.base_data_dir='/home/bonaiuto/tool_learning/'; %trial selection cor file pathway
+%
+% %ISC
+% exp_info.base_data_dir='C:\Users\quettier\Documents\GitHub\tool_learning\';
+%
+% %mac
+% exp_info.base_data_dir='/Users/thomasquettier/Documents/GitHub/tool_learning';
 
 
- %% week selection
- 
+%% effective weeks 
 
-table = zeros(length(weeks),5);
-for week_number = 1:length(weeks)  
-date = week(weeks(week_number));   
-X=select_week_trials(data_dir, date, array, electrodes, condition,event);
-[CHN SMP TRL] = size(X);
-size_trial = zeros(1,TRL);
-for itrial = 1:TRL
-size_trial(itrial) = length(find(~isnan(X(1,:,itrial))));
-end
-table(weeks(week_number), 1) = weeks(week_number);
-table(weeks(week_number), 5) = TRL;
-if TRL == 0
-else   
-table(weeks(week_number), 2) = round(min(size_trial));
-table(weeks(week_number), 3) = round(max(size_trial));
-table(weeks(week_number), 4) = round(mean(size_trial));
-end
-end
+weeks = weekIncondition(condition);
 
-foldername = fullfile(parentdir,sprintf('trial_table_%s_%s.csv', condition{1},event));
-csvwrite(foldername,table)
-
-table=table(table(:,3)>0,:);
-weeks=[table(:,1)];
 
 %% function
+
 for week_number = 1:length(weeks) 
-dates = week(weeks(week_number)); 
+dates = dateInweek(parentdir,weeks(week_number));
 
 
-foldername = sprintf('Week_%d_%s_%s', week_number,condition{1},event); 
+foldername = sprintf('Week_%d_%s_%s', weeks(week_number),condition{1},event); 
   
 newfolder = fullfile(parentdir, foldername);
     if ~exist(newfolder, 'dir')
