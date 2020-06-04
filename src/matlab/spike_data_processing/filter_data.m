@@ -72,6 +72,7 @@ for cond_idx=1:length(conditions)
             plot([corr_thresh corr_thresh],ylim(),'r--');
             xlabel('Correlation');
             ylabel('Number of trials');
+            title(condition);
         end
         
         % Go through each date in the data
