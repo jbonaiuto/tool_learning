@@ -63,7 +63,7 @@ data=concatenate_data(date_data, 'spike_times', false);
 clear('date_data');
 
 % Filter data - RTs too fast or slow
-data=filter_data(exp_info,data);
+data=filter_data(exp_info,data,'plot_corrs',true);
 % Compute dt
 dt=(data.bins(2)-data.bins(1))/1000;
    
@@ -159,7 +159,7 @@ for n=1:length(hmm_results.n_state_possibilities)
             elseif strcmp(params.type,'multilevel_multivariate_poisson')
                 [ESTTR,GLOBAL_ESTEMIT,DAY_ESTEMIT,converged] = hmmtrainMultilevelPoiss(hmm_results.day_spikes,...
                     TRGUESS, GLOBAL_EMITGUESS, DAY_EMITGUESS, dt, 'verbose', true,...
-                    'annealing',true);
+                    'annealing',false);
             end
         end
         
