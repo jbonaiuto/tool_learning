@@ -6,6 +6,8 @@ function data=filter_data(exp_info, data, varargin)
 % Syntax: data=filter_data(exp_info, data, varargin);
 %
 % Inputs:
+%    exp_info - experimental info data structure (created with
+%               init_exp_info.m)
 %    data - structure containing data (created by load_multiunit_data)
 %
 % Optional inputs:
@@ -70,6 +72,7 @@ for cond_idx=1:length(conditions)
             plot([corr_thresh corr_thresh],ylim(),'r--');
             xlabel('Correlation');
             ylabel('Number of trials');
+            title(condition);
         end
         
         % Go through each date in the data
