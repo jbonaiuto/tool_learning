@@ -31,7 +31,7 @@ for n=1:size(hmm_results.models,1)
         n_emissions=size(hmm_results.models(n,1).EMITGUESS,2);
         num_params=n_states*(n_states-1)+n_states*(n_emissions-1)+(n_states-1);
     else
-        n_emissions=size(hmm_results.models(n,1).GLOBAL_EMITGUESS,2);
+        n_emissions=size(hmm_results.models(n,1).DAY_EMITGUESS,3);
         n_days=size(hmm_results.models(n,1).DAY_EMITGUESS,1);
         num_params=n_states*(n_states-1)+n_states*(n_emissions-1)+n_days*n_states*(n_emissions-1)+(n_states-1);
     end

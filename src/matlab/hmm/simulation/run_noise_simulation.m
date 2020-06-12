@@ -14,9 +14,9 @@ params.nPredictedStates = 3;
 % Maximum firing rate
 params.maxFR = 30;
 % Length of state sequence to simulate
-params.stateSeqLength = 10;
+params.stateSeqLength = 3;
 % Time step
-params.dt = .01;
+params.dt = .001;
 % Maximum number of iterations in Baum-Welch
 params.maxIterations = 500;
 % Number of times to run Baum-Welch (to find model with max LL)
@@ -33,12 +33,6 @@ multinomial_errs=[];
 
 % list to save the results
 noise_simulation_results=[];
-% save model results in a list
-noise_simulation_results.mean_poiss_err={};
-noise_simulation_results.stderr_poiss_err={};
-noise_simulation_results.mean_multinomial_err={};
-noise_simulation_results.stderr_multinomial_err={};
-
 noise_simulation_results.trial_data={};
 noise_simulation_results.state_rates={};
 noise_simulation_results.state_seq_vecs={};
@@ -67,16 +61,6 @@ for i=1:length(noise_levels)
     poiss_errs(i,:)=compute_errors(params, trial_data, poissonModel, state_seq_vecs);
     multinomial_errs(i,:)=compute_errors(params, trial_data, multinomialModel, state_seq_vecs);
     
-    % Get mean and std error of errors
-    mean_poiss_err=mean(poiss_errs,2);
-    stderr_poiss_err=std(poiss_errs,[],2)./sqrt(size(poiss_errs,2));
-    mean_multinomial_err=mean(multinomial_errs,2);
-    stderr_multinomial_err=std(multinomial_errs,[],2)./sqrt(size(multinomial_errs,2));
-    
-    noise_simulation_results.mean_poiss_err{i}=mean_poiss_err;
-    noise_simulation_results.stderr_poiss_err{i}=stderr_poiss_err;
-    noise_simulation_results.mean_multinomial_err{i}=mean_multinomial_err;
-    noise_simulation_results.stderr_multinomial_err{i}=stderr_multinomial_err;
     noise_simulation_results.trial_data{i}=trial_data;
     noise_simulation_results.state_rates{i}=state_rates;
     noise_simulation_results.state_seq_vecs{i}=state_seq_vecs;
@@ -85,20 +69,27 @@ for i=1:length(noise_levels)
 
 end
 
+noise_simulation_results.params=params;
+noise_simulation_results.noise_levels=noise_levels;
+% save model results in a list
+noise_simulation_results.mean_poiss_err=mean(poiss_errs,2);
+noise_simulation_results.stderr_poiss_err=std(poiss_errs,[],2)./sqrt(size(poiss_errs,2));
+noise_simulation_results.mean_multinomial_err=mean(multinomial_errs,2);
+noise_simulation_results.stderr_multinomial_err=std(multinomial_errs,[],2)./sqrt(size(multinomial_errs,2));
+
+save('noise_simulation_results.mat', 'noise_simulation_results','-v7.3');
+
 % Plot
 f=figure(1);
 colors=get(gca,'ColorOrder');
 hold all;
-shadedErrorBar(noise_levels,mean_poiss_err,stderr_poiss_err,'LineProps',{'Color',colors(1,:)});
-shadedErrorBar(noise_levels,mean_multinomial_err,stderr_multinomial_err,...
+shadedErrorBar(noise_simulation_results.noise_levels,...
+    noise_simulation_results.mean_poiss_err,...
+    noise_simulation_results.stderr_poiss_err,'LineProps',{'Color',colors(1,:)});
+shadedErrorBar(noise_simulation_results.noise_levels,...
+    noise_simulation_results.mean_multinomial_err,...
+    noise_simulation_results.stderr_multinomial_err,...
     'LineProps',{'Color',colors(2,:)});
 xlabel('Noise level');
 ylabel('Mean RMSE');
 legend({'Poisson','Multinomial'});
-
-saveas(f, fullfile('C:\Users\kirchher\project\tool_learning\output\figures\HMM\betta\noise_simulation', 'noise_simulation_15levels_100trials_2.png'));
-saveas(f, fullfile('C:\Users\kirchher\project\tool_learning\output\figures\HMM\betta\noise_simulation', 'noise_simulation_15levels_100trials_2.eps'));
-
-noise_simulation_results.params=params;
-noise_simulation_results.noise_levels=noise_levels;
-save(fullfile('C:\Users\kirchher\project\tool_learning\output\HMM\betta\noise_simulation','noise_simulation_results_15levels_100trials_2.mat'), 'noise_simulation_results');

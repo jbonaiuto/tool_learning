@@ -38,6 +38,7 @@ if exist(fullfile(data_dir,date,'spikes'),'dir')==7
                     'baseline_evt', 'go','baseline_woi', [-500 0]);
                 % Compute firing rate
                 data=compute_firing_rate(data_binned, 'baseline_type', 'condition','win_len', 60);
+                data.trial_date=ones(1,data.ntrials);
                 save(out_file,'data','-v7.3');
             end
         end
@@ -50,6 +51,7 @@ if exist(fullfile(data_dir,date,'spikes'),'dir')==7
                 'baseline_evt', 'go','baseline_woi', [-500 0]);
             % Compute firing rate
             data=compute_firing_rate(data_binned, 'baseline_type', 'condition','win_len', 60);
+            data.trial_date=ones(1,data.ntrials);
             save(out_file,'data','-v7.3');
         end
     end

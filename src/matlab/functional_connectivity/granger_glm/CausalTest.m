@@ -1,5 +1,5 @@
 % Dimension of X (# Channels x # Samples x # Trials)
-function causal_results=CausalTest(X, aic, bhat, LLK)
+function causal_results=CausalTest(X, aic, bhat, LLK, varargin)
 defaults=struct('n_splits', 10);
 params=struct(varargin{:});
 for f=fieldnames(defaults)'

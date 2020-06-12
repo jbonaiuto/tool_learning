@@ -44,7 +44,7 @@ for i=1:params.numRuns
     % Poisson HMM
     [ESTTR,ESTEMIT] = hmmtrainPoiss(trial_data,TRGUESS,...
         EMITGUESS(:,1:params.nNeurons),params.dt,'verbose',true,...
-        'maxiterations',params.maxIterations);
+        'maxiterations',params.maxIterations,'annealing',false);
     poisson_models(i).ESTTR=ESTTR;
     poisson_models(i).ESTEMIT=ESTEMIT;
     % Decode trials

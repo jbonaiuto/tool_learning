@@ -1,4 +1,4 @@
-function plotHMM_aligned(exp_info, subject, dates, array, conditions, model)
+function aligned_p_states=plotHMM_aligned(exp_info, subject, dates, array, conditions, model)
 
 addpath('../spike_data_processing');
 date_data={};
@@ -11,13 +11,14 @@ for i=1:length(dates)
 end
 
 data=concatenate_data(date_data, 'spike_times', false);
-data=filter_data(data);
-% Compute dt
-dt=(data.bins(2)-data.bins(1))/1000;
-
+data=filter_data(exp_info, data);
+orig_binwidth=1;
 new_binwidth=10;
 data2=rebin_spikes(data,new_binwidth);
 data2=compute_firing_rate(data2, 'baseline_type', 'none', 'win_len', 6);
+
+% Compute dt
+dt=(data.bins(2)-data.bins(1))/1000;
 
 condition_trials=zeros(1,length(data.metadata.condition));
 for i=1:length(conditions)
@@ -34,8 +35,8 @@ align_events={'go','hand_mvmt_onset','obj_contact','place'};
 win_size=[-150 150];
 
 aligned_p_states=zeros(length(condition_trials), model.n_states,...
-    length(align_events), win_size(2)-win_size(1)+1);
-aligned_firing_rates=zeros(length(condition_trials), length(data.electrodes),...
+    length(align_events), length([win_size(1):orig_binwidth:win_size(2)]));
+aligned_firing_rates=zeros(length(condition_trials), length(data2.electrodes),...
     length(align_events), length([win_size(1):new_binwidth:win_size(2)]));
 
 % For each alignment event
@@ -80,7 +81,7 @@ for r=1:length(align_events)
                 trial_spikes=squeeze(data.binned_spikes(1,:,day_trials(n),bin_idx));
                 
                 PSTATES = hmmdecodePoiss(trial_spikes, model.ESTTR,...
-                    effectiveE, .001);
+                    effectiveE, dt);
                 
                 % Find time of alignment event in this trial
                 event_time = align_event_times(condition_trials(t_idx));
@@ -190,13 +191,17 @@ for r=1:length(align_events)
     end
     handles=[];
     state_labels={};
-    for m=1:model.n_states
-        %plot([win_size(1):win_size(2)],squeeze(mean(aligned_p_states(:,m,r,:))),'LineWidth',2);
-        mean_pstate=squeeze(nanmean(aligned_p_states(:,m,r,:)));
-        stderr_pstate=squeeze(nanstd(aligned_p_states(:,m,r,:)))./sqrt(size(aligned_p_states,1));
-        H=shadedErrorBar([win_size(1):win_size(2)],mean_pstate,stderr_pstate,'LineProps',{'Color',colors(str2num(model.state_labels{m}),:)});
-        handles(end+1)=H.mainLine;
-        state_labels{end+1}=model.state_labels{m};
+    state_nums=cellfun(@str2num,model.state_labels);
+    for m=1:max(state_nums)
+        state_idx=find(strcmp(model.state_labels,num2str(m)));
+        if length(state_idx)
+            %plot([win_size(1):win_size(2)],squeeze(mean(aligned_p_states(:,m,r,:))),'LineWidth',2);
+            mean_pstate=squeeze(nanmean(aligned_p_states(:,state_idx,r,:)));
+            stderr_pstate=squeeze(nanstd(aligned_p_states(:,state_idx,r,:)))./sqrt(size(aligned_p_states,1));
+            H=shadedErrorBar([win_size(1):orig_binwidth:win_size(2)],mean_pstate,stderr_pstate,'LineProps',{'Color',colors(str2num(model.state_labels{state_idx}),:)});
+            handles(end+1)=H.mainLine;
+            state_labels{end+1}=model.state_labels{state_idx};
+        end
     end
     
     plot([0 0],ylim(),':k');
