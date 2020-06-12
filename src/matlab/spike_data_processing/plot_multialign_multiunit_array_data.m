@@ -80,7 +80,7 @@ for r=1:length(align_events)
     hold all;
     title(strrep(align_events{r},'_',' '));
     if r==1
-        ylabel({'Motor grasp: right, F1';' ';'Firing rate'},'FontSize',20,'FontWeight','bold');
+        ylabel({sprintf('%s, %s', strjoin(conditions,', '), array);' ';'Firing rate'},'FontSize',20,'FontWeight','bold');
     end
     handles=[];
     electrode_labels={};
