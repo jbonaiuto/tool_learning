@@ -18,4 +18,3 @@ hold all;
 shadedErrorBar(num_neurons_simulation_results.n_neurons, analyze_num_neurons_simulation_results.mean_multi_spikes, analyze_num_neurons_simulation_results.stderr_multi_spikes,'LineProps',{'Color',colors(1,:)});
 xlabel('Number of neurons');
 ylabel('mean multi-spike');
-
