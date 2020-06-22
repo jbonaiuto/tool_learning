@@ -57,7 +57,7 @@ if n_states2<n_states1
     model2.DAY_ESTEMIT(:,n_states2+1:n_states1, :)=zeros(n_days,n_states1-n_states2, n_neurons);
     
     % Add extra state labels (blank)
-    for i=1:1<n_states1-n_states2
+    for i=1:n_states1-n_states2
         model2.state_labels{end+1}='';
     end
     
