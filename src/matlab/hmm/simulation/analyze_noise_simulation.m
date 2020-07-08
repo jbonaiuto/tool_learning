@@ -74,4 +74,3 @@ shadedErrorBar(noise_simulation_results.noise_levels,...
     'LineProps',{'Color',colors(1,:)});
 xlabel('Noise level');
 ylabel('mean multi-spike');
-

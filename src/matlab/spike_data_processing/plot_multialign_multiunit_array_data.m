@@ -10,7 +10,7 @@ for i=1:length(dates)
 end
 
 data=concatenate_data(date_data, 'spike_times', false);
-data=filter_data(data);
+data=filter_data(exp_info, data);
 % Compute dt
 dt=(data.bins(2)-data.bins(1))/1000;
 
@@ -80,7 +80,7 @@ for r=1:length(align_events)
     hold all;
     title(strrep(align_events{r},'_',' '));
     if r==1
-        ylabel({'Motor grasp: right, F1';' ';'Firing rate'},'FontSize',20,'FontWeight','bold');
+        ylabel({sprintf('%s, %s', strjoin(conditions,', '), array);' ';'Firing rate'},'FontSize',20,'FontWeight','bold');
     end
     handles=[];
     electrode_labels={};
