@@ -6,6 +6,8 @@ function data=filter_data(exp_info, data, varargin)
 % Syntax: data=filter_data(exp_info, data, varargin);
 %
 % Inputs:
+%    exp_info - experimental info data structure (created with
+%               init_exp_info.m)
 %    data - structure containing data (created by load_multiunit_data)
 %
 % Optional inputs:
@@ -13,8 +15,10 @@ function data=filter_data(exp_info, data, varargin)
 %             default=200)
 %    max_rt - maximum response time in ms (excluding fixation;
 %             default=1000)
-%    thresh_percentage - percentage of the correlation range to use as the
+%    thresh_percentile - percentile of the correlation range to use as the
 %                        threshold (default=10)
+%    plot_corrs - whether or not to plot the correlation distribution and
+%                 computed threshold (default=false)
 %
 % Outputs:
 %    data - data structure containing filtered data
@@ -22,7 +26,8 @@ function data=filter_data(exp_info, data, varargin)
 % Example:
 %     data=filter_data(data);
 
-defaults = struct('min_rt',200,'max_rt',1000,'thresh_percentage', 10);  %define default values
+defaults = struct('min_rt',200,'max_rt',1000,'thresh_percentile', 10,...
+    'plot_corrs', false);  %define default values
 params = struct(varargin{:});
 for f = fieldnames(defaults)',  
     if ~isfield(params, f{1}),
@@ -48,7 +53,7 @@ for cond_idx=1:length(conditions)
     
     % File containing correlations for this condition
     corr_file=fullfile(exp_info.base_data_dir,'preprocessed_data',...
-        data.subject,sprintf('corr_each_day_F1-F5hand_%s.mat',condition));
+        data.subject,sprintf('corr_days_F1_F5hand_%s.mat',condition));
     
     % If the correlation file exists
     if exist(corr_file,'file')==2
@@ -56,10 +61,19 @@ for cond_idx=1:length(conditions)
 
         % Figure out the range of correlations for this condition
         all_corrs=horzcat(data_corr{:,2});
-        corr_range=[min(all_corrs) max(all_corrs)];
         
         % Compute the correlation threshold
-        corr_thresh=corr_range(1)+params.thresh_percentage/100.0*(corr_range(2)-corr_range(1));
+        corr_thresh=prctile(all_corrs,params.thresh_percentile);
+        
+        if params.plot_corrs
+            figure();
+            hist(all_corrs,100);
+            hold all;
+            plot([corr_thresh corr_thresh],ylim(),'r--');
+            xlabel('Correlation');
+            ylabel('Number of trials');
+            title(condition);
+        end
         
         % Go through each date in the data
         for dat_idx=1:length(data.dates)
@@ -73,12 +87,17 @@ for cond_idx=1:length(conditions)
             
             % Find all correlations for this date
             corr_dat_idx=find(strcmp([data_corr{:,1}],corr_date));
-            correlations=data_corr{corr_dat_idx,2};
+            if length(corr_dat_idx)
+                correlations=data_corr{corr_dat_idx,2};
             
-            % Add trials with correlation less than threshold to the list
-            % of bad trials
-            bad_date_trials=find(correlations<corr_thresh);
-            corr_bad_trials(end+1:end+length(bad_date_trials))=setdiff(date_trials(bad_date_trials),bad_trials);
+                % Add trials with correlation less than threshold to the list
+                % of bad trials
+                bad_date_trials=find(correlations<corr_thresh);
+                if length(bad_date_trials)>0
+                    date_trials_to_remove=setdiff(date_trials(bad_date_trials),bad_trials);
+                    corr_bad_trials(end+1:end+length(date_trials_to_remove))=date_trials_to_remove;
+                end
+            end
         end
     end
 end
@@ -96,6 +115,7 @@ new_trials(~isnan(new_trials))=[1:data.ntrials-length(bad_trials)];
 
 % Update number of trials
 data.ntrials=data.ntrials-length(bad_trials);
+data.trial_date=data.trial_date(good_trials);
 
 % Remove bad trials from metadata
 for evt_idx=1:length(data.metadata.event_types)
@@ -109,11 +129,11 @@ data.metadata.condition(bad_trials)=[];
 % Remove spike data from bad trials
 if isfield(data,'spikedata')
     spike_rts=rts(data.spikedata.trial);
-    bad_spikes=union(find(spike_rts<200),find(spike_rts>1000));
-    data.spikedata.trial(bad_spikes)=[];
-    data.spikedata.time(bad_spikes)=[];
-    data.spikedata.array(bad_spikes)=[];
-    data.spikedata.electrode(bad_spikes)=[];
+    good_spikes=find(ismember(data.spikedata.trial,good_trials));
+    data.spikedata.time=data.spikedata.time(good_spikes);
+    data.spikedata.array=data.spikedata.array(good_spikes);
+    data.spikedata.electrode=data.spikedata.electrode(good_spikes);
+    data.spikedata.trial=data.spikedata.trial(good_spikes);
     data.spikedata.trial=new_trials(data.spikedata.trial);
 end
 

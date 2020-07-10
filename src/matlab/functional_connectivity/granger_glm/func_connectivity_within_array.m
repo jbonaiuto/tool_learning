@@ -26,7 +26,9 @@ for f=fieldnames(defaults)'
 end
 
 addpath('../../spike_data_processing');
+ addpath('../../../matlab');
 
+exp_info= init_exp_info();
 
 
 M={};
@@ -39,6 +41,9 @@ for array_idx=1:length(array)
     for date_idx=1:length(dates)
         date=dates{date_idx};
         load(fullfile(data_dir, date, 'multiunit','binned',sprintf('fr_b_%s_%s_%s.mat', array{array_idx}, date,event)));
+         data=concatenate_data({data});
+        data=filter_data(exp_info, data,'thresh_percentile',10 );
+        
         date_data{date_idx}=data;
     end
     data=concatenate_data(date_data, 'spike_times',false);
