@@ -76,7 +76,39 @@ func_connectivity_within_array(data_dir, dates, array, electrodes, condition,eve
 
 end
 
-%file plot
-%plot_table(weeks,'visual_grasp_fix_on', 'input_path',parentdir, 'output_path',parentdir);
 
+%plots
+dir = '/Users/thomasquettier/Documents/GitHub/tool_learning/output/functional_connectivity/';
+fcc_dataset('output_path',dir)
+fcc_permutated_mean('fixation','output_path',dir)
+fcc_permutated_mean('visual_pliers_left','output_path',dir)
+
+% full condition
+fcc_full_conditions({'F1','F5hand'},{'F1','F5hand'},'fixation','output_path',dir)
+fcc_full_conditions({'F1','F5hand'},{'F1'},'fixation','output_path',dir)
+fcc_full_conditions({'F1','F5hand'},{'F5hand'},'fixation','output_path',dir)
+fcc_full_conditions({'F1'},{'F1','F5hand'},'fixation','output_path',dir)
+fcc_full_conditions({'F1'},{'F1'},'fixation','output_path',dir)
+fcc_full_conditions({'F1'},{'F5hand'},'fixation','output_path',dir)
+fcc_full_conditions({'F5hand'},{'F1','F5hand'},'fixation','output_path',dir)
+fcc_full_conditions({'F5hand'},{'F1'},'fixation','output_path',dir)
+fcc_full_conditions({'F5hand'},{'F5hand'},'fixation','output_path',dir)
+
+% full source/target 
+fcc_full_electrodes('fixation','fixation','output_path',dir)
+fcc_full_electrodes( 'visual_grasp_left','fixation','output_path',dir)
+fcc_full_electrodes('visual_pliers_left','fixation','output_path',dir)
+fcc_full_electrodes('visual_rake_push_left','fixation','output_path',dir)
+fcc_full_electrodes( 'visual_stick_left','fixation','output_path',dir)
+fcc_full_electrodes('motor_grasp_left','fixation','output_path',dir)
+fcc_full_electrodes('motor_rake_left','fixation','output_path',dir)
+
+% ref condition itself
+fcc_full_electrodes( 'visual_grasp_left','visual_grasp_left','output_path',dir)
+fcc_full_electrodes('visual_pliers_left','visual_pliers_left','output_path',dir)
+fcc_full_electrodes('visual_rake_push_left','visual_rake_push_left','output_path',dir)
+fcc_full_electrodes( 'visual_stick_left','visual_stick_left','output_path',dir)
+fcc_full_electrodes('motor_grasp_left','motor_grasp_left','output_path',dir)
+fcc_full_electrodes('motor_rake_left','motor_rake_left','output_path',dir)
+  
 %% END
