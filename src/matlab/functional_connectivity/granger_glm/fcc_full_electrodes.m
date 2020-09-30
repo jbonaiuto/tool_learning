@@ -9,7 +9,7 @@
 % 09/2020
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function fcc_full_electrodes(condition,ref,varargin)
+function fcc_full_electrodes(condition,ref,stage,varargin)
 
 % Parse optional arguments
 defaults=struct( 'output_fname', 'granger_glm_results.mat',...
@@ -25,6 +25,7 @@ condition = {condition};
 reftit = strrep(ref,'_left','');
 
 % data
+fcc_permutated_mean(ref,stage,'output_path',datadir);
 load(fullfile(datadir,'fcc_dataset.mat'));
 load(fullfile(datadir,sprintf('fcc_%s_permutated_mean.mat',reftit)));
 

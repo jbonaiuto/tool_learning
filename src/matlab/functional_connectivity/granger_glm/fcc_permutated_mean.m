@@ -8,7 +8,7 @@
 % 28/09/2020
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function fcc_permutated_mean(ref,varargin)
+function fcc_permutated_mean(ref,stage,varargin)
 
 % Parse optional arguments
 defaults=struct( 'output_fname', 'shuffled_mean.mat',...
@@ -49,17 +49,35 @@ target = [1,64;
     1,32
     33,64];
 
+% Stage
+st1 = [];
+st2 = [];
+st3 = [];
+if any(strcmp(stage,'1'))
+st1 = 1:7;
+end
+if any(strcmp(stage,'2'))
+st2 = 8:32;
+end
+if any(strcmp(stage,'3'))
+st3 = 33:57;
+end
+stage = [st1 st2 st3];
+
+
 % permuted matrix comparison
 for c = 1:9
 
     week = weekIncondition(condition);
-    perm = nchoosek(week,2);
+    week= stage(ismember(stage,week));
     
 C= [];
 
 tg= [target(c,1):target(c,2)];
 sc= [source(c,1):source(c,2)];
 
+
+  perm = nchoosek(week,2); 
 for i = 1:length(perm(:,1))
   A = X.(sprintf('%s',ref)).(sprintf('W%d', perm(i,1)));
   

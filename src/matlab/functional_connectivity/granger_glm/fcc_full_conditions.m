@@ -10,7 +10,7 @@
 % 09/2020
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function fcc_full_conditions(source,target,ref,varargin)
+function fcc_full_conditions(source,target,ref,stage,varargin)
 
 % Parse optional arguments
 defaults=struct( 'output_fname', 'granger_glm_results.mat',...
@@ -30,6 +30,7 @@ conditionref={'fixation' 'visual_grasp_left' 'visual_pliers_left'  'visual_rake_
 };
 
 % 'data
+fcc_permutated_mean(ref,stage,'output_path',datadir);
 load(fullfile(datadir,'fcc_dataset.mat'));
 load(fullfile(datadir,sprintf('fcc_%s_permutated_mean.mat',reftit)));
 
