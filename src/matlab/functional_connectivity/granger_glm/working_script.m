@@ -80,35 +80,42 @@ end
 %plots
 dir = '/Users/thomasquettier/Documents/GitHub/tool_learning/output/functional_connectivity/';
 fcc_dataset('output_path',dir)
-fcc_permutated_mean('fixation','output_path',dir)
-fcc_permutated_mean('visual_pliers_left','output_path',dir)
+
+fcc_barplot_stage({'fixation' ,'visual_grasp_left' ,'visual_pliers_left',  'visual_rake_push_left',...
+'visual_stick_left', 'motor_grasp_left' ,'motor_rake_left'},{'1'},'output_path',dir)
+fcc_barplot_stage({'fixation' ,'visual_grasp_left' ,'visual_pliers_left',  'visual_rake_push_left',...
+'visual_stick_left', 'motor_grasp_left' ,'motor_rake_left'},{'2'},'output_path',dir)
+fcc_barplot_stage({'fixation' ,'visual_grasp_left' ,'visual_pliers_left',  'visual_rake_push_left',...
+'visual_stick_left', 'motor_grasp_left' ,'motor_rake_left'},{'3'},'output_path',dir)
+
+fcc_barplot_condition({'fixation'},2,'output_path',dir)
 
 % full condition
-fcc_full_conditions({'F1','F5hand'},{'F1','F5hand'},'fixation','output_path',dir)
-fcc_full_conditions({'F1','F5hand'},{'F1'},'fixation','output_path',dir)
-fcc_full_conditions({'F1','F5hand'},{'F5hand'},'fixation','output_path',dir)
-fcc_full_conditions({'F1'},{'F1','F5hand'},'fixation','output_path',dir)
-fcc_full_conditions({'F1'},{'F1'},'fixation','output_path',dir)
-fcc_full_conditions({'F1'},{'F5hand'},'fixation','output_path',dir)
-fcc_full_conditions({'F5hand'},{'F1','F5hand'},'fixation','output_path',dir)
-fcc_full_conditions({'F5hand'},{'F1'},'fixation','output_path',dir)
-fcc_full_conditions({'F5hand'},{'F5hand'},'fixation','output_path',dir)
+fcc_full_conditions({'F1','F5hand'},{'F1','F5hand'},'fixation',{'1','2','3'},'output_path',dir)
+fcc_full_conditions({'F1','F5hand'},{'F1'},'fixation',{'1','2','3'},'output_path',dir)
+fcc_full_conditions({'F1','F5hand'},{'F5hand'},'fixation',{'1','2','3'},'output_path',dir)
+fcc_full_conditions({'F1'},{'F1','F5hand'},'fixation',{'1','2','3'},'output_path',dir)
+fcc_full_conditions({'F1'},{'F1'},'fixation',{'1','2','3'},'output_path',dir)
+fcc_full_conditions({'F1'},{'F5hand'},'fixation',{'1','2','3'},'output_path',dir)
+fcc_full_conditions({'F5hand'},{'F1','F5hand'},'fixation',{'1','2','3'},'output_path',dir)
+fcc_full_conditions({'F5hand'},{'F1'},'fixation',{'1','2','3'},'output_path',dir)
+fcc_full_conditions({'F5hand'},{'F5hand'},'fixation',{'1','2','3'},'output_path',dir)
 
 % full source/target 
-fcc_full_electrodes('fixation','fixation','output_path',dir)
-fcc_full_electrodes( 'visual_grasp_left','fixation','output_path',dir)
-fcc_full_electrodes('visual_pliers_left','fixation','output_path',dir)
-fcc_full_electrodes('visual_rake_push_left','fixation','output_path',dir)
-fcc_full_electrodes( 'visual_stick_left','fixation','output_path',dir)
-fcc_full_electrodes('motor_grasp_left','fixation','output_path',dir)
-fcc_full_electrodes('motor_rake_left','fixation','output_path',dir)
+fcc_full_electrodes('fixation','fixation',{'1','2','3'},'output_path',dir)
+fcc_full_electrodes( 'visual_grasp_left','fixation',{'1','2','3'},'output_path',dir)
+fcc_full_electrodes('visual_pliers_left','fixation',{'1','2','3'},'output_path',dir)
+fcc_full_electrodes('visual_rake_push_left','fixation',{'1','2','3'},'output_path',dir)
+fcc_full_electrodes( 'visual_stick_left','fixation',{'1','2','3'},'output_path',dir)
+fcc_full_electrodes('motor_grasp_left','fixation',{'1','2','3'},'output_path',dir)
+fcc_full_electrodes('motor_rake_left','fixation',{'1','2','3'},'output_path',dir)
 
 % ref condition itself
-fcc_full_electrodes( 'visual_grasp_left','visual_grasp_left','output_path',dir)
-fcc_full_electrodes('visual_pliers_left','visual_pliers_left','output_path',dir)
-fcc_full_electrodes('visual_rake_push_left','visual_rake_push_left','output_path',dir)
-fcc_full_electrodes( 'visual_stick_left','visual_stick_left','output_path',dir)
-fcc_full_electrodes('motor_grasp_left','motor_grasp_left','output_path',dir)
-fcc_full_electrodes('motor_rake_left','motor_rake_left','output_path',dir)
+fcc_full_electrodes( 'visual_grasp_left','visual_grasp_left',{'1','2','3'},'output_path',dir)
+fcc_full_electrodes('visual_pliers_left','visual_pliers_left',{'1','2','3'},'output_path',dir)
+fcc_full_electrodes('visual_rake_push_left','visual_rake_push_left',{'1','2','3'},'output_path',dir)
+fcc_full_electrodes( 'visual_stick_left','visual_stick_left',{'1','2','3'},'output_path',dir)
+fcc_full_electrodes('motor_grasp_left','motor_grasp_left',{'1','2','3'},'output_path',dir)
+fcc_full_electrodes('motor_rake_left','motor_rake_left',{'1','2','3'},'output_path',dir)
   
 %% END
