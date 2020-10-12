@@ -61,15 +61,27 @@ tgt = tgt(~isnan(tgt));
 %% matrix differences-------------------------
 
 % function for contuting the confident interval
-CIFcn = @(x,p)std(x(:),'omitnan')/sqrt(sum(~isnan(x(:)))) * tinv(abs([0,1]-(1-p/100)/2),sum(~isnan(x(:)))-1) + mean(x(:),'omitnan'); 
+%CIFcn = @(x,p)std(x(:),'omitnan')/sqrt(sum(~isnan(x(:)))) * tinv(abs([0,1]-(1-p/100)/2),sum(~isnan(x(:)))-1) + mean(x(:),'omitnan'); 
+CIFcn = @(x,p)prctile(x,abs([0,100]-(100-p)/2));
+
 
 week = weekIncondition(condition);
 refweek = weekIncondition(ref);
-Shuffled_val = NaN(57,params.nb_simulation);
+Shuffled_val = NaN(57,params.nb_simulation*params.nb_simulation);
+Shuffled_ref = NaN(57,params.nb_simulation*params.nb_simulation);
 table_val = NaN(57,3); % col: 'real-frobenuis', 'low_CI', 'high_CI'
 
 for i = 1:57
+  count = 1;
   A = X.(sprintf('%s',ref{1})).(sprintf('W%d', refweek(1))); % ref: matrix A
+
+  for k = 1:params.nb_simulation+1 % shuffled A matrix generation loop
+            Shuffled_A = A(tgt,scr);
+            [rw cl] = size(Shuffled_A);
+            Shuffled_A =reshape(Shuffled_A(randperm(rw*cl)),rw,cl);% shuffled A matrix generation 
+      
+          
+  
   if week(find(week==i))==i
   B = X.(sprintf('%s',condition{1})).(sprintf('W%d', week(find(week==i)))); % matrix B
       if isnan(B) 
@@ -79,19 +91,32 @@ for i = 1:57
             Shuffled_B = B(tgt,scr);
             [rw cl] = size(Shuffled_B);
             Shuffled_B =reshape(Shuffled_B(randperm(rw*cl)),rw,cl);% shuffled B matrix generation 
-            Shuffled_val(i,j) = norm(A(tgt,scr)-Shuffled_B,'fro'); % frobenius norm difference for shuffled matrix
+        if k==1
+            Shuffled_val(i,count) = norm(A(tgt,scr)-Shuffled_B,'fro'); % frobenius norm difference for shuffled matrix
+        else
+            Shuffled_val(i,count) = norm(Shuffled_A-Shuffled_B,'fro'); % frobenius norm difference for shuffled matrix
         end
-          x = Shuffled_val(i,1:params.nb_simulation); % CI computation by week
-            p=params.CI_p; % alfa
-            CI = CIFcn(x,p); % CI computation (see function 
-            table_val(i,2:3)= CI;
+        count = count+1; 
+        end
+          
+            
   end
   else 
   end
-       
+      
 
+ end
 end
 
+for i = 1:57
+      x = Shuffled_val(i,1:length(Shuffled_val(1,:))); % CI computation by week
+          if isnan(x(1)) 
+          else
+            p=params.CI_p; % alfa
+            CI = CIFcn(x,p); % CI computation (see function 
+            table_val(i,2:3)= CI;
+          end
+end
 
 reftit = strrep(ref,'_left','');
 reftit = strrep(ref{1},'_',' ');
