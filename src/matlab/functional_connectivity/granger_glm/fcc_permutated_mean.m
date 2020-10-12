@@ -65,7 +65,7 @@ end
 stage = [st1 st2 st3];
 
 
-% permuted matrix comparison
+% permutated matrix comparison
 for c = 1:9
 
     week = weekIncondition(condition);

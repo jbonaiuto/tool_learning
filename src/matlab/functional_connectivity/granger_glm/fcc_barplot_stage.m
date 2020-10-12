@@ -78,9 +78,9 @@ stage = 'stage 2:3';
 end
 
 
-d=p(1,:)-p;
+%d=p(1,:)-p;
 %d(1,:)=p(1,:);
-p=d;
+%p=d;
 %% plot
 
 

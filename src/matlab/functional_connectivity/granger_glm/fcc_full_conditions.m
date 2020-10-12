@@ -166,4 +166,3 @@ X=X.comparison.(sprintf('%s_W%d',reftit, refweek));
 saveas(fig, fullfile(params.output_path, sprintf('fcc_source_%s_target_%s_ref_fixation.png',source,target)));
 savefig(fig, fullfile(params.output_path,sprintf( 'fcc_source_%s_target_%s_ref_fixation.fig',source,target)));
 save(fullfile(params.output_path,sprintf( 'fcc_source_%s_target_%s_ref_%s.mat',source,target,reftit)),'X');
-

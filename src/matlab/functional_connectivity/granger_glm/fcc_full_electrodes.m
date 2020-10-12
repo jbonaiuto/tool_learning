@@ -82,7 +82,8 @@ for i = 1:57
             C = [C NaN];
       else
         
-  val = 1-mean(abs(A(tg,sc)-B(tg,sc)),'all');
+  val = norm(A(tg,sc)-B(tg,sc),'fro');
+  %1-mean(abs(A(tg,sc)-B(tg,sc)),'all'); x = reshape(randperm([B]))
   C = [C val];
   end
   else 

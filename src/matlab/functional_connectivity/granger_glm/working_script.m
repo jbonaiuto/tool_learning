@@ -79,16 +79,11 @@ end
 
 %plots
 dir = '/Users/thomasquettier/Documents/GitHub/tool_learning/output/functional_connectivity/';
-fcc_dataset('output_path',dir)
 
 fcc_barplot_stage({'fixation' ,'visual_grasp_left' ,'visual_pliers_left',  'visual_rake_push_left',...
-'visual_stick_left', 'motor_grasp_left' ,'motor_rake_left'},{'1'},'output_path',dir)
-fcc_barplot_stage({'fixation' ,'visual_grasp_left' ,'visual_pliers_left',  'visual_rake_push_left',...
-'visual_stick_left', 'motor_grasp_left' ,'motor_rake_left'},{'2'},'output_path',dir)
-fcc_barplot_stage({'fixation' ,'visual_grasp_left' ,'visual_pliers_left',  'visual_rake_push_left',...
-'visual_stick_left', 'motor_grasp_left' ,'motor_rake_left'},{'3'},'output_path',dir)
+'visual_stick_left', 'motor_grasp_left' ,'motor_rake_left'},{'1','2','3'},'output_path',dir)
 
-fcc_barplot_condition({'fixation'},2,'output_path',dir)
+suffled_frobenius({'fixation'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
 
 % full condition
 fcc_full_conditions({'F1','F5hand'},{'F1','F5hand'},'fixation',{'1','2','3'},'output_path',dir)
