@@ -130,7 +130,7 @@ plot([7.5 7.5],[0 30], 'k:')   %stage2
 plot([32.5 32.5],[0 30], 'k:') %stage3
 plot([0 57],[0 0], 'k:') % all weeks
 hold off;
-legend({sprintf('%d simulations high CI %d %',params.nb_simulation,params.CI_p),sprintf('%d simulations low CI %d %',params.nb_simulation,params.CI_p),sprintf('%s source %s, target %s', cond ,source, target)},'Location','northeast')
+legend({sprintf('CI %d upper bound (%d simulations)',params.CI_p,params.nb_simulation),sprintf('CI %d lower bound (%d simulations) ',params.CI_p,params.nb_simulation),sprintf('%s source %s, target %s', cond ,source, target)},'Location','northeast')
 
 % save data
 X=X.comparison.(sprintf('%s_W%d',reftit, refweek(1)));
