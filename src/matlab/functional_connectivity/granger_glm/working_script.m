@@ -81,7 +81,23 @@ end
 dir = '/Users/thomasquettier/Documents/GitHub/tool_learning/output/functional_connectivity/';
 
 suffled_frobenius({'fixation'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
+suffled_frobenius({'visual_grasp_left'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
+suffled_frobenius({'visual_pliers_left'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
+suffled_frobenius({'visual_rake_pull_left'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
+suffled_frobenius({'visual_rake_push_left'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
+suffled_frobenius({'visual_stick_left'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
+suffled_frobenius({'motor_grasp_left'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
+suffled_frobenius({'motor_rake_left'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
+suffled_frobenius({'motor_rake_center_catch'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
+suffled_frobenius({'motor_rake_food_left'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
 
+condition={'visual_rake_pull_left'};
+ref={'fixation'};
+source={'F1'};
+target={'F5hand'};
+params.output_path= dir;
+params.CI_p= 95
+params.nb_simulation = 100;
 
   
 %% END
