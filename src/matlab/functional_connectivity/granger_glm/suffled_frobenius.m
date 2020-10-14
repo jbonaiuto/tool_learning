@@ -21,7 +21,7 @@ function suffled_frobenius(condition,ref,source,target,varargin)
 % Parse optional arguments
 defaults=struct( 'output_fname', 'granger_glm_results.mat',...
     'output_path', '../../../../output/functional_connectivity',...
-    'nb_simulation',100,...
+    'nb_simulation',1000,...
     'CI_p', 95);
 params=struct(varargin{:});
 for f=fieldnames(defaults)'
@@ -67,38 +67,33 @@ CIFcn = @(x,p)prctile(x,abs([0,100]-(100-p)/2));
 
 week = weekIncondition(condition);
 refweek = weekIncondition(ref);
-Shuffled_val = NaN(57,params.nb_simulation*params.nb_simulation);
-Shuffled_ref = NaN(57,params.nb_simulation*params.nb_simulation);
+Shuffled_val = NaN(57,params.nb_simulation);
 table_val = NaN(57,3); % col: 'real-frobenuis', 'low_CI', 'high_CI'
 
 for i = 1:57
-  count = 1;
   A = X.(sprintf('%s',ref{1})).(sprintf('W%d', refweek(1))); % ref: matrix A
 
-  for k = 1:params.nb_simulation+1 % shuffled A matrix generation loop
-            Shuffled_A = A(tgt,scr);
-            [rw cl] = size(Shuffled_A);
-            Shuffled_A =reshape(Shuffled_A(randperm(rw*cl)),rw,cl);% shuffled A matrix generation 
-      
-          
-  
   if week(find(week==i))==i
   B = X.(sprintf('%s',condition{1})).(sprintf('W%d', week(find(week==i)))); % matrix B
       if isnan(B) 
       else
   table_val(i,1) = norm(A(tgt,scr)-B(tgt,scr),'fro'); % frobenius norm difference
         for j = 1:params.nb_simulation % shuffled B matrix generation loop
+            Shuffled_A = A(tgt,scr);
+            [rw cl] = size(Shuffled_A);
+            Shuffled_A =reshape(Shuffled_A(randperm(rw*cl)),rw,cl);% shuffled A matrix generation 
             Shuffled_B = B(tgt,scr);
-            [rw cl] = size(Shuffled_B);
             Shuffled_B =reshape(Shuffled_B(randperm(rw*cl)),rw,cl);% shuffled B matrix generation 
-        if k==1
-            Shuffled_val(i,count) = norm(A(tgt,scr)-Shuffled_B,'fro'); % frobenius norm difference for shuffled matrix
-        else
-            Shuffled_val(i,count) = norm(Shuffled_A-Shuffled_B,'fro'); % frobenius norm difference for shuffled matrix
+
+           % Shuffled_val(i,j) = norm(A(tgt,scr)-Shuffled_B,'fro'); % frobenius norm difference for shuffled matrix
+      
+            Shuffled_val(i,j) = norm(Shuffled_A-Shuffled_B,'fro'); % frobenius norm difference for shuffled matrix
+
         end
-        count = count+1; 
-        end
-          
+                x = Shuffled_val(i,1:params.nb_simulation); % CI computation by week
+            p=params.CI_p; % alfa
+            CI = CIFcn(x,p); % CI computation (see function 
+            table_val(i,2:3)= CI;
             
   end
   else 
@@ -106,17 +101,8 @@ for i = 1:57
       
 
  end
-end
 
-for i = 1:57
-      x = Shuffled_val(i,1:length(Shuffled_val(1,:))); % CI computation by week
-          if isnan(x(1)) 
-          else
-            p=params.CI_p; % alfa
-            CI = CIFcn(x,p); % CI computation (see function 
-            table_val(i,2:3)= CI;
-          end
-end
+
 
 reftit = strrep(ref,'_left','');
 reftit = strrep(ref{1},'_',' ');
@@ -140,22 +126,28 @@ source = [source{:}];
 target = [target{:}];
 cond = strrep(strrep(condition{1},'_',' '),'left','');
 
+scalemax = max(table_val(:,3))+1;
+scalemmin = min(table_val(:,2))-1;
+
 % figure
 fig=figure();
-xlabel('weeks');
-ylabel(sprintf('matrix difference (ref:X.%s.W%d)',reftit, refweek(1)))
+set(gcf,'position',[200,200,1400,500]);
+extraInputs = {'interpreter','latex','fontsize',16};
+xlabel('weeks',extraInputs{:});
+ylabel(sprintf('matrix difference (ref:X.%s.W%d)',reftit, refweek(1)),extraInputs{:})
 xticks([1:57])
 xticklabels(string(label));
-title(sprintf('frobenius norm comparison %s source %s, target %s', cond ,source, target));
+title(sprintf('Frobenius Norm comparison %s source %s, target %s', cond ,source, target),extraInputs{:});
 hold on;
-plot(X.comparison.(sprintf('%s_W%d',reftit, refweek(1))).(sprintf('%s',condtit))(:,3) ,'r:v')
-plot(X.comparison.(sprintf('%s_W%d',reftit, refweek(1))).(sprintf('%s',condtit))(:,2) ,'r:^')
-plot(X.comparison.(sprintf('%s_W%d',reftit, refweek(1))).(sprintf('%s',condtit))(:,1) ,'k-+')
-plot([7.5 7.5],[0 30], 'k:')   %stage2
-plot([32.5 32.5],[0 30], 'k:') %stage3
-plot([0 57],[0 0], 'k:') % all weeks
+%plot(Shuffled_val ,'r-+')
+plot(table_val(:,3) ,'r:v')
+plot(table_val(:,2) ,'R:^')
+plot(table_val(:,1) ,'k-*')
+plot([7.5 7.5],[scalemmin scalemax], 'k:')   %stage2
+plot([32.5 32.5],[scalemmin scalemax], 'k:') %stage3
+plot(57,scalemmin, 'w:') % all weeks
 hold off;
-legend({sprintf('CI %d upper bound (%d simulations)',params.CI_p,params.nb_simulation),sprintf('CI %d lower bound (%d simulations) ',params.CI_p,params.nb_simulation),sprintf('%s source %s, target %s', cond ,source, target)},'Location','northeast')
+legend({sprintf('CI %d upper bound (%d simulations)',params.CI_p,params.nb_simulation),sprintf('CI %d lower bound (%d simulations) ',params.CI_p,params.nb_simulation),sprintf('%s source %s, target %s', cond ,source, target)},'Location','northeast',extraInputs{:})
 
 % save data
 X=X.comparison.(sprintf('%s_W%d',reftit, refweek(1)));
