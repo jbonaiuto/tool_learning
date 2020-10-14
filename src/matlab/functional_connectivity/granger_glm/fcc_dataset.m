@@ -21,9 +21,9 @@ end
 datadir = params.output_path;
 
 % datadir = '/Users/thomasquettier/Documents/GitHub/tool_learning/output/functional_connectivity/';
-conditionref={'fixation' 'visual_grasp_left' 'visual_pliers_left'  'visual_rake_push_left'...
+conditionref={'fixation' 'visual_grasp_left' 'visual_pliers_left'  'visual_rake_push_left','visual_rake_pull_left',...
 'visual_stick_left' 'motor_grasp_left' 'motor_rake_left' 'motor_rake_center_catch' 'motor_rake_food_left'};
-%'visual_rake_pull_left'
+
 
 for c = 1:length(conditionref)
     condition = conditionref(c);
