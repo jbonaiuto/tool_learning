@@ -1,11 +1,18 @@
 function aligned_p_states=plotHMM_aligned(data, dates, conditions, forward_probs_file)
 
-% Compute dt
-orig_binwidth=(data.bins(2)-data.bins(1));
+dbstop if error
 
-new_binwidth=10;
-data2=rebin_spikes(data,new_binwidth/orig_binwidth);
-data2=compute_firing_rate(data2, 'baseline_type', 'none', 'win_len', 6);
+% Compute dt
+ orig_binwidth=(data.bins(2)-data.bins(1));
+ new_binwidth=10; 
+ if orig_binwidth ~= new_binwidth
+    data2=rebin_spikes(data,new_binwidth/orig_binwidth);
+    data2=compute_firing_rate(data2, 'baseline_type', 'none', 'win_len', 6);
+ else
+     data2 = data
+     data2=compute_firing_rate(data2, 'baseline_type', 'none', 'win_len', 6);
+ end
+
 
 condition_trials=zeros(1,length(data.metadata.condition));
 for i=1:length(conditions)

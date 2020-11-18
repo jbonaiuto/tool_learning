@@ -20,9 +20,9 @@ end
 
 oldbinwidth=data.bins(2)-data.bins(1);
 
-if mod(newbinwidth,oldbinwidth)~=0
-    error('New bin width must be a multiple of old bin width - if not, rebin from scratch!');
-end
+% if mod(newbinwidth,oldbinwidth)~=0
+%     error('New bin width must be a multiple of old bin width - if not, rebin from scratch!');
+% end
 
 bin_factor=round(newbinwidth/oldbinwidth);
 

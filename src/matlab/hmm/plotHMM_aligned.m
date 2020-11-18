@@ -9,7 +9,7 @@ for i=1:length(dates)
     date_data{i}=data;
     clear('data');
 end
-
+addpath('../spike_data_processing');
 data=concatenate_data(date_data, 'spike_times', false);
 data=filter_data(exp_info, data);
 orig_binwidth=1;
