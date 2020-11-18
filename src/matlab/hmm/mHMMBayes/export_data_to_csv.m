@@ -57,7 +57,7 @@ end
   
 fid=fopen('hmm_data.csv','w');
 %header='date,trial,electrode,timestep,value';
-header='date,condition,trial,electrode,timestep,value';
+header='date,trial,condition,electrode,timestep,value';
 fprintf(fid,'%s\n',header);
 
 %loop without conditions
@@ -74,21 +74,36 @@ fprintf(fid,'%s\n',header);
 %     end
 % end
 
-%loop with conditions
 for i=1:length(dates)
-    for m=1:length(conditions)
-        day_condition=trial_condition(trial_date==i);
-        day_condition_idx=strcmp(day_condition,conditions{m});
-        day_condition_spikes=trial_spikes(day_condition_idx);
-        for j=1:length(day_condition_spikes)
-            trial=day_condition_spikes{j};
-            for k=1:size(trial,1)
-                for l=1:size(trial,2)
-                    line=sprintf('%d,%d,%d,%d,%d,%d',i,m,j,k,l,trial(k,l));
-                    fprintf(fid,'%s\n',line);
-                end
-            end
-        end    
+    day_spikes=trial_spikes(trial_date==i);
+    day_condition=trial_condition(trial_date==i);
+    for j=1:length(day_spikes)
+        trial=day_spikes{j};
+        condition_idx=find(strcmp(conditions,day_condition{j}));
+        for k=1:size(trial,1)
+            for l=1:size(trial,2)
+                line=sprintf('%d,%d,%d,%d,%d,%d',i,j,condition_idx,k,l,trial(k,l));
+                fprintf(fid,'%s\n',line);
+             end
+        end
     end
 end
+
+%loop with conditions
+% for i=1:length(dates)
+%     for m=1:length(conditions)
+%         day_condition=trial_condition(trial_date==i);
+%         day_condition_idx=strcmp(day_condition,conditions{m});
+%         day_condition_spikes=trial_spikes(day_condition_idx);
+%         for j=1:length(day_condition_spikes)
+%             trial=day_condition_spikes{j};
+%             for k=1:size(trial,1)
+%                 for l=1:size(trial,2)
+%                     line=sprintf('%d,%d,%d,%d,%d,%d',i,m,j,k,l,trial(k,l));
+%                     fprintf(fid,'%s\n',line);
+%                 end
+%             end
+%         end    
+%     end
+% end
 fclose(fid);
