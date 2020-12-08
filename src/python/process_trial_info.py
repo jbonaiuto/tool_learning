@@ -1173,10 +1173,18 @@ def check_motor_rake_trial(block_idx, trial_idx, condition, sorted_evts):
         #     print('Error, block %d, trial %d-%s, no go event' % (block_idx, trial_idx, condition))
         #     error = True
 
-        # if not ('monkey_tool_right' in sorted_evts or 'monkey_tool_mid_right' in sorted_evts or 'monkey_tool_center' in sorted_evts or
-        #         'monkey_tool_mid_left' in sorted_evts or 'monkey_tool_left' in sorted_evts):
-        #     print('Error, trial %d, no tool/object contact event' % trial_idx)
-        #     error = True
+        if condition=='motor_rake_left' or condition=='motor_rake_food_left':
+            if not ('monkey_tool_mid_left' in sorted_evts or 'monkey_tool_left' in sorted_evts):
+                print('Error, trial %d, no tool/object contact event' % trial_idx)
+                error = True
+        elif condition=='motor_rake_right' or condition=='motor_rake_food_right':
+            if not ('monkey_tool_right' in sorted_evts or 'monkey_tool_mid_right' in sorted_evts):
+                print('Error, trial %d, no tool/object contact event' % trial_idx)
+                error = True
+        elif condition=='motor_rake_center' or condition=='motor_rake_food_center':
+            if not ('monkey_tool_center' in sorted_evts):
+                print('Error, trial %d, no tool/object contact event' % trial_idx)
+                error = True
 
         if not 'trap_edge' in sorted_evts and not 'trap_bottom' in sorted_evts:
             print('Error, block %d, trial %d-%s, no trap_edge or trap_bottom event' % (block_idx, trial_idx, condition))
