@@ -1,24 +1,18 @@
-function aligned_p_states=plotHMM_aligned(exp_info, subject, dates, array, conditions, model)
+function aligned_p_states=plotHMM_aligned(data, dates, conditions, forward_probs_file)
 
-addpath('../spike_data_processing');
-date_data={};
-for i=1:length(dates)
-    load(fullfile(exp_info.base_data_dir, 'preprocessed_data', subject,...
-        dates{i},'multiunit','binned',...
-        sprintf('fr_b_%s_%s_whole_trial.mat', array, dates{i})));
-    date_data{i}=data;
-    clear('data');
-end
-addpath('../spike_data_processing');
-data=concatenate_data(date_data, 'spike_times', false);
-data=filter_data(exp_info, data);
-orig_binwidth=1;
-new_binwidth=10;
-data2=rebin_spikes(data,new_binwidth);
-data2=compute_firing_rate(data2, 'baseline_type', 'none', 'win_len', 6);
+dbstop if error
 
 % Compute dt
-dt=(data.bins(2)-data.bins(1))/1000;
+ orig_binwidth=(data.bins(2)-data.bins(1));
+ new_binwidth=10; 
+ if orig_binwidth ~= new_binwidth
+    data2=rebin_spikes(data,new_binwidth/orig_binwidth);
+    data2=compute_firing_rate(data2, 'baseline_type', 'none', 'win_len', 6);
+ else
+     data2 = data
+     data2=compute_firing_rate(data2, 'baseline_type', 'none', 'win_len', 6);
+ end
+
 
 condition_trials=zeros(1,length(data.metadata.condition));
 for i=1:length(conditions)
@@ -34,7 +28,16 @@ align_events={'go','hand_mvmt_onset','obj_contact','place'};
 
 win_size=[-150 150];
 
-aligned_p_states=zeros(length(condition_trials), model.n_states,...
+forward_probs=readtable(forward_probs_file);
+n_states=0;
+for i=1:length(forward_probs.Properties.VariableNames)
+    var_name=forward_probs.Properties.VariableNames{i};
+    if startsWith(var_name,'fw_prob_')
+        n_states=n_states+1;
+    end
+end
+
+aligned_p_states=zeros(length(condition_trials), n_states,...
     length(align_events), length([win_size(1):orig_binwidth:win_size(2)]));
 aligned_firing_rates=zeros(length(condition_trials), length(data2.electrodes),...
     length(align_events), length([win_size(1):new_binwidth:win_size(2)]));
@@ -47,18 +50,18 @@ for r=1:length(align_events)
     align_event_times = data.metadata.(align_evt);
     
     % Go through each trial
-    if strcmp(model.type,'multivariate_poisson')
-        for n=1:length(condition_trials)
-            % Get the bins that we used in the HMM (time>0 and up to reward)
-            bin_idx=find((data.bins>=0) & (data.bins<(data.metadata.reward(condition_trials(n)))));
-
-            trial_spikes=squeeze(data.binned_spikes(1,:,condition_trials(n),bin_idx));
+    t_idx=1;
+    for d=1:length(dates)
+        day_trials=condition_trials(trial_date==d);
             
-            % Decode
-            PSTATES = hmmdecodePoiss(trial_spikes, model.ESTTR, model.ESTEMIT, dt);
+        for n=1:length(day_trials)
+            trial_rows=find((forward_probs.subj==d) & (forward_probs.rm==n));
+            
+            % Get the bins that we used in the HMM (time>0 and up to 150ms after place)
+            bin_idx=find((data.bins>=0) & (data.bins<=(data.metadata.place(day_trials(n))+150)));
             
             % Find time of alignment event in this trial
-            event_time = align_event_times(condition_trials(n));
+            event_time = align_event_times(condition_trials(t_idx));
 
             % Window around event to get data
             win_start_idx=knnsearch(data.bins(bin_idx)',event_time+win_size(1));
@@ -66,66 +69,17 @@ for r=1:length(align_events)
             event_wdw = [win_start_idx:win_end_idx];
 
             % Save p states within this window
-            aligned_p_states(n,:,r,1:length(event_wdw)) = PSTATES(:,event_wdw);
-        end
-    elseif strcmp(model.type,'multilevel_multivariate_poisson')
-        t_idx=1;
-        for d=1:length(dates)
-            day_trials=condition_trials(trial_date==d);
-            
-            effectiveE=model.GLOBAL_ESTEMIT+squeeze(model.DAY_ESTEMIT(d,:,:));
-            for n=1:length(day_trials)
-                % Get the bins that we used in the HMM (time>0 and up to reward)
-                bin_idx=find((data.bins>=0) & (data.bins<(data.metadata.reward(day_trials(n)))));
-
-                trial_spikes=squeeze(data.binned_spikes(1,:,day_trials(n),bin_idx));
-                
-                PSTATES = hmmdecodePoiss(trial_spikes, model.ESTTR,...
-                    effectiveE, dt);
-                
-                % Find time of alignment event in this trial
-                event_time = align_event_times(condition_trials(t_idx));
-
-                % Window around event to get data
-                win_start_idx=knnsearch(data.bins(bin_idx)',event_time+win_size(1));
-                win_end_idx=knnsearch(data.bins(bin_idx)',event_time+win_size(2));
-                event_wdw = [win_start_idx:win_end_idx];
-
-                % Save p states within this window
-                aligned_p_states(t_idx,:,r,1:length(event_wdw)) = PSTATES(:,event_wdw);
-                t_idx=t_idx+1;
+            for i=1:n_states
+                sprobs=forward_probs.(sprintf('fw_prob_S%d',i));
+                aligned_p_states(t_idx,i,r,1:length(event_wdw)) = sprobs(trial_rows(event_wdw));
             end
-        end
-    elseif strcmp(model.type,'univariate_multinomial')
-        for n=1:length(condition_trials)
-            % Get the bins that we used in the HMM (time>0 and up to reward)
-            bin_idx=find((data.bins>=0) & (data.bins<(data.metadata.reward(condition_trials(n)))));
-
-            trial_spikes=squeeze(data.binned_spikes(1,:,condition_trials(n),bin_idx));
-            
-            % Create symbol sequence for this trial
-            vec = create_symbol_vector(trial_spikes);
-            
-            % Run HMM decode
-            PSTATES = hmmdecode(vec, model.ESTTR, model.ESTEMIT,...
-                'Symbols', [0:32]);
-                   
-            % Find time of alignment event in this trial
-            event_time = align_event_times(condition_trials(n));
-
-            % Window around event to get data
-            win_start_idx=knnsearch(data.bins(bin_idx)',event_time+win_size(1));
-            win_end_idx=knnsearch(data.bins(bin_idx)',event_time+win_size(2));
-            event_wdw = [win_start_idx:win_end_idx];
-
-            % Save p states within this window
-            aligned_p_states(n,:,r,1:length(event_wdw)) = PSTATES(:,event_wdw);
+            t_idx=t_idx+1;
         end
     end
 
     for n=1:length(condition_trials)
-        % Get the bins that we used in the HMM (time>0 and up to reward)
-        bin_idx=find((data2.bins>=0) & (data2.bins<(data2.metadata.reward(condition_trials(n)))));
+        % Get the bins that we used in the HMM (time>0 and up to 150ms after place)
+        bin_idx=find((data2.bins>=0) & (data2.bins<=(data2.metadata.place(condition_trials(n))+150)));
         
         % Get firing rates for this trial
         trial_firing_rates=squeeze(data2.smoothed_firing_rate(1,:,condition_trials(n),bin_idx));
@@ -191,17 +145,18 @@ for r=1:length(align_events)
     end
     handles=[];
     state_labels={};
-    state_nums=cellfun(@str2num,model.state_labels);
-    for m=1:max(state_nums)
-        state_idx=find(strcmp(model.state_labels,num2str(m)));
-        if length(state_idx)
-            %plot([win_size(1):win_size(2)],squeeze(mean(aligned_p_states(:,m,r,:))),'LineWidth',2);
+    %state_nums=cellfun(@str2num,model.state_labels);
+    %for m=1:max(state_nums)
+    for state_idx=1:n_states
+        %state_idx=find(strcmp(model.state_labels,num2str(m)));
+        %if length(state_idx)
             mean_pstate=squeeze(nanmean(aligned_p_states(:,state_idx,r,:)));
             stderr_pstate=squeeze(nanstd(aligned_p_states(:,state_idx,r,:)))./sqrt(size(aligned_p_states,1));
-            H=shadedErrorBar([win_size(1):orig_binwidth:win_size(2)],mean_pstate,stderr_pstate,'LineProps',{'Color',colors(str2num(model.state_labels{state_idx}),:)});
+            %H=shadedErrorBar([win_size(1):orig_binwidth:win_size(2)],mean_pstate,stderr_pstate,'LineProps',{'Color',colors(str2num(model.state_labels{state_idx}),:)});
+            H=shadedErrorBar([win_size(1):orig_binwidth:win_size(2)],mean_pstate,stderr_pstate,'LineProps',{'Color',colors(state_idx,:)});
             handles(end+1)=H.mainLine;
-            state_labels{end+1}=model.state_labels{state_idx};
-        end
+            state_labels{end+1}=sprintf('State %d', state_idx);%model.state_labels{state_idx};
+        %end
     end
     
     plot([0 0],ylim(),':k');
