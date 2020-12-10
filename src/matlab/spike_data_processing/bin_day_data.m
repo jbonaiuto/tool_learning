@@ -1,4 +1,13 @@
-function bin_day_data(exp_info, subject, date)
+function bin_day_data(exp_info, subject, date, varargin)
+
+%define default values
+defaults = struct('overwrite',false);
+params = struct(varargin{:});
+for f = fieldnames(defaults)',
+    if ~isfield(params, f{1}),
+        params.(f{1}) = defaults.(f{1});
+    end
+end
 
 % Events to align to
 event_types={'trial_start', 'fix_on', 'go', 'hand_mvmt_onset',...
@@ -30,7 +39,7 @@ if exist(fullfile(data_dir,date,'spikes'),'dir')==7
             out_file=fullfile(out_dir, sprintf('fr_b_%s_%s_%s.mat', exp_info.array_names{arr_idx}, date, evt));
 
             % If not already binned
-            if exist(out_file,'file')~=2
+            if params.overwrite || exist(out_file,'file')~=2
                 % Realign to event
                 data_ali=realign(array_data,evt);
                 % Bin
@@ -45,7 +54,7 @@ if exist(fullfile(data_dir,date,'spikes'),'dir')==7
 
         % Bin whole trial
         out_file=fullfile(out_dir, sprintf('fr_b_%s_%s_whole_trial.mat', exp_info.array_names{arr_idx}, date));
-        if exist(out_file,'file')~=2
+        if params.overwrite || exist(out_file,'file')~=2
             % Bin 
             data_binned=bin_spikes(array_data, [-1000 10000], bin_size,...
                 'baseline_evt', 'go','baseline_woi', [-500 0]);
