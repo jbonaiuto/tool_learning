@@ -84,7 +84,7 @@ def combine_videos(subject, date):
         trial_num=trial_info.trial[t_idx]
 
         # If there is a video corresponding to this trial
-        if len(trial_info.video[t_idx]):
+        if type(trial_info.video[t_idx])==str and len(trial_info.video[t_idx]):
             print(trial_info.video[t_idx])
             combine_video(base_video_path, {'front': trial_info.video[t_idx], 'side': trial_info.video[t_idx], 'top': trial_info.video[t_idx]},
                           out_path, '%d-%d_%s-%s.mp4' % (block, trial_num, task, condition))
@@ -356,7 +356,7 @@ def align_videos(subject, date):
             min_blue_onset=min(blue_onsets.values())
 
         # plt.figure()
-        # for view in CAMERA_VIEWS:
+        # for view in cfg['camera_views']:
         #     plt.plot(blue_ts[view], label='%s: blue' % view)
         #     plt.plot(yellow_ts[view], label='%s: yellow' % view)
         # plt.legend()
@@ -392,7 +392,7 @@ def align_videos(subject, date):
 
         intrinsic_files = {}
         for view in cfg['camera_views']:
-            dlc3d_cfg = os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data/dlc_projects',
+            dlc3d_cfg = os.path.join('/data/tool_learning/preprocessed_data/dlc_projects',
                                      'visual_grasp_3d-Jimmy-2019-08-19-3d', 'config.yaml')
 
             cfg_3d = auxiliaryfunctions.read_config(dlc3d_cfg)
@@ -500,18 +500,36 @@ def match_video_trials(subject, date):
 
     # Read video data
     videos=[]
+    video_names=[]
     for fname in fnames:
         [pth,file] = os.path.split(fname)
         [base, ext] = os.path.splitext(file)
+
+        datetime_parts=base.split('_')
+        time_parts=datetime_parts[1].split('-')
+        hour_str=time_parts[0]
+        if int(hour_str)<9:
+            hour_str=str(int(hour_str)+12)
+        time_parts[0]=hour_str
+        datetime_parts[1]='-'.join(time_parts)
+        video_names.append('_'.join(datetime_parts))
+
         if os.path.exists(os.path.join(base_video_path, '%s.json' % base)):
             with open(os.path.join(base_video_path, '%s.json' % base)) as json_file:
                 data=json.load(json_file)
                 videos.append(data)
 
+    sorted_idx=np.argsort(video_names)
+    videos = [videos[idx] for idx in sorted_idx]
+    fnames = [fnames[idx] for idx in sorted_idx]
+    # for i in range(6):
+    #     fnames.insert(0,'')
+    #     videos.insert(0,None)
+
     # Transfer trial info file
     local_date = datetime.strptime(date, '%d-%m-%Y')
     remote_date_str = datetime.strftime(local_date, '%d.%m.%y')
-    cmd='rsync -avzhe ssh %s:/data/tool_learning/preprocessed_data/%s/%s/trial_info.csv %s/%s/%s/trial_info.csv' % (cfg['preproc_data_server'], subject, remote_date_str, cfg['preprocessed_data_dir'], subject, date)
+    cmd='rsync -avzhe ssh %s:/home/bonaiuto/tool_learning/preprocessed_data/%s/%s/trial_info.csv %s/%s/%s/trial_info.csv' % (cfg['preproc_data_server'], subject, remote_date_str, cfg['preprocessed_data_dir'], subject, date)
     os.system(cmd)
     trial_info=pd.read_csv('%s/%s/%s/trial_info.csv' % (cfg['preprocessed_data_dir'], subject, date))
 
@@ -523,21 +541,24 @@ def match_video_trials(subject, date):
     if len(fnames)==len(trial_info.intan_duration):
 
         # Go through each intan file
-        for t_idx in range(len(trial_info.index)):
+        for t_idx in range(len(trial_info.intan_duration)):
 
             # Find video view duration most closely matching intan duration
             intan_dur = trial_info.intan_duration[t_idx]
             video_info = videos[t_idx]
-            video_durations = []
-            for view in cfg['camera_views']:
-                if view in video_info['trial_duration']:
-                    video_durations.append(video_info['trial_duration'][view])
-            video_durations=np.array(video_durations)
-            if len(video_durations):
-                dur_delta = np.abs(video_durations - intan_dur)
-                video_duration=video_durations[np.where(dur_delta == np.nanmin(dur_delta))[0][0]]
+            if video_info is not None:
+                video_durations = []
+                for view in cfg['camera_views']:
+                    if view in video_info['trial_duration']:
+                        video_durations.append(video_info['trial_duration'][view])
+                video_durations=np.array(video_durations)
+                if len(video_durations):
+                    dur_delta = np.abs(video_durations - intan_dur)
+                    video_duration=video_durations[np.where(dur_delta == np.nanmin(dur_delta))[0][0]]
+                else:
+                    video_duration=float('NaN')
             else:
-                video_duration=float('NaN')
+                video_duration = float('NaN')
 
             # Add filename and duration to list
             [pth, file] = os.path.split(fnames[t_idx])
@@ -570,16 +591,31 @@ def match_video_trials(subject, date):
                 # Get duration and task
                 intan_dur = trial_info.intan_duration[t_idx]
 
-                dur_delta = np.abs(video_durations - intan_dur)
-                within_range=np.where(dur_delta<200)[0]
-                if len(within_range)>1:
+                if len(video_durations)>1:
+                    dur_delta = np.abs(video_durations - intan_dur)
+                    within_range=np.where(dur_delta<210)[0]
+                    if current_rec_trial_num==-1:
+                        within_range = np.where(dur_delta < 50)[0]
+                    if len(within_range)>0:
+                        matched = True
+                        # Start search from here in video list for next intan file
+                        current_rec_trial_num = t_idx
+
+                        # Add filename and duration to list
+                        video_trials.append(t_idx)
+                        video_trial_durations.append(video_durations[np.where(dur_delta==np.nanmin(dur_delta))[0][0]])
+                        break
+                else:
                     matched = True
                     # Start search from here in video list for next intan file
                     current_rec_trial_num = t_idx
 
                     # Add filename and duration to list
                     video_trials.append(t_idx)
-                    video_trial_durations.append(video_durations[np.where(dur_delta==np.nanmin(dur_delta))[0][0]])
+                    if len(video_durations)==1:
+                        video_trial_durations.append(video_durations[0])
+                    else:
+                        video_trial_durations.append(float('NaN'))
                     break
 
             # Add to trial info even if not matched
@@ -588,6 +624,9 @@ def match_video_trials(subject, date):
                 video_trial_durations.append(float('NaN'))
 
         video_trials=np.array(video_trials)
+
+        trial_video=[]
+        trial_video_duration=[]
         for t_idx in range(len(trial_info.index)):
             if len(np.where(video_trials==t_idx)[0]):
                 vid_idx=np.where(video_trials==t_idx)[0][0]
@@ -605,14 +644,14 @@ def match_video_trials(subject, date):
 
     # Save and transfer trial info back
     trial_info.to_csv('%s/%s/%s/trial_info.csv' % (cfg['preprocessed_data_dir'], subject, date), index=False)
-    cmd = 'rsync -avzhe ssh %s/%s/%s/trial_info.csv %s:/data/tool_learning/preprocessed_data/%s/%s/trial_info.csv' % (cfg['preprocessed_data_dir'], subject, date, cfg['preproc_data_server'], subject, remote_date_str)
+    cmd = 'rsync -avzhe ssh %s/%s/%s/trial_info.csv %s:/home/bonaiuto/tool_learning/preprocessed_data/%s/%s/trial_info.csv' % (cfg['preprocessed_data_dir'], subject, date, cfg['preproc_data_server'], subject, remote_date_str)
     os.system(cmd)
 
 
 if __name__=='__main__':
     subject = sys.argv[1]
     date = sys.argv[2]
-    copy_and_rename_videos(subject,date)
-    align_videos(subject, date)
-    match_video_trials(subject,date)
-    #combine_videos(subject,date)
+    #copy_and_rename_videos(subject,date)
+    #align_videos(subject, date)
+    #match_video_trials(subject,date)
+    combine_videos(subject,date)
