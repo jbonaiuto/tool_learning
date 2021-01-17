@@ -538,32 +538,40 @@ def match_video_trials(subject, date):
     trial_video_duration = []
 
     # If the number of videos = the number of intan files - just match corresponding videos/intan files
-    if len(fnames)==len(trial_info.intan_duration):
+    if len(fnames)==len(np.where(~np.isnan(trial_info.plexon_duration))[0]):
 
+        t_idx=0
         # Go through each intan file
-        for t_idx in range(len(trial_info.intan_duration)):
+        for idx in range(len(trial_info.intan_duration)):
 
             # Find video view duration most closely matching intan duration
-            intan_dur = trial_info.intan_duration[t_idx]
-            video_info = videos[t_idx]
-            if video_info is not None:
-                video_durations = []
-                for view in cfg['camera_views']:
-                    if view in video_info['trial_duration']:
-                        video_durations.append(video_info['trial_duration'][view])
-                video_durations=np.array(video_durations)
-                if len(video_durations):
-                    dur_delta = np.abs(video_durations - intan_dur)
-                    video_duration=video_durations[np.where(dur_delta == np.nanmin(dur_delta))[0][0]]
+            intan_dur = trial_info.intan_duration[idx]
+            if not np.isnan(trial_info.plexon_duration[idx]):
+                video_info = videos[t_idx]
+                if video_info is not None:
+                    video_durations = []
+                    for view in cfg['camera_views']:
+                        if view in video_info['trial_duration']:
+                            video_durations.append(video_info['trial_duration'][view])
+                    video_durations=np.array(video_durations)
+                    if len(video_durations):
+                        dur_delta = np.abs(video_durations - intan_dur)
+                        video_duration=video_durations[np.where(dur_delta == np.nanmin(dur_delta))[0][0]]
+                    else:
+                        video_duration=float('NaN')
                 else:
-                    video_duration=float('NaN')
-            else:
-                video_duration = float('NaN')
+                    video_duration = float('NaN')
+                # Add filename and duration to list
+                [pth, file] = os.path.split(fnames[t_idx])
+                trial_video.append(file)
+                trial_video_duration.append(video_duration)
+                t_idx = t_idx + 1
 
-            # Add filename and duration to list
-            [pth, file] = os.path.split(fnames[t_idx])
-            trial_video.append(file)
-            trial_video_duration.append(video_duration)
+            else:
+                trial_video.append('')
+                trial_video_duration.append(float('NaN'))
+
+
 
     # Otherwise - need to match based on trial duration (error-prone! check results!)
     else:
@@ -651,7 +659,7 @@ def match_video_trials(subject, date):
 if __name__=='__main__':
     subject = sys.argv[1]
     date = sys.argv[2]
-    #copy_and_rename_videos(subject,date)
-    #align_videos(subject, date)
-    #match_video_trials(subject,date)
+    copy_and_rename_videos(subject,date)
+    align_videos(subject, date)
+    match_video_trials(subject,date)
     combine_videos(subject,date)
