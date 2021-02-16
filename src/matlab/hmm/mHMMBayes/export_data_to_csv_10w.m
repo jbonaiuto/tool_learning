@@ -7,13 +7,13 @@ dbstop if error
 
 data_file=fullfile(output_path, 'hmm_data.csv');
 fid=fopen(data_file,'w');
-    header='date,trial,condition,electrode,timestep,value';
-    fprintf(fid,'%s\n',header);
+header='date,trial,condition,electrode,timestep,value';
+fprintf(fid,'%s\n',header);
 
 all_data={};
 for d_idx=1:length(dates)
     date=dates{d_idx};
-
+    
     load(fullfile(exp_info.base_data_dir, 'preprocessed_data', subject,...
         date,'multiunit','binned',...
         sprintf('fr_b_%s_%s_whole_trial.mat',array,date)));
@@ -25,7 +25,7 @@ for d_idx=1:length(dates)
     % Filter data - RTs too fast or slow
     data=filter_data(exp_info,data,'plot_corrs',true,'thresh_percentile', 10);
     data=rebin_spikes(data,dt);
-
+    
     % Use data from "good" electrodes
 %     good_electrodes=[1,2,3,4,5,6,7,9,13,18,25,27,29,31,32];
 %     data.binned_spikes=data.binned_spikes(:,good_electrodes,:,:);
