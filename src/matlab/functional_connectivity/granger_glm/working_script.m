@@ -79,25 +79,56 @@ end
 
 %plots
 dir = '/Users/thomasquettier/Documents/GitHub/tool_learning/output/functional_connectivity/';
+fcc_dataset('output_path',dir);
 
-suffled_frobenius({'fixation'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
-suffled_frobenius({'visual_grasp_left'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
-suffled_frobenius({'visual_pliers_left'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
-suffled_frobenius({'visual_rake_pull_left'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
-suffled_frobenius({'visual_rake_push_left'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
-suffled_frobenius({'visual_stick_left'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
-suffled_frobenius({'motor_grasp_left'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
-suffled_frobenius({'motor_rake_left'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
-suffled_frobenius({'motor_rake_center_catch'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
-suffled_frobenius({'motor_rake_food_left'},{'fixation'},{'F1'},{'F5hand'},'output_path',dir)
+fixation = suffled_frobenius({'fixation'},{'fixation'},'output_path',dir)
+visual_grasp = suffled_frobenius({'visual_grasp_left'},{'fixation'},'output_path',dir)
+visual_pliers = suffled_frobenius({'visual_pliers_left'},{'fixation'},'output_path',dir)
+visual_rake_pull = suffled_frobenius({'visual_rake_pull_left'},{'fixation'},'output_path',dir)
+visual_rake_push = suffled_frobenius({'visual_rake_push_left'},{'fixation'},'output_path',dir)
+visual_stick = suffled_frobenius({'visual_stick_left'},{'fixation'},'output_path',dir)
+motor_grasp = suffled_frobenius({'motor_grasp_left'},{'fixation'},'output_path',dir)
+motor_rake = suffled_frobenius({'motor_rake_left'},{'fixation'},'output_path',dir)
+motor_rake_center = suffled_frobenius({'motor_rake_center_catch'},{'fixation'},'output_path',dir)
+motor_rake_food = suffled_frobenius({'motor_rake_food_left'},{'fixation'},'output_path',dir)
 
-condition={'visual_rake_pull_left'};
-ref={'fixation'};
-source={'F1'};
-target={'F5hand'};
-params.output_path= dir;
-params.CI_p= 95
-params.nb_simulation = 100;
+cor_comp_trials({'fixation'},{'fixation'},'output_path',dir)
+cor_comp_trials({'visual_grasp_left'},{'fixation'},'output_path',dir)
+cor_comp_trials({'visual_pliers_left'},{'fixation'},'output_path',dir)
+cor_comp_trials({'visual_rake_pull_left'},{'fixation'},'output_path',dir)
+cor_comp_trials({'visual_rake_push_left'},{'fixation'},'output_path',dir)
+cor_comp_trials({'visual_stick_left'},{'fixation'},'output_path',dir)
+cor_comp_trials({'motor_grasp_left'},{'fixation'},'output_path',dir)
+cor_comp_trials({'motor_rake_left'},{'fixation'},'output_path',dir)
+cor_comp_trials({'motor_rake_center_catch'},{'fixation'},'output_path',dir)
+cor_comp_trials({'motor_rake_food_left'},{'fixation'},'output_path',dir)
 
-  
+
+
+mdl_full({'F1F1'},{'fixation'},'output_path',dir)
+mdl_full({'F1F5'},{'fixation'},'output_path',dir)
+mdl_full({'F5F1'},{'fixation'},'output_path',dir)
+mdl_full({'F5F5'},{'fixation'},'output_path',dir)
+
+
+binimial = [fixation;
+visual_grasp;
+visual_pliers;
+visual_rake_pull;
+visual_rake_push;
+visual_stick;
+motor_grasp;
+motor_rake;
+motor_rake_center;
+motor_rake_food]
+
+ref = {'fixation'};
+condition ={'fixation'};
+slcs = {'F1F1'};
+params.output_fname = 'granger_glm_results.mat';
+params.output_path = '../../../../output/functional_connectivity';
+params.nb_simulation = 1000;
+params.CI_p = .05;
+
+
 %% END
