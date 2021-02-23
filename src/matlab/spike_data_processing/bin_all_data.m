@@ -1,7 +1,7 @@
 function bin_all_data(exp_info, subject, varargin)
 
 %define default values
-defaults = struct('parallel_mode',false);
+defaults = struct('parallel_mode',false,'overwrite',false);
 params = struct(varargin{:});
 for f = fieldnames(defaults)',
     if ~isfield(params, f{1}),
@@ -30,5 +30,5 @@ for i = 1:length(d)
         continue
     end
     
-    bin_day_data(exp_info, subject, dateexp);
+    bin_day_data(exp_info, subject, dateexp, 'overwrite', params.overwrite);
 end

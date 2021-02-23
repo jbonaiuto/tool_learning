@@ -23,17 +23,19 @@ def run_process_spikes(subj_name, date):
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
 
-        rec_data_dir = os.path.join(cfg['preprocessed_data_dir'], subj_name, date,'rhd2000')
-        rec_fnames = glob(os.path.join(rec_data_dir, '*.json'))
-        rec_fdates = []
-        for rec_fname in rec_fnames:
-            fparts = os.path.splitext(rec_fname)[0].split('_')
-            try:
-                filedate = datetime.strptime('%s.%s' % (fparts[-2], fparts[-1]), '%d%m%y.%H%M%S')
-                rec_fdates.append(filedate)
-            except:
-                pass
-        rec_fnames = [x[1] for x in sorted(zip(rec_fdates, rec_fnames))]
+        trial_info=pd.read_csv(os.path.join(preproc_dir,'trial_info.csv'))
+        print(date)
+        # rec_data_dir = os.path.join(cfg['preprocessed_data_dir'], subj_name, date,'rhd2000')
+        # rec_fnames = glob(os.path.join(rec_data_dir, '*.json'))
+        # rec_fdates = []
+        # for rec_fname in rec_fnames:
+        #     fparts = os.path.splitext(rec_fname)[0].split('_')
+        #     try:
+        #         filedate = datetime.strptime('%s.%s' % (fparts[-2], fparts[-1]), '%d%m%y.%H%M%S')
+        #         rec_fdates.append(filedate)
+        #     except:
+        #         pass
+        # rec_fnames = [x[1] for x in sorted(zip(rec_fdates, rec_fnames))]
 
         seg_trial_start_idx=[]
         seg_trial_end_idx=[]
@@ -41,7 +43,10 @@ def run_process_spikes(subj_name, date):
         seg_times=[]
         srate = cfg['intan_srate']
 
-        for rec_idx, rec_fname in enumerate(rec_fnames):
+        for rec_idx in range(len(trial_info)):
+            intan_file=trial_info['intan_file'][rec_idx]
+            (bas,ext)=os.path.splitext(intan_file)
+            rec_fname=os.path.join(cfg['preprocessed_data_dir'], subj_name, date,'rhd2000','%s.json' % bas)
             rec_data = json.load(open(rec_fname))
             rec_signal = np.array(rec_data['rec_signal'])
 
@@ -130,7 +135,7 @@ def run_process_spikes(subj_name, date):
 
         # Import spikes
         for array_idx, region in enumerate(cfg['arrays']):
-
+            print(region)
             fnames = glob(os.path.join(spike_data_dir, 'array_%d' % array_idx, '%s*.csv' % region))
             for fname in fnames:
                 electrode_df = pd.read_csv(fname)
@@ -140,7 +145,10 @@ def run_process_spikes(subj_name, date):
 
                 for seg_idx in np.unique(electrode_df.segment):
                     seg_rows = np.where(electrode_df.segment == seg_idx)[0]
-                    seg_spike_idx = np.int64(electrode_df.time[seg_rows])
+                    if len(seg_rows)==1:
+                        seg_spike_idx = np.array([np.int64(electrode_df.time[seg_rows])])
+                    else:
+                        seg_spike_idx = np.int64(electrode_df.time[seg_rows])
 
                     trial_start_idx=seg_trial_start_idx[seg_idx]
                     trial_end_idx=seg_trial_end_idx[seg_idx]
@@ -170,9 +178,13 @@ def rerun(subject, date_start_str):
     current_date = date_start
     while current_date <= date_now:
         date_str = datetime.strftime(current_date, '%d.%m.%y')
-        recording_path = os.path.join(cfg['intan_data_dir'], subject, date_str)
-        if os.path.exists(recording_path):
-
+        exists=False
+        for intan_dir in cfg['intan_data_dirs']:
+            recording_path = os.path.join(intan_dir, subject, date_str)
+            if os.path.exists(recording_path):
+                exists=True
+                break
+        if exists:
             run_process_spikes(subject, date_str)
 
         current_date = current_date + timedelta(days=1)
@@ -181,5 +193,5 @@ def rerun(subject, date_start_str):
 if __name__=='__main__':
     subject = sys.argv[1]
     recording_date = sys.argv[2]
-    run_process_spikes(subject, recording_date)
-    #rerun(subject, recording_date)
+    #run_process_spikes(subject, recording_date)
+    rerun(subject, recording_date)

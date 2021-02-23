@@ -69,7 +69,11 @@ elseif strcmp(condition,'visual_pliers_left') || strcmp(condition,'visual_rake_p
     if strcmp(event_type,'obj_contact')
         mapped_event_type='exp_grasp_center';
     elseif strcmp(event_type,'place')
-        mapped_event_type='exp_place_left';
+        if strcmp(condition,'visual_rake_push_left')
+            mapped_event_type='exp_place_right';
+        else
+            mapped_event_type='exp_place_left';
+        end
     elseif strcmp(event_type,'reward')
         mapped_event_type='reward';
     elseif strcmp(event_type,'hand_mvmt_onset')
@@ -87,7 +91,11 @@ elseif strcmp(condition,'visual_pliers_right') || strcmp(condition,'visual_rake_
     if strcmp(event_type,'obj_contact')
         mapped_event_type='exp_grasp_center';
     elseif strcmp(event_type,'place')
-        mapped_event_type='exp_place_right';
+        if strcmp(condition,'visual_rake_push_right')
+            mapped_event_type='exp_place_left';
+        else
+            mapped_event_type='exp_place_right';
+        end
     elseif strcmp(event_type,'reward')
         mapped_event_type='reward';
     elseif strcmp(event_type,'hand_mvmt_onset')

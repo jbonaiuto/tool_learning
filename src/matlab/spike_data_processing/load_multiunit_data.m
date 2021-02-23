@@ -106,7 +106,7 @@ for d_idx=1:length(dates)
 
     info_file=fullfile(exp_info.base_data_dir, 'preprocessed_data', subject,...
         dates{d_idx}, 'trial_info.csv');
-    info=readtable(info_file);
+    info=readtable(info_file,'Delimiter',',');
     
     good_trial_idx=info.overall_trial(find(strcmp(info.status,'good')));
     
@@ -114,17 +114,47 @@ for d_idx=1:length(dates)
         condition=info.condition{find(info.overall_trial==good_trial_idx(i))};
         for evt_idx=1:length(event_types)
             event_type=event_types{evt_idx};
-            mapped_event_type=map_event_type(condition, event_type);
-            if length(mapped_event_type)
-                evt_times=evts.time(intersect(find(evts.trial==good_trial_idx(i)),...
-                    find(strcmp(evts.event,mapped_event_type))));
-                if length(evt_times)
-                    data.metadata.(event_type)=[data.metadata.(event_type) evt_times(1)];
+            if (strcmp(condition,'motor_rake_left') || strcmp(condition,'motor_rake_food_left')) && strcmp(event_type,'obj_contact')
+                left_evt_times=evts.time(intersect(find(evts.trial==good_trial_idx(i)),...
+                    find(strcmp(evts.event,'monkey_tool_left'))));
+                mid_left_evt_times=evts.time(intersect(find(evts.trial==good_trial_idx(i)),...
+                    find(strcmp(evts.event,'monkey_tool_mid_left'))));
+                if length(left_evt_times) && length(mid_left_evt_times)
+                    data.metadata.(event_type)=[data.metadata.(event_type) max([left_evt_times(1) mid_left_evt_times(1)])];
+                elseif length(left_evt_times)
+                    data.metadata.(event_type)=[data.metadata.(event_type) left_evt_times(1)];
+                elseif length(mid_left_evt_times)
+                    data.metadata.(event_type)=[data.metadata.(event_type) mid_left_evt_times(1)];
+                else
+                    data.metadata.(event_type)=[data.metadata.(event_type) NaN];
+                end
+            elseif (strcmp(condition,'motor_rake_right') || strcmp(condition,'motor_rake_food_right')) && strcmp(event_type,'obj_contact')
+                right_evt_times=evts.time(intersect(find(evts.trial==good_trial_idx(i)),...
+                    find(strcmp(evts.event,'monkey_tool_right'))));
+                mid_right_evt_times=evts.time(intersect(find(evts.trial==good_trial_idx(i)),...
+                    find(strcmp(evts.event,'monkey_tool_mid_right'))));
+                if length(right_evt_times) && length(mid_right_evt_times)
+                    data.metadata.(event_type)=[data.metadata.(event_type) max([right_evt_times(1) mid_right_evt_times(1)])];
+                elseif length(right_evt_times)
+                    data.metadata.(event_type)=[data.metadata.(event_type) right_evt_times(1)];
+                elseif length(mid_right_evt_times)
+                    data.metadata.(event_type)=[data.metadata.(event_type) mid_right_evt_times(1)];
                 else
                     data.metadata.(event_type)=[data.metadata.(event_type) NaN];
                 end
             else
-                data.metadata.(event_type)=[data.metadata.(event_type) NaN];
+                mapped_event_type=map_event_type(condition, event_type);
+                if length(mapped_event_type)
+                    evt_times=evts.time(intersect(find(evts.trial==good_trial_idx(i)),...
+                        find(strcmp(evts.event,mapped_event_type))));
+                    if length(evt_times)
+                        data.metadata.(event_type)=[data.metadata.(event_type) evt_times(1)];
+                    else
+                        data.metadata.(event_type)=[data.metadata.(event_type) NaN];
+                    end
+                else
+                    data.metadata.(event_type)=[data.metadata.(event_type) NaN];
+                end
             end
         end
         data.metadata.condition{end+1}=condition;
@@ -143,7 +173,7 @@ for a_idx=1:length(params.arrays)
         for d_idx=1:length(dates)
             info_file=fullfile(exp_info.base_data_dir, 'preprocessed_data', subject,...
                 dates{d_idx}, 'trial_info.csv');
-            info=readtable(info_file);
+            info=readtable(info_file,'Delimiter',',');
             good_trial_idx=info.overall_trial(find(strcmp(info.status,'good')));
 
             spike_file=fullfile(exp_info.base_data_dir, 'preprocessed_data', subject,...
