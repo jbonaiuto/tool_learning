@@ -106,7 +106,7 @@ for d_idx=1:length(dates)
 
     info_file=fullfile(exp_info.base_data_dir, 'preprocessed_data', subject,...
         dates{d_idx}, 'trial_info.csv');
-    info=readtable(info_file);
+    info=readtable(info_file,'Delimiter',',');
     
     good_trial_idx=info.overall_trial(find(strcmp(info.status,'good')));
     
@@ -173,7 +173,7 @@ for a_idx=1:length(params.arrays)
         for d_idx=1:length(dates)
             info_file=fullfile(exp_info.base_data_dir, 'preprocessed_data', subject,...
                 dates{d_idx}, 'trial_info.csv');
-            info=readtable(info_file);
+            info=readtable(info_file,'Delimiter',',');
             good_trial_idx=info.overall_trial(find(strcmp(info.status,'good')));
 
             spike_file=fullfile(exp_info.base_data_dir, 'preprocessed_data', subject,...
