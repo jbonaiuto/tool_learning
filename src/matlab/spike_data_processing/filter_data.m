@@ -1,4 +1,4 @@
-function data=filter_data(exp_info, data, varargin)
+function data=filter_data(exp_info, conditions, data, varargin)
 % FILTER_DATA Filters data by removing trials based on some criteria
 % (currently trials with RT <200 or >1000ms, or correlations less than 10%
 % of the correlation range for that condition)
@@ -27,7 +27,7 @@ function data=filter_data(exp_info, data, varargin)
 %     data=filter_data(data);
 
 defaults = struct('min_rt',200,'max_rt',1000,'max_obj_contact',5000,...
-    'thresh_percentile', 10, 'plot_corrs', false);  %define default values
+    'max_place',10000,'thresh_percentile', 10, 'plot_corrs', false);  %define default values
 params = struct(varargin{:});
 for f = fieldnames(defaults)',  
     if ~isfield(params, f{1}),
@@ -39,15 +39,15 @@ end
 rts=data.metadata.hand_mvmt_onset-data.metadata.go;
 
 bad_trials=[];
-% if length(conditions)
-%     condition_trials=zeros(1,length(data.metadata.condition));
-%     for i=1:length(conditions)
-%         condition_trials = condition_trials | (strcmp(data.metadata.condition,conditions{i}));
-%     end
-%     condition_trials=find(condition_trials);
-%     bad_trials=setdiff([1:length(data.metadata.condition)],condition_trials);
-% end
-% 
+if length(conditions)
+    condition_trials=zeros(1,length(data.metadata.condition));
+    for i=1:length(conditions)
+        condition_trials = condition_trials | (strcmp(data.metadata.condition,conditions{i}));
+    end
+    condition_trials=find(condition_trials);
+    bad_trials=setdiff([1:length(data.metadata.condition)],condition_trials);
+end
+
 % Bad trials where RT<200 or >1000
 rt_bad_trials=union(find(rts<params.min_rt),find(rts>params.max_rt));
 
@@ -58,6 +58,11 @@ oc_bad_trials=find(data.metadata.obj_contact>=params.max_obj_contact);
 disp(sprintf('Removing %d trials based on object contact', length(oc_bad_trials)));
 
 bad_trials=union(bad_trials, oc_bad_trials);
+
+place_bad_trials=find(data.metadata.place>=params.max_place);
+disp(sprintf('Removing %d trials based on place', length(place_bad_trials)));
+
+bad_trials=union(bad_trials, place_bad_trials);
 
 % Find trials with correlations less than threshold
 corr_bad_trials=[];
@@ -126,50 +131,4 @@ disp(sprintf('Removing %d trials based on correlation', length(corr_bad_trials))
 
 bad_trials=union(bad_trials, corr_bad_trials);
 
-% Figure out good trials
-good_trials=setdiff([1:data.ntrials],unique(bad_trials));
-
-% Create list of new trial numbers (NaN for bad trials)
-new_trials=[1:data.ntrials];
-new_trials(bad_trials)=nan;
-new_trials(~isnan(new_trials))=[1:data.ntrials-length(bad_trials)];
-
-% Update number of trials
-data.ntrials=data.ntrials-length(bad_trials);
-data.trial_date=data.trial_date(good_trials);
-
-% Remove bad trials from metadata
-for evt_idx=1:length(data.metadata.event_types)
-    evt_type=data.metadata.event_types{evt_idx};
-    event_data=data.metadata.(evt_type);
-    event_data(bad_trials)=[];
-    data.metadata.(evt_type)=event_data;
-end
-data.metadata.condition(bad_trials)=[];
-
-% Remove spike data from bad trials
-if isfield(data,'spikedata')
-    spike_rts=rts(data.spikedata.trial);
-    good_spikes=find(ismember(data.spikedata.trial,good_trials));
-    data.spikedata.time=data.spikedata.time(good_spikes);
-    data.spikedata.array=data.spikedata.array(good_spikes);
-    data.spikedata.electrode=data.spikedata.electrode(good_spikes);
-    data.spikedata.trial=data.spikedata.trial(good_spikes);
-    data.spikedata.trial=new_trials(data.spikedata.trial);
-end
-
-% Remove binned data from bad trials
-if isfield(data,'binned_spikes')
-    data.binned_spikes=data.binned_spikes(:,:,good_trials,:);
-end
-if isfield(data,'binned_baseline_spikes')
-    data.binned_baseline_spikes=data.binned_baseline_spikes(:,:,good_trials,:);
-end
-
-% Remove firing rate data from bad trials
-if isfield(data,'firing_rate')
-    data.firing_rate=data.firing_rate(:,:,good_trials,:);
-end
-if isfield(data,'smoothed_firing_rate')
-    data.smoothed_firing_rate=data.smoothed_firing_rate(:,:,good_trials,:);
-end
+data=remove_trials(data, bad_trials);
