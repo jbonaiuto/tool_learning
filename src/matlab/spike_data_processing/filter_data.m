@@ -1,4 +1,4 @@
-function data=filter_data(exp_info, data, varargin)
+function [data,bad_trials]=filter_data(exp_info, data, varargin)
 % FILTER_DATA Filters data by removing trials based on some criteria
 % (currently trials with RT <200 or >1000ms, or correlations less than 10%
 % of the correlation range for that condition)
@@ -24,7 +24,7 @@ function data=filter_data(exp_info, data, varargin)
 %    data - data structure containing filtered data
 %
 % Example:
-%     data=filter_data(data);
+%     data=filter_data(data,'thresh_percentile',100);
 
 defaults = struct('min_rt',200,'max_rt',1000,'max_obj_contact',5000,...
     'thresh_percentile', 10, 'plot_corrs', false);  %define default values
@@ -89,6 +89,7 @@ for cond_idx=1:length(conditions)
                 xlabel('Correlation');
                 ylabel('Number of trials');
                 title(condition);
+                close
             end
 
             % Go through each date in the data
