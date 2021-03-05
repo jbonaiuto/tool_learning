@@ -1,4 +1,4 @@
-function aligned_p_states=plotHMM_aligned_condition_grasp(data, date, conditions, array, forward_probs_file)
+function aligned_p_states=plotHMM_aligned_condition_grasp(data, date, conditions, array, model)
 
 dbstop if error
 
@@ -13,16 +13,6 @@ binwidth=(data.bins(2)-data.bins(1));
 align_events={'go','hand_mvmt_onset','obj_contact','place'};
 
 win_size=[-150 150];
-
-forward_probs=readtable(forward_probs_file);
-n_states=0;
-for i=1:length(forward_probs.Properties.VariableNames)
-    var_name=forward_probs.Properties.VariableNames{i};
-    if length(var_name)>8 && strcmp(var_name(1:8),'fw_prob_')
-    %if startsWith(var_name,'fw_prob_')
-        n_states=n_states+1;
-    end
-end
 
 aligned_p_states={};
 aligned_firing_rates={};
@@ -67,8 +57,8 @@ for i=1:length(conditions)
                 event_wdw = [win_start_idx:win_end_idx];
 
                 % Save p states within this window
-                for j=1:n_states
-                    sprobs=forward_probs.(sprintf('fw_prob_S%d',j));
+                for j=1:model.n_states
+                    sprobs=model.forward_probs.(sprintf('fw_prob_S%d',j));
                     cond_p_states(t_idx,j,r,1:length(event_wdw)) = sprobs(trial_rows(event_wdw));                        
                 end
 
@@ -164,18 +154,16 @@ for cond_idx=1:length(conditions)
         end
         handles=[];
         state_labels={};
-        %state_nums=cellfun(@str2num,model.state_labels);
-        %for m=1:max(state_nums)
-        for state_idx=1:n_states
-            %state_idx=find(strcmp(model.state_labels,num2str(m)));
-            %if length(state_idx)
+        state_nums=cellfun(@str2num,model.state_labels);
+        for m=1:max(state_nums)
+            state_idx=find(strcmp(model.state_labels,num2str(m)));
+            if length(state_idx)
                 mean_pstate=squeeze(nanmean(cond_aligned_p_states(:,state_idx,r,:)));
                 stderr_pstate=squeeze(nanstd(cond_aligned_p_states(:,state_idx,r,:)))./sqrt(size(cond_aligned_p_states,1));
-                %H=shadedErrorBar([win_size(1):orig_binwidth:win_size(2)],mean_pstate,stderr_pstate,'LineProps',{'Color',colors(str2num(model.state_labels{state_idx}),:)});
-                H=shadedErrorBar([win_size(1):binwidth:win_size(2)],mean_pstate,stderr_pstate,'LineProps',{'Color',colors(state_idx,:)});
+                H=shadedErrorBar([win_size(1):binwidth:win_size(2)],mean_pstate,stderr_pstate,'LineProps',{'Color',colors(m,:)});
                 handles(end+1)=H.mainLine;
-                state_labels{end+1}=sprintf('State %d', state_idx);%model.state_labels{state_idx};
-            %end
+                state_labels{end+1}=sprintf('State %d', model.state_labels{state_idx});
+            end
         end
 
         plot([0 0],ylim(),':k');
