@@ -20,8 +20,8 @@ exp_info.conditions={'visual_grasp_left','visual_grasp_right','motor_grasp_left'
     'motor_rake_food_left','motor_rake_food_center','motor_rake_food_right',...
     'visual_rake_push_left','visual_rake_push_right','visual_stick_left','visual_stick_right'};
 
-exp_info.base_data_dir='C:\Users\kirchher\project\tool_learning\data';
-exp_info.base_output_dir='C:\Users\kirchher\project\tool_learning\output';
+exp_info.base_data_dir='E:\project\tool_learning\data';
+exp_info.base_output_dir='E:\project\tool_learning\data\output';
 
 % Position of the monkey's eye
 exp_info.eye_pos=[4.1 23 -13.1];

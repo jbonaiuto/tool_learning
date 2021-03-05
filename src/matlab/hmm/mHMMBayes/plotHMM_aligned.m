@@ -4,12 +4,13 @@ dbstop if error
 
 % Compute dt
  orig_binwidth=(data.bins(2)-data.bins(1));
+ %orig_binwidth=(data.timestep(2)-data.timestep(1));
  new_binwidth=10; 
  if orig_binwidth ~= new_binwidth
     data2=rebin_spikes(data,new_binwidth/orig_binwidth);
     data2=compute_firing_rate(data2, 'baseline_type', 'none', 'win_len', 6);
  else
-     data2 = data
+     data2 = data;
      data2=compute_firing_rate(data2, 'baseline_type', 'none', 'win_len', 6);
  end
 
@@ -49,13 +50,20 @@ for r=1:length(align_events)
     % Times of this event in all trials
     align_event_times = data.metadata.(align_evt);
     
+            %plot the different conditions
+            T = readtable('hmm_data.csv');
+            trials_condition = T.trial;
+    
+    
+    
     % Go through each trial
     t_idx=1;
     for d=1:length(dates)
         day_trials=condition_trials(trial_date==d);
             
         for n=1:length(day_trials)
-            trial_rows=find((forward_probs.subj==d) & (forward_probs.rm==n));
+            %trial_rows=find((forward_probs.subj==d) & (forward_probs.rm==n));
+            trial_rows=find((forward_probs.subj==n));
             
             % Get the bins that we used in the HMM (time>0 and up to 150ms after place)
             bin_idx=find((data.bins>=0) & (data.bins<=(data.metadata.place(day_trials(n))+150)));
