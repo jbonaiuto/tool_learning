@@ -6,6 +6,7 @@ import cv2
 import glob
 import os
 import sys
+import math
 import subprocess
 
 from matplotlib import gridspec
@@ -117,7 +118,7 @@ dlc_projects={
     }
 }
 
-def process_videos(subject, date):
+def process_videos(subject, date, gputouse=None):
     base_video_path = os.path.join(cfg['preprocessed_data_dir'], subject, date, 'video')
     with open(os.path.join(base_video_path,'config.json')) as json_file:
         video_cfg=json.load(json_file)
@@ -169,7 +170,7 @@ def process_videos(subject, date):
                     dlc_cfg=os.path.join('/home/bonaiuto/Projects/tool_learning/preprocessed_data/dlc_projects',
                                      dlc_projects[task][condition][view],'config.yaml')
 
-                    deeplabcut.analyze_videos(dlc_cfg, [os.path.join(view_path, fname)], shuffle=1, save_as_csv=True)
+                    deeplabcut.analyze_videos(dlc_cfg, [os.path.join(view_path, fname)], shuffle=1, save_as_csv=True, gputouse=gputouse)
                     deeplabcut.filterpredictions(dlc_cfg, os.path.join(view_path, fname), shuffle=1)
                     deeplabcut.create_labeled_video(dlc_cfg, [os.path.join(view_path, fname)], shuffle=1, filtered=True,
                                                     draw_skeleton=True)
@@ -274,7 +275,8 @@ def triangulate(dlc_3d_config, video_cfg, origins, table_corners, tocchini, vide
         origins[view]=np.array(origins[view])
         origins[view][0]=origins[view][0]+video_cfg['crop_limits'][view][0]
         origins[view][1]=origins[view][1]+video_cfg['crop_limits'][view][2]
-    [origin, pairs_used]=locate(cam_names,{'front':1,'side':1,'top':1}, origins, pcutoff, projections)
+    [origin, pairs_used]=locate(cam_names,{'front':1,'side':1,'top':1}, origins, pcutoff, projections, reconMode='all')
+
 
     table_coords_3d=[]
     for corner_idx in range(len(table_corners['front'])):
@@ -284,7 +286,7 @@ def triangulate(dlc_3d_config, video_cfg, origins, table_corners, tocchini, vide
             corner[view] =np.array(corner[view])
             corner[view][0]=corner[view][0]+video_cfg['crop_limits'][view][0]
             corner[view][1]=corner[view][1]+video_cfg['crop_limits'][view][2]
-        [coord,pairs_used]=locate(cam_names,{'front':1,'side':1,'top':1},corner,pcutoff,projections)
+        [coord,pairs_used]=locate(cam_names,{'front':1,'side':1,'top':1},corner,pcutoff,projections, reconMode='all')
         table_coords_3d.append(coord)
 
     xy_norm=np.array([[0,0,1]])
@@ -316,7 +318,7 @@ def triangulate(dlc_3d_config, video_cfg, origins, table_corners, tocchini, vide
             tocchino[view]=np.array(tocchino[view])
             tocchino[view][0]=tocchino[view][0]+video_cfg['crop_limits'][view][0]
             tocchino[view][1]=tocchino[view][1]+video_cfg['crop_limits'][view][2]
-        [coord,pairs_used]=locate(cam_names,{'front':1,'side':1,'top':1},tocchino,pcutoff,projections)
+        [coord,pairs_used]=locate(cam_names,{'front':1,'side':1,'top':1},tocchino,pcutoff,projections, reconMode='all')
         tocchino_coord=np.matmul(rot_mat,coord)-origin
         tocchini_coords_3d.append(tocchino_coord)
 
@@ -376,13 +378,13 @@ def triangulate(dlc_3d_config, video_cfg, origins, table_corners, tocchini, vide
                         coords[cam_name]=np.array([dataframe_cam[scorer_cam][bp]['x'].values[f_idx], dataframe_cam[scorer_cam][bp]['y'].values[f_idx]])
                         coords[cam_name][0]=coords[cam_name][0]+video_cfg['crop_limits'][cam_name][0]
                         coords[cam_name][1]=coords[cam_name][1]+video_cfg['crop_limits'][cam_name][2]
-                    [coord, pairs_used] = locate(cam_names, likelihoods, coords, pcutoff, projections)
+                    [coord, pairs_used] = locate(cam_names, likelihoods, coords, pcutoff, projections, reconMode='bestpossible')
 
                     coord=np.matmul(rot_mat, coord)-origin
-                    if pairs_used < 2:
+                    if pairs_used < 3:
                         coord[0]=np.nan
                         coord[1]=np.nan
-                        coord[2] = np.nan
+                        coord[2]=np.nan
                     bp_coords[:,f_idx]=np.squeeze(coord)
                 df_3d.iloc[:][scorer_3d, bp, 'x'] = bp_coords[0,:]
                 df_3d.iloc[:][scorer_3d, bp, 'y'] = bp_coords[1,:]
@@ -486,30 +488,30 @@ def plot2D(k, bodyparts2plot, bodyparts2connect, xyz_pts, table_corners, tocchin
     axes3.set_ylabel('Y', fontsize=10)
     axes3.set_zlabel('Z', fontsize=10)
 
-    table_corners=[np.array([-15,-1,-1]),
-                   np.array([15,-1,-1]),
-                   np.array([15,-24,-1]),
-                   np.array([-15,-24,-1])]
+    # table_corners=[np.array([-15,-1,-1]),
+    #                np.array([15,-1,-1]),
+    #                np.array([15,-24,-1]),
+    #                np.array([-15,-24,-1])]
     axes3.scatter(0, 0, 0, color='k')
     for table_corner in table_corners:
         axes3.scatter(table_corner[0], table_corner[1], table_corner[2], color='k')
     for tocchino in tocchini:
         axes3.scatter(tocchino[0], tocchino[1], tocchino[2], color='k')
-    xlines_3d=[table_corners[0][0], table_corners[1][0]]
-    ylines_3d=[table_corners[0][1], table_corners[1][1]]
-    zlines_3d=[table_corners[0][2], table_corners[1][2]]
+    xlines_3d=[table_corners[0][0,0], table_corners[1][0,0]]
+    ylines_3d=[table_corners[0][1,0], table_corners[1][1,0]]
+    zlines_3d=[table_corners[0][2,0], table_corners[1][2,0]]
     axes3.plot(xlines_3d, ylines_3d, zlines_3d, color='k')
-    xlines_3d=[table_corners[1][0], table_corners[2][0]]
-    ylines_3d=[table_corners[1][1], table_corners[2][1]]
-    zlines_3d=[table_corners[1][2], table_corners[2][2]]
+    xlines_3d=[table_corners[1][0,0], table_corners[2][0,0]]
+    ylines_3d=[table_corners[1][1,0], table_corners[2][1,0]]
+    zlines_3d=[table_corners[1][2,0], table_corners[2][2,0]]
     axes3.plot(xlines_3d, ylines_3d, zlines_3d, color='k')
-    xlines_3d = [table_corners[2][0], table_corners[3][0]]
-    ylines_3d = [table_corners[2][1], table_corners[3][1]]
-    zlines_3d = [table_corners[2][2], table_corners[3][2]]
+    xlines_3d = [table_corners[2][0,0], table_corners[3][0,0]]
+    ylines_3d = [table_corners[2][1,0], table_corners[3][1,0]]
+    zlines_3d = [table_corners[2][2,0], table_corners[3][2,0]]
     axes3.plot(xlines_3d, ylines_3d, zlines_3d, color='k')
-    xlines_3d = [table_corners[3][0], table_corners[0][0]]
-    ylines_3d = [table_corners[3][1], table_corners[0][1]]
-    zlines_3d = [table_corners[3][2], table_corners[0][2]]
+    xlines_3d = [table_corners[3][0,0], table_corners[0][0,0]]
+    ylines_3d = [table_corners[3][1,0], table_corners[0][1,0]]
+    zlines_3d = [table_corners[3][2,0], table_corners[0][2,0]]
     axes3.plot(xlines_3d, ylines_3d, zlines_3d, color='k')
 
     # Plot the labels for each body part
@@ -573,7 +575,7 @@ def fig2data(fig):
     return buf
 
 
-def locate(cam_names, likelihoods, camera_coords, pcutoff, projections):
+def old_locate(cam_names, likelihoods, camera_coords, pcutoff, projections):
     location=np.zeros((3,1))
     pairs_used=0
     for idx1 in range(len(cam_names)):
@@ -594,7 +596,93 @@ def locate(cam_names, likelihoods, camera_coords, pcutoff, projections):
         location=location/pairs_used
     return [location,pairs_used]
 
+
+def locate(cam_names, likelihoods, camera_coords, pcutoff, projections, reconMode='all'):
+
+    numCams = len(cam_names)
+
+    if reconMode=='all':
+
+        A = np.zeros((numCams * 2, 4))
+
+        for i in range(numCams):
+            idx = 2 * i
+            A[idx:idx+2,:] = np.expand_dims(camera_coords[cam_names[i]],1) *np.expand_dims(projections[i][2,:],0) - projections[i][0:2,:]
+
+        u, s, VH = np.linalg.svd(A, full_matrices=False)
+        V = VH.T.conj()
+        X = V[:, -1]
+        X = X / X[-1]
+        X = X[0:3]
+        f=math.factorial
+        pairs_used=f(numCams)/f(2)/f(numCams-2)
+        return [np.expand_dims(X,1),pairs_used]
+
+    if reconMode=='bestpossible':
+        X = np.zeros((3))
+        pairs_used = 0
+        cams_to_use=[]
+        for cam_name in cam_names:
+            if likelihoods[cam_name]>pcutoff:
+                cams_to_use.append(cam_name)
+        if len(cams_to_use)>1:
+            A = np.zeros((len(cams_to_use) * 2, 4))
+
+            for i in range(len(cams_to_use)):
+                cam_idx=cam_names.index(cams_to_use[i])
+                idx = 2 * i
+                A[idx:idx+2,:] = np.expand_dims(camera_coords[cams_to_use[i]],1) *np.expand_dims(projections[cam_idx][2,:],0) - projections[cam_idx][0:2,:]
+
+            u, s, VH = np.linalg.svd(A, full_matrices=False)
+            V = VH.T.conj()
+            X = V[:, -1]
+            X = X / X[-1]
+            X = X[0:3]
+            pairs_used=len(cams_to_use)
+        return [np.expand_dims(X,1), pairs_used]
+
+    elif reconMode=='bestpair':
+        X = np.zeros((3))
+        pairs_used = 0
+
+        likelihood_list=[]
+        for cam_name in cam_names:
+            likelihood_list.append(likelihoods[cam_name])
+        idx_goodness=np.argsort(likelihood_list)
+
+        if likelihood_list[idx_goodness[-1]]>pcutoff and likelihood_list[idx_goodness[-2]]>pcutoff:
+            A = np.zeros((2 * 2, 4))
+            A[0:2, :] = np.expand_dims(camera_coords[cam_names[idx_goodness[-1]]], 1) * np.expand_dims(projections[idx_goodness[-1]][2, :], 0) - projections[idx_goodness[-1]][0:2, :]
+            A[2:4, :] = np.expand_dims(camera_coords[cam_names[idx_goodness[-2]]], 1) * np.expand_dims(projections[idx_goodness[-2]][2, :], 0) - projections[idx_goodness[-2]][0:2, :]
+            u, s, VH = np.linalg.svd(A, full_matrices=False)
+            V = VH.T.conj()
+            X = V[:, -1]
+            X = X / X[-1]
+            X = X[0:3]
+            pairs_used=1
+        return [np.expand_dims(X,1),pairs_used]
+
+    elif reconMode=='avg':
+
+        location = np.zeros((1, 3))
+        pairs_used=0
+        for idx1 in range(len(cam_names)):
+            for idx2 in range(idx1+1,len(cam_names)):
+                if likelihoods[cam_names[idx1]] > pcutoff and likelihoods[cam_names[idx2]] > pcutoff:
+                    A = np.zeros((2 * 2, 4))
+                    A[0:2,:] = np.expand_dims(camera_coords[cam_names[idx1]],1)*np.expand_dims(projections[idx1][2,:],0) - projections[idx1][0:2,:]
+                    A[2:4,:] = np.expand_dims(camera_coords[cam_names[idx2]],1)*np.expand_dims(projections[idx2][2,:],0) - projections[idx2][0:2,:]
+                    u, s, VH = np.linalg.svd(A, full_matrices=False)
+                    V = VH.T.conj()
+                    X = V[:, -1]
+                    X = X / X[-1]
+                    X = X[0:3]
+                    location=location+np.expand_dims(X,1)
+                    pairs_used =pairs_used+1
+        location = location / pairs_used
+        return [location, pairs_used]
+
 if __name__=='__main__':
     subject = sys.argv[1]
     date = sys.argv[2]
-    process_videos(subject, date)
+    process_videos(subject, date, gputouse=0)

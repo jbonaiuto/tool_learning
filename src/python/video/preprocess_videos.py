@@ -35,7 +35,7 @@ def copy_and_rename_videos(subject, date):
 
     # Download videos from server
     cmd = 'rsync -avzhe ssh %s:/home/bonaiuto/tool_learning/video/%s/%s/*.avi %s/' % (cfg['data_server'], subject, date, orig_dir)
-    os.system(cmd)
+    #os.system(cmd)
     
     # Create directory for processed videos
     out_dir=os.path.join(cfg['preprocessed_data_dir'], subject, date,'video')
@@ -324,6 +324,8 @@ def align_videos(subject, date):
                 blue_ts[view]=(blue_ts[view]-np.mean(blue_ts[view][0:10]))/np.mean(blue_ts[view][0:10])
             if len(yellow_ts[view])>10:
                 yellow_ts[view]=(yellow_ts[view]-np.mean(yellow_ts[view][0:10]))/np.mean(yellow_ts[view][0:10])
+            blue_ts[view]=blue_ts[view]/np.max(blue_ts[view])
+            yellow_ts[view]=yellow_ts[view]/np.max(yellow_ts[view])
 
             # plt.figure()
             # plt.subplot(2,1,1)
@@ -333,21 +335,27 @@ def align_videos(subject, date):
             # plt.show()
 
             # Get derivative of blue and yellow ts
-            blue_diff=np.diff(blue_ts[view])
-            yellow_diff=np.diff(yellow_ts[view])
+            #blue_diff=np.diff(blue_ts[view])
+            #yellow_diff=np.diff(yellow_ts[view])
 
             # Get peak blue and yellow LED change times
-            blue_peak=np.max(blue_diff)
-            yellow_peak=np.max(yellow_diff)
+            #blue_peak=np.max(blue_diff)
+            blue_peak = np.max(blue_ts[view])
+            #yellow_peak=np.max(yellow_diff)
+            yellow_peak = np.max(yellow_ts[view])
 
             # If none above 0.05, don't use LEDs for aligning
-            if blue_peak<.05 or yellow_peak<.05:
+            #if blue_peak<.05 or yellow_peak<.05:
+            if len(blue_ts[view])<10 or np.max(blue_ts[view][10:]) < .25 or np.max(yellow_ts[view])<.25:
                 led_based=False
                 print('Cant figure out LED onset - not using')
-            # Otherwise, use the first time point where LED diff exceeds 0.05
+            # Otherwise, use the first time point after 25 time points where LED diff exceeds 0.05
             else:
-                blue_onsets[view] = np.where(blue_diff >= 0.05)[0][0]
-                yellow_onsets[view] = np.where(yellow_diff >= 0.05)[0][0]
+                #blue_onsets[view] = np.where(blue_diff >= 0.05)[0][0]
+                #np.where(blue_ts[view] >= 0.25)[0][0]
+                blue_onsets[view] = 10 + np.where(blue_ts[view][10:] >= 0.25)[0][0]
+                #yellow_onsets[view] = np.where(yellow_diff >= 0.05)[0][0]
+                yellow_onsets[view] = np.where(yellow_ts[view] >= 0.25)[0][0]
 
             video_nframes[view]=n_frames
 
@@ -355,19 +363,23 @@ def align_videos(subject, date):
         if len(blue_onsets.values())>0:
             min_blue_onset=min(blue_onsets.values())
 
-        # plt.figure()
-        # for view in cfg['camera_views']:
-        #     plt.plot(blue_ts[view], label='%s: blue' % view)
-        #     plt.plot(yellow_ts[view], label='%s: yellow' % view)
-        # plt.legend()
-        # plt.show()
+        # if fname=='15-05-2019_10-34-15_11.avi':
+        #     plt.figure()
+        #     for view in cfg['camera_views']:
+        #         plt.plot(blue_ts[view], label='%s: blue' % view)
+        #         plt.plot(yellow_ts[view], label='%s: yellow' % view)
+        #     plt.legend()
+        #     plt.show()
 
         # Compute trial duration based on each view
         trial_durations={}
         for view in cfg['camera_views']:
             if view in blue_onsets and view in yellow_onsets:
-                # Trial duration (in ms, there is an 850ms delay before blue LED comes on)
-                trial_duration=(yellow_onsets[view]-blue_onsets[view])*1.0/clip.fps*1000.0+850.0
+                # Trial duration (in ms)
+                trial_duration=(yellow_onsets[view]-blue_onsets[view])*1.0/clip.fps*1000.0
+                # there is an 850ms delay before blue LED comes on
+                if trial_duration>0:
+                    trial_duration=trial_duration+850.0
                 trial_durations[view]=trial_duration
                 print('%s: %.2fms' % (view, trial_duration))
         #assert(len(trial_durations)>0 and all(x == trial_durations[0] for x in trial_durations))
@@ -520,6 +532,7 @@ def match_video_trials(subject, date):
                 videos.append(data)
 
     sorted_idx=np.argsort(video_names)
+    video_names = [video_names[idx] for idx in sorted_idx]
     videos = [videos[idx] for idx in sorted_idx]
     fnames = [fnames[idx] for idx in sorted_idx]
     # for i in range(6):
@@ -537,17 +550,24 @@ def match_video_trials(subject, date):
     trial_video = []
     trial_video_duration = []
 
-    # If the number of videos = the number of intan files - just match corresponding videos/intan files
-    if len(fnames)==len(np.where(~np.isnan(trial_info.plexon_duration))[0]):
+    start_video_idx=0
+    # Go through each intan file
+    for idx in range(len(trial_info.intan_file)):
+        intan_file=trial_info.intan_file[idx]
+        intan_dur = trial_info.intan_duration[idx]
+        (root,ext)=os.path.splitext(intan_file)
+        root_parts=root.split('_')
+        date_time_str='%s %s' % (root_parts[-2], root_parts[-1])
+        date_time_obj=datetime.strptime(date_time_str, '%y%m%d %H%M%S')
 
-        t_idx=0
-        # Go through each intan file
-        for idx in range(len(trial_info.intan_duration)):
-
-            # Find video view duration most closely matching intan duration
-            intan_dur = trial_info.intan_duration[idx]
-            if not np.isnan(trial_info.plexon_duration[idx]):
-                video_info = videos[t_idx]
+        matched=False
+        for video_idx in range(start_video_idx,len(videos)):
+            video_name=video_names[video_idx]
+            video_name_parts = video_name.split('_')
+            video_date_time_str='%s %s' % (video_name_parts[0],video_name_parts[1])
+            video_date_time_obj=datetime.strptime(video_date_time_str, '%d-%m-%Y %H-%M-%S')
+            if (video_date_time_obj-date_time_obj).seconds>=321 and (video_date_time_obj-date_time_obj).seconds<=323:
+                video_info = videos[video_idx]
                 if video_info is not None:
                     video_durations = []
                     for view in cfg['camera_views']:
@@ -562,88 +582,123 @@ def match_video_trials(subject, date):
                 else:
                     video_duration = float('NaN')
                 # Add filename and duration to list
-                [pth, file] = os.path.split(fnames[t_idx])
+                [pth, file] = os.path.split(fnames[video_idx])
                 trial_video.append(file)
                 trial_video_duration.append(video_duration)
-                t_idx = t_idx + 1
+                matched=True
+                start_video_idx=video_idx+1
+                break
+        if not matched:
+            trial_video.append('')
+            trial_video_duration.append(float('NaN'))
 
-            else:
-                trial_video.append('')
-                trial_video_duration.append(float('NaN'))
-
-
-
-    # Otherwise - need to match based on trial duration (error-prone! check results!)
-    else:
-        print('********** ALERT: different number of videos and trials - check mapping *************')
-        # Currently mapped trial
-        current_rec_trial_num = -1
-
-        video_trials=[]
-        video_trial_durations=[]
-
-        for video_idx in range(len(videos)):
-            # Try to match to video trial
-            matched = False
-
-            # Look if video duration from at least 2 views is within 200ms of intan duration
-            video_info = videos[video_idx]
-            video_durations = []
-            for view in cfg['camera_views']:
-                if view in video_info['trial_duration']:
-                    video_durations.append(video_info['trial_duration'][view])
-            video_durations = np.array(video_durations)
-
-            # Go through each intan file
-            for t_idx in range(current_rec_trial_num + 1, len(trial_info.index)):
-                # Get duration and task
-                intan_dur = trial_info.intan_duration[t_idx]
-
-                if len(video_durations)>1:
-                    dur_delta = np.abs(video_durations - intan_dur)
-                    within_range=np.where(dur_delta<210)[0]
-                    if current_rec_trial_num==-1:
-                        within_range = np.where(dur_delta < 50)[0]
-                    if len(within_range)>0:
-                        matched = True
-                        # Start search from here in video list for next intan file
-                        current_rec_trial_num = t_idx
-
-                        # Add filename and duration to list
-                        video_trials.append(t_idx)
-                        video_trial_durations.append(video_durations[np.where(dur_delta==np.nanmin(dur_delta))[0][0]])
-                        break
-                else:
-                    matched = True
-                    # Start search from here in video list for next intan file
-                    current_rec_trial_num = t_idx
-
-                    # Add filename and duration to list
-                    video_trials.append(t_idx)
-                    if len(video_durations)==1:
-                        video_trial_durations.append(video_durations[0])
-                    else:
-                        video_trial_durations.append(float('NaN'))
-                    break
-
-            # Add to trial info even if not matched
-            if not matched:
-                video_trials.append(float('NaN'))
-                video_trial_durations.append(float('NaN'))
-
-        video_trials=np.array(video_trials)
-
-        trial_video=[]
-        trial_video_duration=[]
-        for t_idx in range(len(trial_info.index)):
-            if len(np.where(video_trials==t_idx)[0]):
-                vid_idx=np.where(video_trials==t_idx)[0][0]
-                [pth, file] = os.path.split(fnames[vid_idx])
-                trial_video.append(file)
-                trial_video_duration.append(video_trial_durations[vid_idx])
-            else:
-                trial_video.append('')
-                trial_video_duration.append(float('NaN'))
+    # # If the number of videos = the number of intan files - just match corresponding videos/intan files
+    # if len(fnames)==len(np.where(~np.isnan(trial_info.plexon_duration))[0]):
+    #
+    #     t_idx=0
+    #     # Go through each intan file
+    #     for idx in range(len(trial_info.intan_duration)):
+    #
+    #         # Find video view duration most closely matching intan duration
+    #         intan_dur = trial_info.intan_duration[idx]
+    #         if not np.isnan(trial_info.plexon_duration[idx]):
+    #             video_info = videos[t_idx]
+    #             if video_info is not None:
+    #                 video_durations = []
+    #                 for view in cfg['camera_views']:
+    #                     if view in video_info['trial_duration']:
+    #                         video_durations.append(video_info['trial_duration'][view])
+    #                 video_durations=np.array(video_durations)
+    #                 if len(video_durations):
+    #                     dur_delta = np.abs(video_durations - intan_dur)
+    #                     video_duration=video_durations[np.where(dur_delta == np.nanmin(dur_delta))[0][0]]
+    #                 else:
+    #                     video_duration=float('NaN')
+    #             else:
+    #                 video_duration = float('NaN')
+    #             # Add filename and duration to list
+    #             [pth, file] = os.path.split(fnames[t_idx])
+    #             trial_video.append(file)
+    #             trial_video_duration.append(video_duration)
+    #             t_idx = t_idx + 1
+    #
+    #         else:
+    #             trial_video.append('')
+    #             trial_video_duration.append(float('NaN'))
+    #
+    #
+    #
+    # # Otherwise - need to match based on trial duration (error-prone! check results!)
+    # else:
+    #     print('********** ALERT: different number of videos and trials - check mapping *************')
+    #     # Currently mapped trial
+    #     current_rec_trial_num = -1
+    #
+    #     video_trials=[]
+    #     video_trial_durations=[]
+    #
+    #     for video_idx in range(len(videos)):
+    #         # Try to match to video trial
+    #         matched = False
+    #
+    #         # Look if video duration from at least 2 views is within 200ms of intan duration
+    #         video_info = videos[video_idx]
+    #         video_durations = []
+    #         for view in cfg['camera_views']:
+    #             if view in video_info['trial_duration']:
+    #                 video_durations.append(video_info['trial_duration'][view])
+    #         video_durations = np.array(video_durations)
+    #
+    #         # Go through each intan file
+    #         for t_idx in range(current_rec_trial_num + 1, len(trial_info.index)):
+    #             # Get duration and task
+    #             intan_dur = trial_info.intan_duration[t_idx]
+    #
+    #             if len(video_durations)>1:
+    #                 dur_delta = np.abs(video_durations - intan_dur)
+    #                 within_range=np.where(dur_delta<500)[0]
+    #                 if current_rec_trial_num==-1:
+    #                     within_range = np.where(dur_delta < 50)[0]
+    #                 if len(within_range)>0:
+    #                     matched = True
+    #                     # Start search from here in video list for next intan file
+    #                     current_rec_trial_num = t_idx
+    #
+    #                     # Add filename and duration to list
+    #                     video_trials.append(t_idx)
+    #                     video_trial_durations.append(video_durations[np.where(dur_delta==np.nanmin(dur_delta))[0][0]])
+    #                     break
+    #             else:
+    #                 matched = True
+    #                 # Start search from here in video list for next intan file
+    #                 current_rec_trial_num = t_idx
+    #
+    #                 # Add filename and duration to list
+    #                 video_trials.append(t_idx)
+    #                 if len(video_durations)==1:
+    #                     video_trial_durations.append(video_durations[0])
+    #                 else:
+    #                     video_trial_durations.append(float('NaN'))
+    #                 break
+    #
+    #         # Add to trial info even if not matched
+    #         if not matched:
+    #             video_trials.append(float('NaN'))
+    #             video_trial_durations.append(float('NaN'))
+    #
+    #     video_trials=np.array(video_trials)
+    #
+    #     trial_video=[]
+    #     trial_video_duration=[]
+    #     for t_idx in range(len(trial_info.index)):
+    #         if len(np.where(video_trials==t_idx)[0]):
+    #             vid_idx=np.where(video_trials==t_idx)[0][0]
+    #             [pth, file] = os.path.split(fnames[vid_idx])
+    #             trial_video.append(file)
+    #             trial_video_duration.append(video_trial_durations[vid_idx])
+    #         else:
+    #             trial_video.append('')
+    #             trial_video_duration.append(float('NaN'))
 
 
     # Add video and video duration columns to trial info
