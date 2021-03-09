@@ -1,5 +1,4 @@
-
-function [data,bad_trials]=filter_data(exp_info, data, varargin)
+function [data,bad_trials]=filter_data(exp_info, data, conditions, varargin)
 
 % FILTER_DATA Filters data by removing trials based on some criteria
 % (currently trials with RT <200 or >1000ms, or correlations less than 10%
@@ -11,6 +10,7 @@ function [data,bad_trials]=filter_data(exp_info, data, varargin)
 %    exp_info - experimental info data structure (created with
 %               init_exp_info.m)
 %    data - structure containing data (created by load_multiunit_data)
+%    conditions - list of conditions to look for  correlations
 %
 % Optional inputs:
 %    min_rt - minimum response time in  ms (excluding fixation; 
