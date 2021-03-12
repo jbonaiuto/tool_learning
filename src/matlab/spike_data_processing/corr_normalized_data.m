@@ -38,31 +38,19 @@ for array_idx = 1:length(arraynames)
                 logic_cond = strcmp(data.metadata.condition,condname);
                 if sum(logic_cond) > 0 && isfield(data,'norm_smoothed_firing_rate')   % Proceeds if condition and normalized data
                                                                      % exist for a particular day
-                    rec_days{array_idx,wta_idx} = squeeze(data.norm_smoothed_firing_rate(1,:,logic_cond,:));
+                    %rec_days{array_idx,wta_idx} = squeeze(data.norm_smoothed_firing_rate(1,:,logic_cond,:));
+                    rec_days{array_idx,wta_idx} = squeeze(data.smoothed_firing_rate(1,:,logic_cond,:));
+                    %--------------
+                    % This part shifts the bin dimension from 3rd to 1st position for an easier
+                    % array reshaping to come
+                    rec_days_shift{array_idx,wta_idx} = shiftdim(rec_days{array_idx,wta_idx},2);
+                    % This is the actual reshaping of the cell array from N BINS X 32 ELECTRODE X N DAY TRIALS
+                    % into an array of N DAY TRIALS X (32 ELECTRODES * N BINS)
+                    rec_days_reshape{array_idx,wta_idx}  = reshape(rec_days_shift{array_idx,wta_idx},...
+                        size(rec_days_shift{array_idx,wta_idx},1)*size(rec_days_shift{array_idx,wta_idx},2),...
+                        size(rec_days_shift{array_idx,wta_idx},3))';
                 end
             end
-        end
-    end
-end
-%--------------
-% This part shifts the bin dimension from 3rd to 1st position for an easier
-% array reshaping to come
-for day_idx = 1:size(rec_days,2)
-    for array_idx = 1:length(arraynames)
-        if length(rec_days{array_idx,day_idx})>0
-            rec_days_shift{array_idx,day_idx} = shiftdim(rec_days{array_idx,day_idx},2);
-        end
-    end
-end
-%--------------
-% This is the actual reshaping of the cell array from N BINS X 32 ELECTRODE X N DAY TRIALS
-% into an array of N DAY TRIALS X (32 ELECTRODES * N BINS)
-for day_idx = 1:size(rec_days,2)
-    for array_idx = 1:length(arraynames)
-        if length(rec_days{array_idx,day_idx})>0
-            rec_days_reshape{array_idx,day_idx}  = reshape(rec_days_shift{array_idx,day_idx},...
-                size(rec_days_shift{array_idx,day_idx},1)*size(rec_days_shift{array_idx,day_idx},2),...
-                size(rec_days_shift{array_idx,day_idx},3))';
         end
     end
 end
