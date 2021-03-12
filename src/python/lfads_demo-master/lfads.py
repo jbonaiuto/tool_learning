@@ -1003,7 +1003,7 @@ class LFADS_Net(nn.Module):
         
         pred_data = self.reconstruct(batch_example)
         true_data = data[ix].cpu().numpy()
-        figs_dict['traces'] = self.plot_traces(pred_data, true_data, mode='activity', norm=False)
+        figs_dict['traces'] = self.plot_traces(pred_data, true_data, mode='activity', norm=False, num_traces=pred_data.shape[1])
         figs_dict['traces'].suptitle('Spiking Data vs.Inferred Rate')
         figs_dict['traces'].legend(['Inferred Rates', 'Spikes'])
         

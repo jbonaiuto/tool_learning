@@ -1,12 +1,12 @@
 % suffled frobenius norm comparison
 %
-% FC matrix comparison by using frobenius norm. 
+% FC matrix comparison by using frobenius norm.
 % INPUT:    condition:  condition for comparison
 %           ref:        reference condition for comparison
 %           source : array(s) from FC matrix
 %           target : array(s) from FC matrix
 %
-%           optional: 
+%           optional:
 %           nb_simulation: number of simulation (default 100)
 %           CI_p:          Confident interval probability (default 95%)
 %
@@ -16,13 +16,13 @@
 % 09/2020
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function suffled_frobenius(condition,ref,source,target,varargin)
+function suffled_frobenius(condition,ref,varargin)
 
 % Parse optional arguments
 defaults=struct( 'output_fname', 'granger_glm_results.mat',...
     'output_path', '../../../../output/functional_connectivity',...
     'nb_simulation',1000,...
-    'CI_p', 95);
+    'CI_p', .05);
 params=struct(varargin{:});
 for f=fieldnames(defaults)'
     if ~isfield(params, f{1})
@@ -31,129 +31,170 @@ for f=fieldnames(defaults)'
 end
 
 % data
-if exist(fullfile(params.output_path,'fcc_dataset.mat'))
-else
-fcc_dataset('output_path',params.output_path);
-end
+% if exist(fullfile(params.output_path,'fcc_dataset.mat'))
+% else
+%     fcc_dataset('output_path',params.output_path);
+% end
+%load('fcc_dataset.mat');
 load(fullfile(params.output_path,'fcc_dataset.mat'));
 
-%source selection
-scr = NaN(1,64);
-if any(strcmp(source,'F1'))
-scr(1,1:32) = [1:32];
-end
-if any(strcmp(source,'F5hand'))
-scr(1,33:64) = [33:64];
-end
-scr = scr(~isnan(scr));
-
-%Target selection
-tgt = NaN(1,64);
-if any(strcmp(target,'F1'))
-tgt(1,1:32) = [1:32];
-end
-if any(strcmp(target,'F5hand'))
-tgt(1,33:64) = [33:64];
-end
-tgt = tgt(~isnan(tgt));
-
+dist_metric='euclidean';
 
 %% matrix differences-------------------------
 
 % function for contuting the confident interval
-%CIFcn = @(x,p)std(x(:),'omitnan')/sqrt(sum(~isnan(x(:)))) * tinv(abs([0,1]-(1-p/100)/2),sum(~isnan(x(:)))-1) + mean(x(:),'omitnan'); 
 CIFcn = @(x,p)prctile(x,abs([0,100]-(100-p)/2));
 
+% for p = 1:2
+%     if p ==1
+%        psi = 'Psi1';
+%     elseif p == 2
+%         psi = 'Psi2';
+%     end
 
-week = weekIncondition(condition);
-refweek = weekIncondition(ref);
-Shuffled_val = NaN(57,params.nb_simulation);
-table_val = NaN(57,3); % col: 'real-frobenuis', 'low_CI', 'high_CI'
+n_days=40;
+corrected_CI_p=(1-params.CI_p/n_days)*100;
+distance = NaN(4,n_days); % col: 'real-frobenuis', 'low_CI', 'high_CI'
+low_ci = NaN(4,n_days);
+high_ci = NaN(4,n_days);
+    
+    
+psi= 'Psi1';
+slcs={'F1F1','F1F5','F5F1','F5F5'};
+srcs=[1:32;1:32;33:64;33:64];
+tgts=[1:32;33:64;1:32;33:64];
 
-for i = 1:57
-  A = X.(sprintf('%s',ref{1})).(sprintf('W%d', refweek(1))); % ref: matrix A
-
-  if week(find(week==i))==i
-  B = X.(sprintf('%s',condition{1})).(sprintf('W%d', week(find(week==i)))); % matrix B
-      if isnan(B) 
-      else
-  table_val(i,1) = norm(A(tgt,scr)-B(tgt,scr),'fro'); % frobenius norm difference
-        for j = 1:params.nb_simulation % shuffled B matrix generation loop
-            Shuffled_A = A(tgt,scr);
-            [rw cl] = size(Shuffled_A);
-            Shuffled_A =reshape(Shuffled_A(randperm(rw*cl)),rw,cl);% shuffled A matrix generation 
-            Shuffled_B = B(tgt,scr);
-            Shuffled_B =reshape(Shuffled_B(randperm(rw*cl)),rw,cl);% shuffled B matrix generation 
-
-           % Shuffled_val(i,j) = norm(A(tgt,scr)-Shuffled_B,'fro'); % frobenius norm difference for shuffled matrix
-      
-            Shuffled_val(i,j) = norm(Shuffled_A-Shuffled_B,'fro'); % frobenius norm difference for shuffled matrix
-
-        end
-                x = Shuffled_val(i,1:params.nb_simulation); % CI computation by week
-            p=params.CI_p; % alfa
-            CI = CIFcn(x,p); % CI computation (see function 
-            table_val(i,2:3)= CI;
+for m = 1:length(slcs)
+    slc=slcs{m};
+    src=srcs(m,:);
+    tgt=tgts(m,:);
+    
+    slc
+    % lm
+    mdl = mdl_full(slc,ref);
+    % trialnb
+    tnb = trialnb(condition);
+    reftnb = trialnb('fixation');
+    
+    if strcmp(condition , 'fixation')== true
+    tnb(6) = NaN;
+    elseif strcmp(condition , 'visual_rake_pull_left')== true
+    tnb(26) = NaN;
+    tnb(27) = NaN;
+    tnb(29) = NaN;
+    tnb(30) = NaN;
+    tnb(31) = NaN;
+    tnb(32) = NaN;
+    end
+    
+    
+    refweek = availableweekIncondition(ref);
+    
+    refMat = X.(sprintf('%s',psi)).(sprintf('%s',ref{1})).(sprintf('W%d', refweek(1))); % ref: matrix A
+    refMat_sel= refMat(tgt,src);
+                    
+    for i = 1:n_days
+        if isfield(X.(sprintf('%s',psi)).(sprintf('%s',condition{1})),sprintf('W%d', i))
             
-  end
-  else 
-  end
-      
+            compMat = X.(sprintf('%s',psi)).(sprintf('%s',condition{1})).(sprintf('W%d', i)); % matrix B
+            if ~isnan(compMat)
+                
+                % Get just the portion we are interested in
+                compMat_sel=compMat(tgt,src);
+                
+                % Figure out the max distance
+                [rw cl] = size(refMat_sel);
+                negMat=-1.*ones(rw,cl);
+                posMat=ones(rw,cl);
+                maxDist=pdist([negMat(:)'; posMat(:)'],dist_metric);
+                
+                % Compuate distance as a proportion of max distance
+                distance(m,i) = pdist([refMat_sel(:)'; compMat_sel(:)'],dist_metric)/maxDist;
+                % correction y-(m*sqrt(trials)+b)
+                distance(m,i) =  distance(m,i)-(mdl.Coefficients{2,1} * sqrt(tnb(i))' + mdl.Coefficients{1,1});
+                
+                shuffled_distance = NaN(params.nb_simulation,1);
+                
+                
+                for j = 1:params.nb_simulation % shuffled B matrix generation loop
+                    % Generate random matrix with same proportion of -1, 0, and 1 to reference                   
+                    num_neg=length(find(refMat_sel(:)==-1));
+                    num_zero=length(find(refMat_sel(:)==0));
+                    num_pos=length(find(refMat_sel(:)==1));
+                    ratios=[num_neg num_zero num_pos]./(rw*cl);
+                    rand_refMat=reshape(randsample([-1 0 1],rw*cl,true,ratios),rw,cl);
+                    
+                    shuffled_distance(j) = pdist([rand_refMat(:)'; refMat_sel(:)'],dist_metric)/maxDist;
+                        
 
- end
+
+                end
+                % lm for ref CI
+               nbtref(1:length(shuffled_distance(:,1)),1) = reftnb(6);
+               refmdl = fitlm(nbtref,shuffled_distance);
+                    shuffled_distance =  shuffled_distance-(refmdl.Coefficients{2,1}*sqrt(reftnb(6))'+refmdl.Coefficients{1,1});
+                CI = CIFcn(shuffled_distance,corrected_CI_p); % CI computation (see function
+                
+                
+                low_ci(m,i)= CI(1);
+                high_ci(m,i)= CI(2);
+            end
+        end
+        
+        
+    end
+    %% correction
 
 
 
-reftit = strrep(ref,'_left','');
-reftit = strrep(ref{1},'_',' ');
-reftit = strrep(reftit,'left','');
-condtit = strrep(condition{1},'left','');
-X.comparison.(sprintf('%s_W%d',reftit, refweek(1))).(sprintf('%s',condtit))=  table_val;
 
 
-
+ 
+    
+end
 
 
 %% plot
 
 % label for axis
 label = {};
-for i = 1:57
-  label{i} = {sprintf('%02d', i)} ;
+for i = 1:n_days
+    label{i} = {sprintf('%02d', i)} ;
 end
-X.label=label';
-source = [source{:}];
-target = [target{:}];
+
 cond = strrep(strrep(condition{1},'_',' '),'left','');
 
-scalemax = max(table_val(:,3))+1;
-scalemmin = min(table_val(:,2))-1;
+scalemax = max([distance(:); low_ci(:); high_ci(:)])+0.01;
+scalemin = min([distance(:); low_ci(:); high_ci(:)])-0.01;
 
-% figure
+%correction
+
+
+
 fig=figure();
-set(gcf,'position',[200,200,1400,500]);
-extraInputs = {'interpreter','latex','fontsize',16};
-xlabel('weeks',extraInputs{:});
-ylabel(sprintf('matrix difference (ref:X.%s.W%d)',reftit, refweek(1)),extraInputs{:})
-xticks([1:57])
-xticklabels(string(label));
-title(sprintf('Frobenius Norm comparison %s source %s, target %s', cond ,source, target),extraInputs{:});
-hold on;
-%plot(Shuffled_val ,'r-+')
-plot(table_val(:,3) ,'r:v')
-plot(table_val(:,2) ,'R:^')
-plot(table_val(:,1) ,'k-*')
-plot([7.5 7.5],[scalemmin scalemax], 'k:')   %stage2
-plot([32.5 32.5],[scalemmin scalemax], 'k:') %stage3
-plot(57,scalemmin, 'w:') % all weeks
-hold off;
-legend({sprintf('CI %d upper bound (%d simulations)',params.CI_p,params.nb_simulation),sprintf('CI %d lower bound (%d simulations) ',params.CI_p,params.nb_simulation),sprintf('%s source %s, target %s', cond ,source, target)},'Location','northeast',extraInputs{:})
+set(gcf,'position',[200,200,1400,1000]);
 
-% save data
-X=X.comparison.(sprintf('%s_W%d',reftit, refweek(1)));
-saveas(fig, fullfile(params.output_path, sprintf('SFN_%s_src_%s_tgt_%s_ref_%s.png',condtit,source,target,reftit)));
-savefig(fig, fullfile(params.output_path,sprintf('SFN_%s_src_%s_tgt_%s_ref_%s.fig',condtit,source,target,reftit)));
-save(fullfile(params.output_path,sprintf('SFN_%s_src_%s_tgt_%s_ref_%s.mat',condtit,source,target,reftit)),'X');
+for m = 1:length(slcs)
+    slc=slcs{m};
+    subplot(length(slcs),1,m);
+    extraInputs = {'interpreter','latex','fontsize',12};
+    xlabel('week',extraInputs{:});
+    ylabel('distance',extraInputs{:})
+    xticks([1:n_days])
+    xticklabels(string(label));
+    title(sprintf('%s %s', cond ,slc),extraInputs{:});
+    hold on;
+    plot(high_ci(m,:) ,'r:v')
+    plot(low_ci(m,:) ,'R:^')
+    plot(distance(m,:) ,'k-*')
+    ylim([scalemin,scalemax]);
+    plot([7.5 7.5],ylim(), 'b')   %stage2
+    plot([32.5 32.5],ylim(), 'b') %stage3
+    hold off;
+    legend({'CI upper bound','CI lower bound'},'Location','northeast',extraInputs{:})
+end
 
-%END
+
+saveas(fig, fullfile(params.output_path, sprintf('F_%s_ref_%s.png',strrep(condition{1},'_left',''),ref{1})));
+%save(fullfile(params.output_path,sprintf('SFN_%s_src_%s_tgt_%s_ref_%s.mat',cond,source,target,reftit)),'X');
 

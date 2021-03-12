@@ -1,7 +1,10 @@
+import json
+
 import cv2
 import os
 import re
 
+from config import read_config
 from deeplabcut.utils import auxiliaryfunctions, pickle, auxiliaryfunctions_3d
 
 import deeplabcut
@@ -10,6 +13,8 @@ import numpy as np
 
 cameras=['front','side','top']
 camera_pairs=[['front','side'],['front','top'],['side','top']]
+
+cfg = read_config()
 
 def opencv_matrix(loader, node):
     mapping=loader.construct_mapping(node, deep=True)
@@ -29,6 +34,34 @@ def readYAMLFile(filename):
         yamlFileOut=myRe.sub(r': \1', yamlFileOut)
         ret=yaml.load(yamlFileOut)
     return ret
+
+def calibrate_from_landmarks(subject, date):
+    base_video_path = os.path.join(cfg['preprocessed_data_dir'], subject, date, 'video')
+    with open(os.path.join(base_video_path, 'config.json')) as json_file:
+        video_cfg = json.load(json_file)
+
+    # Initialize the dictionary
+    img_shape = {}
+    objpoints = {}  # 3d point in real world space
+    imgpoints = {}  # 2d points in image plane.
+    dist_pickle = {}
+    stereo_params = {}
+    for cam in cfg['camera_views']:
+        objpoints.setdefault(cam, [])
+        imgpoints.setdefault(cam, [])
+        dist_pickle.setdefault(cam, [])
+
+    for cam in cfg['camera_views']:
+        crop_lims=video_cfg['crop_limits'][cam]
+        img_shape[cam]=(crop_lims[1]-crop_lims[0], crop_lims[3]-crop_lims[2])
+
+        corners=np.zeros((1+4+10,1,2))
+        corners[0,0,:]=video_cfg['origins'][cam]
+        for i in range(4):
+            corners[i+1,0,:]=video_cfg['table_corners'][cam][i]
+        for i in range(10):
+            corners[i+5,0,:]=video_cfg['tocchini'][cam][i]
+
 
 def convert_doveeye_to_dlc(config, doveeye_calib_file):
     cfg_3d = auxiliaryfunctions.read_config(config)
@@ -97,7 +130,7 @@ if __name__=='__main__':
 
     #convert_doveeye_to_dlc(cfg, '/home/bonaiuto/Projects/tool_learning/data/video/calibrated_25.10.18.yaml')
 
-    #deeplabcut.calibrate_cameras(cfg,cbrow=8,cbcol=6,calibrate=False,alpha=0.9)
+    #deeplabcut.calibrate_cameras(cfg,cbrow=8,cbcol=6,calibrate=True,alpha=0.9)
     #deeplabcut.calibrate_cameras(cfg, cbrow=8, cbcol=6, calibrate=True, alpha=0.9)
 
     deeplabcut.check_undistortion(cfg)

@@ -1,5 +1,7 @@
 data/
 *.asv
+*.csv
+*mat
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -106,3 +108,4 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+.Rproj.user
