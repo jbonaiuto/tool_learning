@@ -39,7 +39,7 @@ if exist(fullfile(data_dir,date,'spikes'),'dir')==7
             out_file=fullfile(out_dir, sprintf('fr_b_%s_%s_%s.mat', exp_info.array_names{arr_idx}, date, evt));
 
             % If not already binned
-            if params.overwrite || exist(out_file,'file')~=2
+            %if params.overwrite || exist(out_file,'file')~=2
                 % Realign to event
                 data_ali=realign(array_data,evt);
                 % Bin
@@ -48,21 +48,23 @@ if exist(fullfile(data_dir,date,'spikes'),'dir')==7
                 % Compute firing rate
                 data=compute_firing_rate(data_binned, 'baseline_type', 'condition','win_len', 60);
                 data.trial_date=ones(1,data.ntrials);
+                disp(out_file);
                 save(out_file,'data','-v7.3');
-            end
+            %end
         end
 
         % Bin whole trial
         out_file=fullfile(out_dir, sprintf('fr_b_%s_%s_whole_trial.mat', exp_info.array_names{arr_idx}, date));
-        if params.overwrite || exist(out_file,'file')~=2
+        %if params.overwrite || exist(out_file,'file')~=2
             % Bin 
             data_binned=bin_spikes(array_data, [-1000 10000], bin_size,...
                 'baseline_evt', 'go','baseline_woi', [-500 0]);
             % Compute firing rate
             data=compute_firing_rate(data_binned, 'baseline_type', 'condition','win_len', 60);
             data.trial_date=ones(1,data.ntrials);
+            disp(out_file);
             save(out_file,'data','-v7.3');
-        end
+        %end
     end
     toc
 end
