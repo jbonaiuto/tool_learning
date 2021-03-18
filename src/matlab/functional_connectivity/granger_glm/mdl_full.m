@@ -42,13 +42,15 @@ for m = 1:length(conditions)
   end
     
     
-    refweek = availableweekIncondition(ref);
+    refweek = weekIncondition(ref);
     refMat = X.(sprintf('%s',psi)).(sprintf('%s',ref{1})).(sprintf('W%d', refweek(1))); % ref: matrix A
     refMat_sel= refMat(tgt,src);
     
 
                     
     for i = 1:n_days
+           if strcmp(condition , ref)== true & refweek(1)==i
+     else
         if isfield(X.(sprintf('%s',psi)).(sprintf('%s',condition)),sprintf('W%d', i))
             compMat = X.(sprintf('%s',psi)).(sprintf('%s',condition)).(sprintf('W%d', i)); % matrix B
      
@@ -68,6 +70,7 @@ for m = 1:length(conditions)
 
             end
         end
+           end
     end
     
     
@@ -86,16 +89,10 @@ trialsTable(:,7) = trialnb('motor_grasp_left');
 trialsTable(:,8) = trialnb('motor_rake_left');
 trialsTable(:,9) = trialnb('motor_rake_food_left');
 
+
 end
 
 trialsTable(6,1) = NaN;
-trialsTable(26,4) = NaN;
-trialsTable(27,4) = NaN;
-trialsTable(29,4) = NaN;
-trialsTable(30,4) = NaN;
-trialsTable(31,4) = NaN;
-trialsTable(32,4) = NaN;
-
 
 
 %%
