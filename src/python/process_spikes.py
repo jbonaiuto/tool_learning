@@ -193,5 +193,5 @@ def rerun(subject, date_start_str):
 if __name__=='__main__':
     subject = sys.argv[1]
     recording_date = sys.argv[2]
-    #run_process_spikes(subject, recording_date)
-    rerun(subject, recording_date)
+    run_process_spikes(subject, recording_date)
+    #rerun(subject, recording_date)

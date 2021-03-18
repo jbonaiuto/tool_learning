@@ -45,7 +45,7 @@ for array_idx=1:length(arraynames)
 
             % Rebinning and smoothing part
             data=rebin_spikes(data, binsize);
-            data=compute_firing_rate(data,'win_len',10);
+            data=compute_firing_rate(data,'win_len',100);
             %----------------
 
             % Normalization part
@@ -67,4 +67,5 @@ for array_idx=1:length(arraynames)
         save(fullfile(dirout, newfilename),'data');
     end
 end
+
 
