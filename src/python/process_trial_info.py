@@ -462,10 +462,9 @@ class IntanRecordingSet:
         self.tasks=[]
         self.trial_durations=[]
 
-        # Files containing multiple trials
-        self.multiple_trial_files=[]
         # Files where trial recording is cutoff
-        self.cutoff_trial_files=[]
+        self.precutoff_trial_files=[]
+        self.postcutoff_trial_files = []
 
         self.read_files(output_dir)
 
@@ -515,80 +514,71 @@ class IntanRecordingSet:
             # If there is at least one start and stop time
             if len(trial_start)>0 and len(trial_end)>0:
 
-                extra_dur=None
-
-                if len(trial_start)>len(trial_end):
-                    last_trial_start=trial_start[-1]
-                    # Recording goes until end of file
-                    dur_step = len(rec_signal) - last_trial_start
-                    # Ignore single time step blups
-                    if dur_step > 1:
-                        extra_dur = dur_step / self.srate * 1000
+                # Start of next trial at end
+                if len(trial_start)==2 and len(trial_end)==1 and trial_start[1]>trial_end[0]:
+                    trial_start=[trial_start[0]]
+                # Start of last trial at beginnig
+                elif len(trial_end)==2 and len(trial_start)==1 and trial_end[0]<trial_start[0]:
+                    trial_end=[trial_end[-1]]
+                elif len(trial_start)>len(trial_end):
+                    print('more trial start')
                     trial_start=trial_start[0:-1]
-                elif len(trial_end)>len(trial_start):
-                    first_trial_end=trial_end[0]
-                    # Recording starts at beginning of file
-                    dur_step = first_trial_end
-                    # Ignore single time step blips
-                    if dur_step > 1:
-                        dur_ms = dur_step / self.srate * 1000
-                        # if dur_ms < 10000:
-                        self.trial_durations.append(dur_ms)
-                        self.tasks.append(task)
-                        self.files.append(file)
-                        self.cutoff_trial_files.append(len(self.files) - 1)
-                    trial_end = trial_end[1:]
+                elif len(trial_start) < len(trial_end):
+                    print('more trial end')
+                    trial_end=trial_end[1:]
 
                 # Number of time steps between each up and down state switch
                 dur_steps=trial_end-trial_start
 
-                # For each trial in the file
-                n_trials=0
-                for dur_step in dur_steps:
-                    # Ignore single time step blups
-                    if dur_step>1:
-                        dur_ms=dur_step/self.srate*1000
-                        self.trial_durations.append(dur_ms)
-                        self.tasks.append(task)
-                        self.files.append(file)
-                        n_trials=n_trials+1
-
-                # If trial contains multiple trials
-                if n_trials>1:
-                    for i in range(n_trials):
-                        self.multiple_trial_files.append(len(self.files)-1-i)
-
-                if extra_dur is not None:
-                    # if dur_ms < 10000:
-                    self.trial_durations.append(extra_dur)
+                nz_steps=np.where(dur_steps>5)[0]
+                if len(nz_steps)==1:
+                    dur_step=dur_steps[nz_steps[0]]
+                    dur_ms = dur_step / self.srate * 1000
+                    self.trial_durations.append(dur_ms)
                     self.tasks.append(task)
                     self.files.append(file)
-                    self.cutoff_trial_files.append(len(self.files) - 1)
+                elif len(nz_steps)>1:
+                    print('too many nz steps')
+                    dur_step=trial_end[-1]-trial_start[0]
+                    dur_ms = dur_step / self.srate * 1000
+                    self.trial_durations.append(dur_ms)
+                    self.tasks.append(task)
+                    self.files.append(file)
+                else:
+                    print('no nz steps')
+                    self.trial_durations.append(0)
+                    self.tasks.append(task)
+                    self.files.append(file)
+
 
             # If there is a trial start and no trial end - files are split into two if longer than 60s
             elif len(trial_start)>0 and len(trial_end)==0:
                 # Recording goes until end of file
                 dur_step = len(rec_signal) - trial_start[0]
                 # Ignore single time step blups
-                if dur_step > 1:
+                if dur_step > 5:
                     dur_ms = dur_step / self.srate * 1000
                     #if dur_ms < 10000:
                     self.trial_durations.append(dur_ms)
                     self.tasks.append(task)
                     self.files.append(file)
-                    self.cutoff_trial_files.append(len(self.files)-1)
+                    self.postcutoff_trial_files.append(len(self.files)-1)
+                else:
+                    print('blip')
             # If there is a trial end and no trial start- files are split into two if longer than 60s
             elif len(trial_start)==0 and len(trial_end)>0:
                 # Recording starts at beginning of file
                 dur_step = trial_end[0]
                 # Ignore single time step blips
-                if dur_step > 1:
+                if dur_step > 5:
                     dur_ms = dur_step / self.srate * 1000
                     #if dur_ms < 10000:
                     self.trial_durations.append(dur_ms)
                     self.tasks.append(task)
                     self.files.append(file)
-                    self.cutoff_trial_files.append(len(self.files) - 1)
+                    self.precutoff_trial_files.append(len(self.files) - 1)
+                else:
+                    print('blip')
 
     """
     Get toal number of trials
@@ -701,7 +691,8 @@ def run_process_trial_info(subj_name, date):
                             trial_info['condition'].append(trial_condition)
                             trial_info['reward'].append(len(plexon_set.recordings[session_idx].trial_events[plx_t_idx]['reward'])>0)
                             status='good'
-                            if t_idx in intan_set.multiple_trial_files or t_idx in intan_set.cutoff_trial_files or error:
+                            #if t_idx in intan_set.multiple_trial_files or t_idx in intan_set.cutoff_trial_files or error:
+                            if t_idx in intan_set.precutoff_trial_files or t_idx in intan_set.postcutoff_trial_files or error:
                                 status='bad'
                             trial_info['status'].append(status)
                             trial_info['log_file'].append(os.path.split(log_set.logs[session_idx].file)[1])
@@ -1007,7 +998,7 @@ def check_visual_trial(block_idx, trial_idx, condition, sorted_evts):
     error = False
 
     if 'error' in sorted_evts:
-        #print('Error, trial %d has error event' % trial_idx)
+        print('Error, block %d, trial %d-%s, error' % (block_idx, trial_idx, condition))
         error=True
     else:
         if len(sorted_evts) == 0 or not sorted_evts[0] == 'trial_start':
@@ -1082,7 +1073,7 @@ def check_motor_grasp_trial(block_idx, trial_idx, condition, sorted_evts):
     error = False
 
     if 'error' in sorted_evts:
-        #print('Error, trial %d has error event' % trial_idx)
+        print('Error, block %d, trial %d-%s, error' % (block_idx, trial_idx, condition))
         error=True
     else:
         if len(sorted_evts) == 0 or not sorted_evts[0] == 'trial_start':
@@ -1134,7 +1125,7 @@ def check_motor_rake_trial(block_idx, trial_idx, condition, sorted_evts):
     error = False
 
     if 'error' in sorted_evts:
-        #print('Error, trial %d has error event' % trial_idx)
+        print('Error, block %d, trial %d-%s, error' % (block_idx, trial_idx, condition))
         error = True
     else:
         if len(sorted_evts) == 0 or not sorted_evts[0] == 'trial_start':
@@ -1215,7 +1206,7 @@ def check_fixation_trial(block_idx, trial_idx, condition, sorted_evts):
     error = False
 
     if 'error' in sorted_evts:
-        #print('Error, trial %d has error event' % trial_idx)
+        print('Error, block %d, trial %d-%s, error' % (block_idx, trial_idx, condition))
         error=True
 
     else:
@@ -1267,5 +1258,5 @@ def rerun(subject, date_start_str):
 if __name__=='__main__':
     subject = sys.argv[1]
     recording_date = sys.argv[2]
-    run_process_trial_info(subject, recording_date)
-    #rerun(subject,recording_date)
+    #run_process_trial_info(subject, recording_date)
+    rerun(subject,recording_date)
