@@ -523,10 +523,14 @@ class IntanRecordingSet:
                 if trial_start[-1]>trial_end[-1]:
                     trial_start=trial_start[0:-1]
                     plot=True
+
+            if len(trial_start) > 0 and len(trial_end) > 0:
                 # Start of last trial at beginnig
                 if trial_end[0]<trial_start[0]:
                     trial_end=trial_end[1:]
                     plot=True
+
+            if len(trial_start) > 0 and len(trial_end) > 0:
                 if len(trial_start)>len(trial_end):
                     print('more trial start')
                     trial_start=trial_start[0:-1]
@@ -536,6 +540,7 @@ class IntanRecordingSet:
                     trial_end=trial_end[1:]
                     plot=True
 
+            if len(trial_start) > 0 and len(trial_end) > 0:
                 # Number of time steps between each up and down state switch
                 dur_steps=trial_end-trial_start
 

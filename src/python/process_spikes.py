@@ -46,19 +46,20 @@ def run_process_spikes(subj_name, date):
             trial_start = np.where(np.diff(rec_signal) == 1)[0]
             trial_end = np.where(np.diff(rec_signal) == -1)[0]
 
+            trial_start_idx = 0
+            trial_end_idx = len(rec_signal) - 1
+            trial_start_evt_idx = 0
+
             # If there is at least one start and stop time
             if len(trial_start) > 0 and len(trial_end) > 0:
-
-                trial_start_idx = 0
-                trial_end_idx = len(rec_signal) - 1
-                trial_start_evt_idx = 0
-
                 # Start of next trial at end
                 if trial_start[-1] > trial_end[-1]:
                     trial_start = trial_start[0:-1]
+            if len(trial_start) > 0 and len(trial_end) > 0:
                 # Start of last trial at beginnig
                 if trial_end[0] < trial_start[0]:
                     trial_end = trial_end[1:]
+            if len(trial_start) > 0 and len(trial_end) > 0:
                 if len(trial_start) > len(trial_end):
                     print('more trial start')
                     trial_start = trial_start[0:-1]
