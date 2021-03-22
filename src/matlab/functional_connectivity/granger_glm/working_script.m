@@ -84,7 +84,7 @@ fcc_dataset('output_path',dir);
 fixation = suffled_frobenius({'fixation'},{'fixation'},'output_path',dir)
 visual_grasp = suffled_frobenius({'visual_grasp_left'},{'fixation'},'output_path',dir)
 visual_pliers = suffled_frobenius({'visual_pliers_left'},{'fixation'},'output_path',dir)
-visual_rake_pull = suffled_frobenius({'visual_rake_pull_left'},{'fixation'},'output_path',dir)
+suffled_frobenius({'visual_rake_pull_left'},{'fixation'},'output_path',dir)
 visual_rake_push = suffled_frobenius({'visual_rake_push_left'},{'fixation'},'output_path',dir)
 visual_stick = suffled_frobenius({'visual_stick_left'},{'fixation'},'output_path',dir)
 motor_grasp = suffled_frobenius({'motor_grasp_left'},{'fixation'},'output_path',dir)
@@ -105,7 +105,7 @@ cor_comp_trials({'motor_rake_food_left'},{'fixation'},'output_path',dir)
 
 
 
-mdl_full({'F1F1'},{'fixation'},'output_path',dir)
+mdl_full({'F1F1'},{'fixation'})
 mdl_full({'F1F5'},{'fixation'},'output_path',dir)
 mdl_full({'F5F1'},{'fixation'},'output_path',dir)
 mdl_full({'F5F5'},{'fixation'},'output_path',dir)

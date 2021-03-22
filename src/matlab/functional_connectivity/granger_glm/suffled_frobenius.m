@@ -30,12 +30,6 @@ for f=fieldnames(defaults)'
     end
 end
 
-% data
-% if exist(fullfile(params.output_path,'fcc_dataset.mat'))
-% else
-%     fcc_dataset('output_path',params.output_path);
-% end
-%load('fcc_dataset.mat');
 load(fullfile(params.output_path,'fcc_dataset.mat'));
 
 dist_metric='euclidean';
@@ -44,13 +38,6 @@ dist_metric='euclidean';
 
 % function for contuting the confident interval
 CIFcn = @(x,p)prctile(x,abs([0,100]-(100-p)/2));
-
-% for p = 1:2
-%     if p ==1
-%        psi = 'Psi1';
-%     elseif p == 2
-%         psi = 'Psi2';
-%     end
 
 n_days=40;
 corrected_CI_p=(1-params.CI_p/n_days)*100;
@@ -73,31 +60,29 @@ for m = 1:length(slcs)
     % lm
     mdl = mdl_full(slc,ref);
     % trialnb
-    tnb = trialnb(condition);
+   1;
     reftnb = trialnb('fixation');
     
-    if strcmp(condition , 'fixation')== true
-    tnb(6) = NaN;
-    elseif strcmp(condition , 'visual_rake_pull_left')== true
-    tnb(26) = NaN;
-    tnb(27) = NaN;
-    tnb(29) = NaN;
-    tnb(30) = NaN;
-    tnb(31) = NaN;
-    tnb(32) = NaN;
-    end
     
-    
-    refweek = availableweekIncondition(ref);
+    refweek = weekIncondition(ref);
     
     refMat = X.(sprintf('%s',psi)).(sprintf('%s',ref{1})).(sprintf('W%d', refweek(1))); % ref: matrix A
     refMat_sel= refMat(tgt,src);
-                    
+                 
+    
+     
+         
     for i = 1:n_days
+        if strcmp(condition , ref)== true & refweek(1)==i
+     else
+        
         if isfield(X.(sprintf('%s',psi)).(sprintf('%s',condition{1})),sprintf('W%d', i))
             
             compMat = X.(sprintf('%s',psi)).(sprintf('%s',condition{1})).(sprintf('W%d', i)); % matrix B
+          
             if ~isnan(compMat)
+                
+               
                 
                 % Get just the portion we are interested in
                 compMat_sel=compMat(tgt,src);
@@ -110,7 +95,7 @@ for m = 1:length(slcs)
                 
                 % Compuate distance as a proportion of max distance
                 distance(m,i) = pdist([refMat_sel(:)'; compMat_sel(:)'],dist_metric)/maxDist;
-                % correction y-(m*sqrt(trials)+b)
+                %correction y-(m*sqrt(trials)+b)
                 distance(m,i) =  distance(m,i)-(mdl.Coefficients{2,1} * sqrt(tnb(i))' + mdl.Coefficients{1,1});
                 
                 shuffled_distance = NaN(params.nb_simulation,1);
@@ -126,8 +111,6 @@ for m = 1:length(slcs)
                     
                     shuffled_distance(j) = pdist([rand_refMat(:)'; refMat_sel(:)'],dist_metric)/maxDist;
                         
-
-
                 end
                 % lm for ref CI
                nbtref(1:length(shuffled_distance(:,1)),1) = reftnb(6);
@@ -141,7 +124,7 @@ for m = 1:length(slcs)
             end
         end
         
-        
+        end
     end
     %% correction
 

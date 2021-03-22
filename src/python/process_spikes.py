@@ -25,17 +25,6 @@ def run_process_spikes(subj_name, date):
 
         trial_info=pd.read_csv(os.path.join(preproc_dir,'trial_info.csv'))
         print(date)
-        # rec_data_dir = os.path.join(cfg['preprocessed_data_dir'], subj_name, date,'rhd2000')
-        # rec_fnames = glob(os.path.join(rec_data_dir, '*.json'))
-        # rec_fdates = []
-        # for rec_fname in rec_fnames:
-        #     fparts = os.path.splitext(rec_fname)[0].split('_')
-        #     try:
-        #         filedate = datetime.strptime('%s.%s' % (fparts[-2], fparts[-1]), '%d%m%y.%H%M%S')
-        #         rec_fdates.append(filedate)
-        #     except:
-        #         pass
-        # rec_fnames = [x[1] for x in sorted(zip(rec_fdates, rec_fnames))]
 
         seg_trial_start_idx=[]
         seg_trial_end_idx=[]
@@ -57,54 +46,44 @@ def run_process_spikes(subj_name, date):
             trial_start = np.where(np.diff(rec_signal) == 1)[0]
             trial_end = np.where(np.diff(rec_signal) == -1)[0]
 
-            trial_start_idx = []
-            trial_end_idx = []
-            trial_start_evt_idx = []
-
             # If there is at least one start and stop time
             if len(trial_start) > 0 and len(trial_end) > 0:
 
-                add_extra=False
-                extra_start_idx=[]
-                extra_end_idx=[]
-                extra_start_evt_idx=[]
-                if len(trial_start) > len(trial_end):
-                    last_trial_start = trial_start[-1]
-                    # Recording goes until end of file
-                    dur_step = len(rec_signal) - last_trial_start
-                    # Ignore single time step blups
-                    if dur_step > 1:
-                        add_extra=True
-                        extra_start_idx=np.max([0, last_trial_start - srate])
-                        extra_end_idx=len(rec_signal) - 1
-                        extra_start_evt_idx=last_trial_start
+                trial_start_idx = 0
+                trial_end_idx = len(rec_signal) - 1
+                trial_start_evt_idx = 0
+
+                if len(trial_start)==2 and len(trial_end)==1 and trial_start[1]>trial_end[0]:
+                    trial_start=[trial_start[0]]
+                # Start of last trial at beginnig
+                elif len(trial_end) == 2 and len(trial_start) == 1 and trial_end[0] < trial_start[0]:
+                    trial_end = [trial_end[-1]]
+                elif len(trial_start)>len(trial_end):
+                    print('more trial start')
                     trial_start = trial_start[0:-1]
-                elif len(trial_end) > len(trial_start):
-                    first_trial_end = trial_end[0]
-                    # Recording starts at beginning of file
-                    dur_step = first_trial_end
-                    # Ignore single time step blips
-                    if dur_step > 1:
-                        trial_start_idx.append(0)
-                        trial_end_idx.append(np.min([len(rec_signal) - 1, first_trial_end + srate]))
-                        trial_start_evt_idx.append(0)
+                elif len(trial_start) < len(trial_end):
+                    print('more trial end')
                     trial_end = trial_end[1:]
 
                 # Number of time steps between each up and down state switch
                 dur_steps = trial_end - trial_start
 
-                # For each trial in the file
-                for idx,dur_step in enumerate(dur_steps):
-                    # Ignore single time step blups
-                    if dur_step > 1:
-                        trial_start_idx.append(np.max([0, trial_start[idx]-srate]))
-                        trial_end_idx.append(np.min([len(rec_signal)-1, trial_end[idx]+srate]))
-                        trial_start_evt_idx.append(trial_start[idx])
+                nz_steps=np.where(dur_steps>5)[0]
+                if len(nz_steps)==1:
+                    trial_start_idx=np.max([0, trial_start[0] - srate])
+                    trial_end_idx=np.min([len(rec_signal) - 1, trial_end[0] + srate])
+                    trial_start_evt_idx=trial_start[0]
 
-                if add_extra:
-                    trial_start_idx.append(extra_start_idx)
-                    trial_end_idx.append(extra_end_idx)
-                    trial_start_evt_idx.append(extra_start_evt_idx)
+                elif len(nz_steps)>1:
+                    print('too many nz steps')
+                    trial_start_idx=np.max([0, trial_start[0] - srate])
+                    trial_end_idx=np.min([len(rec_signal) - 1, trial_end[-1] + srate])
+                    trial_start_evt_idx=trial_start[0]
+                else:
+                    print('no nz steps')
+                    ##trial_start_idx.append(0)
+                    #trial_end_idx.append(len(rec_signal) - 1)
+                    #trial_start_evt_idx.append(-1)
 
                 seg_trial_start_idx.append(trial_start_idx)
                 seg_trial_end_idx.append(trial_end_idx)
@@ -115,23 +94,27 @@ def run_process_spikes(subj_name, date):
                 # Recording goes until end of file
                 dur_step = len(rec_signal) - trial_start
                 # Ignore single time step blups
-                if dur_step > 1:
-                    seg_trial_start_idx.append([np.max([0,trial_start[0]-srate])])
-                    seg_trial_end_idx.append([len(rec_signal)-1])
-                    seg_trial_start_evt_idx.append([trial_start[0]])
+                if dur_step > 5:
+                    seg_trial_start_idx.append(np.max([0,trial_start[0]-srate]))
+                    seg_trial_end_idx.append(len(rec_signal)-1)
+                    seg_trial_start_evt_idx.append(trial_start[0])
+                else:
+                    print('blip')
             # If there is a trial end and no trial start
             elif len(trial_start) == 0 and len(trial_end) > 0:
                 # Recording starts at beginning of file
                 dur_step = trial_end
                 # Ignore single time step blips
-                if dur_step > 1:
-                    seg_trial_start_idx.append([0])
-                    seg_trial_end_idx.append([np.min([len(rec_signal)-1, trial_end[0]+srate])])
-                    seg_trial_start_evt_idx.append([0])
+                if dur_step > 5:
+                    seg_trial_start_idx.append(0)
+                    seg_trial_end_idx.append(np.min([len(rec_signal)-1, trial_end[0]+srate]))
+                    seg_trial_start_evt_idx.append(0)
+                else:
+                    print('blip')
             else:
-                seg_trial_start_idx.append([])
-                seg_trial_end_idx.append([])
-                seg_trial_start_evt_idx.append([])
+                seg_trial_start_idx.append(0)
+                seg_trial_end_idx.append(len(rec_signal)-1)
+                seg_trial_start_evt_idx.append(0)
 
         # Import spikes
         for array_idx, region in enumerate(cfg['arrays']):
@@ -146,7 +129,7 @@ def run_process_spikes(subj_name, date):
                 for seg_idx in np.unique(electrode_df.segment):
                     seg_rows = np.where(electrode_df.segment == seg_idx)[0]
                     if len(seg_rows)==1:
-                        seg_spike_idx = np.array([np.int64(electrode_df.time[seg_rows])])
+                        seg_spike_idx = np.int64(electrode_df.time[seg_rows])
                     else:
                         seg_spike_idx = np.int64(electrode_df.time[seg_rows])
 
@@ -154,19 +137,20 @@ def run_process_spikes(subj_name, date):
                     trial_end_idx=seg_trial_end_idx[seg_idx]
                     trial_start_evt_idx=seg_trial_start_evt_idx[seg_idx]
 
-                    for t_idx in range(len(trial_start_idx)):
-                        trial_rows=np.where((seg_spike_idx>=trial_start_idx[t_idx]) &
-                                            (seg_spike_idx<=trial_end_idx[t_idx]))[0]
-                        trial_spike_times=seg_times[seg_idx][seg_spike_idx[trial_rows]]
-                        trial_start_time=seg_times[seg_idx][int(trial_start_evt_idx[t_idx])]
-                        spike_times=trial_spike_times-trial_start_time
+                    trial_rows=np.where((seg_spike_idx>=trial_start_idx) &
+                                        (seg_spike_idx<=trial_end_idx))[0]
+                    trial_spike_times=seg_times[seg_idx][seg_spike_idx[trial_rows]]
+                    trial_start_time=seg_times[seg_idx][int(trial_start_evt_idx)]
+                    spike_times=trial_spike_times-trial_start_time
 
-                        new_data['array'].extend(electrode_df.array[seg_rows[trial_rows]])
-                        new_data['electrode'].extend(electrode_df.electrode[seg_rows[trial_rows]])
-                        new_data['cell'].extend(electrode_df.cell[seg_rows[trial_rows]])
-                        new_data['trial'].extend((trial_idx*np.ones(len(trial_rows))).tolist())
-                        new_data['time'].extend(spike_times)
-                        trial_idx=trial_idx+1
+                    if len(trial_spike_times)==1:
+                        pass
+                    new_data['array'].extend(electrode_df.array[seg_rows[trial_rows]])
+                    new_data['electrode'].extend(electrode_df.electrode[seg_rows[trial_rows]])
+                    new_data['cell'].extend(electrode_df.cell[seg_rows[trial_rows]])
+                    new_data['trial'].extend((trial_idx*np.ones(len(trial_rows))).tolist())
+                    new_data['time'].extend(spike_times)
+                    trial_idx=trial_idx+1
                 df = pd.DataFrame(new_data, columns=['array', 'electrode', 'cell', 'trial', 'time'])
                 df.to_csv(os.path.join(out_dir,os.path.split(fname)[1]),index=False)
 
