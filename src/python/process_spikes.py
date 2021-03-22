@@ -127,29 +127,34 @@ def run_process_spikes(subj_name, date):
                 trial_idx=0
 
                 for seg_idx in np.unique(electrode_df.segment):
-                    seg_rows = np.where(electrode_df.segment == seg_idx)[0]
-                    if len(seg_rows)==1:
-                        seg_spike_idx = np.int64(electrode_df.time[seg_rows])
-                    else:
-                        seg_spike_idx = np.int64(electrode_df.time[seg_rows])
-
                     trial_start_idx=seg_trial_start_idx[seg_idx]
                     trial_end_idx=seg_trial_end_idx[seg_idx]
                     trial_start_evt_idx=seg_trial_start_evt_idx[seg_idx]
-
-                    trial_rows=np.where((seg_spike_idx>=trial_start_idx) &
-                                        (seg_spike_idx<=trial_end_idx))[0]
-                    trial_spike_times=seg_times[seg_idx][seg_spike_idx[trial_rows]]
                     trial_start_time=seg_times[seg_idx][int(trial_start_evt_idx)]
-                    spike_times=trial_spike_times-trial_start_time
-
-                    if len(trial_spike_times)==1:
-                        pass
-                    new_data['array'].extend(electrode_df.array[seg_rows[trial_rows]])
-                    new_data['electrode'].extend(electrode_df.electrode[seg_rows[trial_rows]])
-                    new_data['cell'].extend(electrode_df.cell[seg_rows[trial_rows]])
-                    new_data['trial'].extend((trial_idx*np.ones(len(trial_rows))).tolist())
-                    new_data['time'].extend(spike_times)
+                    
+                    seg_rows = np.where(electrode_df.segment == seg_idx)[0]
+                    seg_spike_idx = np.int64(electrode_df.time[seg_rows])
+                    spike_times=[]
+                    if len(seg_rows)==1:
+                        if seg_spike_idx>=trial_start_idx and seg_spike_idx<=trial_end_idx:
+                            trial_spike_times=seg_times[seg_idx][seg_spike_idx]
+                            spike_times=trial_spike_times-trial_start_time
+                            new_data['array'].append(electrode_df.array[seg_rows[0]])
+                            new_data['electrode'].append(electrode_df.electrode[seg_rows[0]])
+                            new_data['cell'].append(electrode_df.cell[seg_rows[0]])
+                            new_data['trial'].append(trial_idx)
+                            new_data['time'].append(spike_times)
+                    else:                    
+                        trial_rows=np.where((seg_spike_idx>=trial_start_idx) &
+                                            (seg_spike_idx<=trial_end_idx))[0]
+                        trial_spike_times=seg_times[seg_idx][seg_spike_idx[trial_rows]]
+                    
+                        spike_times=trial_spike_times-trial_start_time
+                        new_data['array'].extend(electrode_df.array[seg_rows[trial_rows]])
+                        new_data['electrode'].extend(electrode_df.electrode[seg_rows[trial_rows]])
+                        new_data['cell'].extend(electrode_df.cell[seg_rows[trial_rows]])
+                        new_data['trial'].extend((trial_idx*np.ones(len(trial_rows))).tolist())
+                        new_data['time'].extend(spike_times)
                     trial_idx=trial_idx+1
                 df = pd.DataFrame(new_data, columns=['array', 'electrode', 'cell', 'trial', 'time'])
                 df.to_csv(os.path.join(out_dir,os.path.split(fname)[1]),index=False)
@@ -177,5 +182,5 @@ def rerun(subject, date_start_str):
 if __name__=='__main__':
     subject = sys.argv[1]
     recording_date = sys.argv[2]
-    run_process_spikes(subject, recording_date)
-    #rerun(subject, recording_date)
+    #run_process_spikes(subject, recording_date)
+    rerun(subject, recording_date)
