@@ -323,12 +323,14 @@ class PlexonRecording:
         for evt_code in event_channels.keys():
             event_times[evt_code] = []
         for seg_idx, seg in enumerate(block.segments):
-            # Get the start and end times of each trial
-            start_times.extend([x.rescale('ms').magnitude.item(0) for x in seg.events[event_channels['trial_start']]])
-            stop_times.extend([x.rescale('ms').magnitude.item(0) for x in seg.events[event_channels['trial_stop']]])
-            # Get time of all events in this segment
-            for evt_code in event_channels.keys():
-                event_times[evt_code].extend([x.rescale('ms').magnitude.item(0) for x in seg.events[event_channels[evt_code]]])
+            if len(seg.events)>0:
+                # Get the start and end times of each trial
+                start_times.extend([x.rescale('ms').magnitude.item(0) for x in seg.events[event_channels['trial_start']]])
+                stop_times.extend([x.rescale('ms').magnitude.item(0) for x in seg.events[event_channels['trial_stop']]])
+                # Get time of all events in this segment
+                for evt_code in event_channels.keys():
+                    event_times[evt_code].extend([x.rescale('ms').magnitude.item(0) for x in seg.events[event_channels[evt_code]]])
+                    
         for evt_code in event_channels.keys():
             event_times[evt_code]=np.array(event_times[evt_code])
 
