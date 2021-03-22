@@ -57,9 +57,9 @@ def run_process_spikes(subj_name, date):
                 if trial_start[-1] > trial_end[-1]:
                     trial_start = trial_start[0:-1]
                 # Start of last trial at beginnig
-                elif trial_end[0] < trial_start[0]:
+                if trial_end[0] < trial_start[0]:
                     trial_end = trial_end[1:]
-                elif len(trial_start) > len(trial_end):
+                if len(trial_start) > len(trial_end):
                     print('more trial start')
                     trial_start = trial_start[0:-1]
                 elif len(trial_start) < len(trial_end):

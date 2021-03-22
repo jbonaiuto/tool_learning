@@ -514,6 +514,7 @@ class IntanRecordingSet:
             trial_end = np.where(np.diff(rec_signal) == -1)[0]
 
             times=np.array(range(len(rec_signal)))/self.srate*1000
+            plot = False
 
             # If there is at least one start and stop time
             if len(trial_start)>0 and len(trial_end)>0:
@@ -521,19 +522,19 @@ class IntanRecordingSet:
                 # Start of next trial at end
                 if trial_start[-1]>trial_end[-1]:
                     trial_start=trial_start[0:-1]
-                    save_rec_signal_image(times,rec_signal, os.path.join(output_dir, '%s.png' % prefix))
+                    plot=True
                 # Start of last trial at beginnig
-                elif trial_end[0]<trial_start[0]:
+                if trial_end[0]<trial_start[0]:
                     trial_end=trial_end[1:]
-                    save_rec_signal_image(times,rec_signal, os.path.join(output_dir, '%s.png' % prefix))
-                elif len(trial_start)>len(trial_end):
+                    plot=True
+                if len(trial_start)>len(trial_end):
                     print('more trial start')
                     trial_start=trial_start[0:-1]
-                    save_rec_signal_image(times,rec_signal, os.path.join(output_dir, '%s.png' % prefix))
+                    plot=True
                 elif len(trial_start) < len(trial_end):
                     print('more trial end')
                     trial_end=trial_end[1:]
-                    save_rec_signal_image(times,rec_signal, os.path.join(output_dir, '%s.png' % prefix))
+                    plot=True
 
                 # Number of time steps between each up and down state switch
                 dur_steps=trial_end-trial_start
@@ -557,18 +558,18 @@ class IntanRecordingSet:
                     self.trial_durations.append(dur_ms)
                     self.tasks.append(task)
                     self.files.append(file)
-                    save_rec_signal_image(times,rec_signal, os.path.join(output_dir, '%s.png' % prefix))
+                    plot=True
                 else:
                     print('no nz steps')
                     self.trial_durations.append(0)
                     self.tasks.append(task)
                     self.files.append(file)
-                    save_rec_signal_image(times,rec_signal, os.path.join(output_dir, '%s.png' % prefix))
+                    plot=True
 
 
             # If there is a trial start and no trial end - files are split into two if longer than 60s
             elif len(trial_start)>0 and len(trial_end)==0:
-                save_rec_signal_image(times,rec_signal, os.path.join(output_dir, '%s.png' % prefix))
+                plot=True
                 # Recording goes until end of file
                 dur_step = len(rec_signal) - trial_start[0]
                 # Ignore single time step blups
@@ -583,7 +584,7 @@ class IntanRecordingSet:
                     print('blip')
             # If there is a trial end and no trial start- files are split into two if longer than 60s
             elif len(trial_start)==0 and len(trial_end)>0:
-                save_rec_signal_image(times,rec_signal, os.path.join(output_dir, '%s.png' % prefix))
+                plot=True
                 # Recording starts at beginning of file
                 dur_step = trial_end[0]
                 # Ignore single time step blips
@@ -596,6 +597,9 @@ class IntanRecordingSet:
                     self.precutoff_trial_files.append(len(self.files) - 1)
                 else:
                     print('blip')
+
+            if plot:
+                save_rec_signal_image(times, rec_signal, os.path.join(output_dir, '%s.png' % prefix))
 
     """
     Get toal number of trials
