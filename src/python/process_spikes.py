@@ -53,12 +53,13 @@ def run_process_spikes(subj_name, date):
                 trial_end_idx = len(rec_signal) - 1
                 trial_start_evt_idx = 0
 
-                if len(trial_start)==2 and len(trial_end)==1 and trial_start[1]>trial_end[0]:
-                    trial_start=[trial_start[0]]
+                # Start of next trial at end
+                if trial_start[-1] > trial_end[-1]:
+                    trial_start = trial_start[0:-1]
                 # Start of last trial at beginnig
-                elif len(trial_end) == 2 and len(trial_start) == 1 and trial_end[0] < trial_start[0]:
-                    trial_end = [trial_end[-1]]
-                elif len(trial_start)>len(trial_end):
+                elif trial_end[0] < trial_start[0]:
+                    trial_end = trial_end[1:]
+                elif len(trial_start) > len(trial_end):
                     print('more trial start')
                     trial_start = trial_start[0:-1]
                 elif len(trial_start) < len(trial_end):
@@ -68,22 +69,23 @@ def run_process_spikes(subj_name, date):
                 # Number of time steps between each up and down state switch
                 dur_steps = trial_end - trial_start
 
-                nz_steps=np.where(dur_steps>5)[0]
-                if len(nz_steps)==1:
-                    trial_start_idx=np.max([0, trial_start[0] - srate])
-                    trial_end_idx=np.min([len(rec_signal) - 1, trial_end[0] + srate])
-                    trial_start_evt_idx=trial_start[0]
-
-                elif len(nz_steps)>1:
+                nz_steps = np.where(dur_steps > 1)[0]
+                if len(nz_steps) == 1:
+                    trial_start_idx = np.max([0, trial_start[0] - srate])
+                    trial_end_idx = np.min([len(rec_signal) - 1, trial_end[0] + srate])
+                    trial_start_evt_idx = trial_start[0]
+                elif len(nz_steps) > 1:
                     print('too many nz steps')
-                    trial_start_idx=np.max([0, trial_start[0] - srate])
-                    trial_end_idx=np.min([len(rec_signal) - 1, trial_end[-1] + srate])
-                    trial_start_evt_idx=trial_start[0]
+                    trial_start_ms = trial_start / srate * 1000
+                    best_start_idx = np.argmin(np.abs(trial_start_ms - 1000))
+                    trial_end_ms = trial_end / srate * 1000
+                    trial_dur_ms = len(rec_signal) / srate * 1000
+                    best_end_idx = np.argmin(np.abs(trial_end_ms - (trial_dur_ms - 1000)))
+                    trial_start_idx = np.max([0, trial_start[best_start_idx] - srate])
+                    trial_end_idx = np.min([len(rec_signal) - 1, trial_end[best_end_idx] + srate])
+                    trial_start_evt_idx = trial_start[best_start_idx]
                 else:
                     print('no nz steps')
-                    ##trial_start_idx.append(0)
-                    #trial_end_idx.append(len(rec_signal) - 1)
-                    #trial_start_evt_idx.append(-1)
 
                 seg_trial_start_idx.append(trial_start_idx)
                 seg_trial_end_idx.append(trial_end_idx)
@@ -94,7 +96,7 @@ def run_process_spikes(subj_name, date):
                 # Recording goes until end of file
                 dur_step = len(rec_signal) - trial_start
                 # Ignore single time step blups
-                if dur_step > 5:
+                if dur_step > 1:
                     seg_trial_start_idx.append(np.max([0,trial_start[0]-srate]))
                     seg_trial_end_idx.append(len(rec_signal)-1)
                     seg_trial_start_evt_idx.append(trial_start[0])
@@ -105,7 +107,7 @@ def run_process_spikes(subj_name, date):
                 # Recording starts at beginning of file
                 dur_step = trial_end
                 # Ignore single time step blips
-                if dur_step > 5:
+                if dur_step > 1:
                     seg_trial_start_idx.append(0)
                     seg_trial_end_idx.append(np.min([len(rec_signal)-1, trial_end[0]+srate]))
                     seg_trial_start_evt_idx.append(0)
