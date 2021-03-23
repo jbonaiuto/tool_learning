@@ -126,7 +126,6 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
             fig.clf()
             plt.close()
 
-    recording_base_path = os.path.join(cfg['intan_data_dir'],subject)
     array_impedances = {}
     for array in cfg['arrays']:
         array_impedances[array]={}
@@ -138,35 +137,36 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
     while current_date <= date_end:
         print(current_date)
         current_date_str = datetime.strftime(current_date, '%d.%m.%y')
-        if os.path.isdir(os.path.join(recording_base_path, current_date_str)):
-
-            fname = os.path.join(recording_base_path, current_date_str, '%s_%s_impedance_data.csv' % (subject, current_date_str))
-            if os.path.exists(fname):
-                print(fname)
-                with open(fname, 'rU') as csvfile:
-                    reader = csv.reader(csvfile, delimiter=',')
-                    empty_file=True
-                    day_impedances={}
-                    for array in cfg['arrays']:
-                        day_impedances[array] = {}
-                        for electrode in range(cfg['n_channels_per_array]']):
-                            day_impedances[array][electrode] = float('NaN')
-                    for idx, row in enumerate(reader):
-                        if idx > 0:
-                            empty_file=False
-                            chan_name = row[1]
-                            array = array_map[chan_name.split('-')[0]]
-                            electrode = int(chan_name.split('-')[1])-1#+arrays.index(array)*32
-                            impedance = float(row[4])
-                            day_impedances[array][electrode]=impedance
-                    for array in cfg['arrays']:
-                        for electrode in range(cfg['n_channels_per_array']):
-                            array_impedances[array][electrode].append(day_impedances[array][electrode])
-                    if not empty_file:
-                        impedance_dates.append(current_date_str)
-                    else:
-                        print('no impedance data for %s!' % current_date_str)
-
+        for intan_dir in cfg['intan_data_dirs']:
+            if os.path.exists(os.path.join(intan_dir,subject,current_date_str)):
+                recording_base_path=os.path.join(intan_dir,subject,current_date_str)
+                fname = os.path.join(recording_base_path, current_date_str, '%s_%s_impedance_data.csv' % (subject, current_date_str))
+                if os.path.exists(fname):
+                    print(fname)
+                    with open(fname, 'rU') as csvfile:
+                        reader = csv.reader(csvfile, delimiter=',')
+                        empty_file=True
+                        day_impedances={}
+                        for array in cfg['arrays']:
+                            day_impedances[array] = {}
+                            for electrode in range(cfg['n_channels_per_array]']):
+                                day_impedances[array][electrode] = float('NaN')
+                        for idx, row in enumerate(reader):
+                            if idx > 0:
+                                empty_file=False
+                                chan_name = row[1]
+                                array = array_map[chan_name.split('-')[0]]
+                                electrode = int(chan_name.split('-')[1])-1#+arrays.index(array)*32
+                                impedance = float(row[4])
+                                day_impedances[array][electrode]=impedance
+                        for array in cfg['arrays']:
+                            for electrode in range(cfg['n_channels_per_array']):
+                                array_impedances[array][electrode].append(day_impedances[array][electrode])
+                        if not empty_file:
+                            impedance_dates.append(current_date_str)
+                        else:
+                            print('no impedance data for %s!' % current_date_str)
+                break
         current_date = current_date + timedelta(days=1)
 
     for array in array_impedances:
@@ -192,5 +192,5 @@ def generate_longitudinal_report(subject, date_start_str, date_end_str):
 if __name__=='__main__':
     subject=sys.argv[1]
     end_date=sys.argv[2]
-    generate_longitudinal_report('betta','01.02.19',end_date)
+    generate_longitudinal_report(subject,'01.02.19',end_date)
 
