@@ -602,6 +602,14 @@ class IntanRecordingSet:
                     self.precutoff_trial_files.append(len(self.files) - 1)
                 else:
                     print('blip')
+            else:
+                print('no start/stop times')
+                dur_ms = len(rec_signal) / self.srate * 1000
+                # if dur_ms < 10000:
+                self.trial_durations.append(dur_ms)
+                self.tasks.append(task)
+                self.files.append(file)
+                plot=True
 
             if plot:
                 save_rec_signal_image(times, rec_signal, os.path.join(output_dir, '%s.png' % prefix))
