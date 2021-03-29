@@ -464,10 +464,6 @@ class IntanRecordingSet:
         self.tasks=[]
         self.trial_durations=[]
 
-        # Files where trial recording is cutoff
-        self.precutoff_trial_files=[]
-        self.postcutoff_trial_files = []
-
         self.read_files(output_dir)
 
     """
@@ -482,13 +478,19 @@ class IntanRecordingSet:
         for fname in files:
             (path,root)=os.path.split(fname)
             (prefix,ext)=os.path.splitext(root)
-            file_datetimes.append(datetime.strptime(prefix.split('_')[-1],'%H%M%S'))
-            file_tasks.append('_'.join(prefix.split('_')[1:-2]))
+            if datetime.strptime(prefix.split('_')[-2],'%y%m%d')==datetime.strptime(self.date,'%d.%m.%y'):
+                file_datetimes.append(datetime.strptime(prefix.split('_')[-1],'%H%M%S'))
+                file_tasks.append('_'.join(prefix.split('_')[1:-2]))
         sorted_files=sorted(zip(file_datetimes,files,file_tasks))
+
+        cutoff_dur_ms = None
+        cutoff_file = None
 
         # Split files into trials
         for idx, (time, file, task) in enumerate(sorted_files):
 
+            if task=='visual_task_stage_1-2':
+                task = 'visual_task_stage1-2'
             (path, root) = os.path.split(file)
             (prefix, ext) = os.path.splitext(root)
             json_fname=os.path.join(output_dir, '%s.json' % prefix)
@@ -516,19 +518,27 @@ class IntanRecordingSet:
             times=np.array(range(len(rec_signal)))/self.srate*1000
             plot = False
 
-            # If there is at least one start and stop time
-            if len(trial_start)>0 and len(trial_end)>0:
+            # Start of next trial at end
+            if len(trial_start)>1 and len(trial_end)>0 and trial_start[-1]>trial_end[-1]:
+                if cutoff_file is not None:
+                    print('cutoff without end of trial')
+                cutoff_dur_ms=(len(rec_signal)-trial_start[-1])/self.srate*1000.0
+                cutoff_file=file
+                trial_start=trial_start[0:-1]
+                plot=True
 
-                # Start of next trial at end
-                if trial_start[-1]>trial_end[-1]:
-                    trial_start=trial_start[0:-1]
-                    plot=True
-
-            if len(trial_start) > 0 and len(trial_end) > 0:
-                # Start of last trial at beginnig
-                if trial_end[0]<trial_start[0]:
-                    trial_end=trial_end[1:]
-                    plot=True
+            # Start of last trial at beginning
+            if len(trial_start)>0 and len(trial_end)>1 and trial_end[0]<trial_start[0]:
+                if cutoff_file is None:
+                    print('end of trial without start')
+                else:
+                    self.trial_durations.append(trial_end[0]/self.srate*1000.0+cutoff_dur_ms)
+                    self.tasks.append(task)
+                    self.files.append(';'.join([cutoff_file, file]))
+                    cutoff_file=None
+                    cutoff_dur_ms=None
+                trial_end=trial_end[1:]
+                plot=True
 
             if len(trial_start) > 0 and len(trial_end) > 0:
                 if len(trial_start)>len(trial_end):
@@ -545,28 +555,19 @@ class IntanRecordingSet:
                 dur_steps=trial_end-trial_start
 
                 nz_steps=np.where(dur_steps>1)[0]
-                if len(nz_steps)==1:
-                    dur_step=dur_steps[nz_steps[0]]
+                if len(nz_steps) > 0:
+                    if len(nz_steps) > 1:
+                        print('too many nz steps')
+                        plot = True
+                    dur_step=trial_end[nz_steps]-trial_start[nz_steps]
                     dur_ms = dur_step / self.srate * 1000
-                    self.trial_durations.append(dur_ms)
-                    self.tasks.append(task)
-                    self.files.append(file)
-                elif len(nz_steps)>1:
-                    print('too many nz steps')
-                    trial_start_ms=trial_start/self.srate*1000
-                    best_start_idx=np.argmin(np.abs(trial_start_ms-1000))
-                    trial_end_ms=trial_end/self.srate*1000
-                    trial_dur_ms=len(rec_signal)/self.srate*1000
-                    best_end_idx=np.argmin(np.abs(trial_end_ms-(trial_dur_ms-1000)))
-                    dur_step=trial_end[best_end_idx]-trial_start[best_start_idx]
-                    dur_ms = dur_step / self.srate * 1000
-                    self.trial_durations.append(dur_ms)
-                    self.tasks.append(task)
-                    self.files.append(file)
-                    plot=True
+                    for d in dur_ms:
+                        self.trial_durations.append(d)
+                        self.tasks.append(task)
+                        self.files.append(file)
                 else:
                     print('no nz steps')
-                    self.trial_durations.append(0)
+                    self.trial_durations.append(-1)
                     self.tasks.append(task)
                     self.files.append(file)
                     plot=True
@@ -579,12 +580,15 @@ class IntanRecordingSet:
                 dur_step = len(rec_signal) - trial_start[0]
                 # Ignore single time step blups
                 if dur_step > 1:
-                    dur_ms = dur_step / self.srate * 1000
+                    if cutoff_file is not None:
+                        print('cutoff without end of trial')
+                    cutoff_dur_ms = dur_step / self.srate * 1000
+                    cutoff_file = file
                     #if dur_ms < 10000:
-                    self.trial_durations.append(dur_ms)
-                    self.tasks.append(task)
-                    self.files.append(file)
-                    self.postcutoff_trial_files.append(len(self.files)-1)
+                    #self.trial_durations.append(dur_ms)
+                    #self.tasks.append(task)
+                    #self.files.append(file)
+                    #self.postcutoff_trial_files.append(len(self.files)-1)
                 else:
                     print('blip')
             # If there is a trial end and no trial start- files are split into two if longer than 60s
@@ -594,19 +598,30 @@ class IntanRecordingSet:
                 dur_step = trial_end[0]
                 # Ignore single time step blips
                 if dur_step > 1:
-                    dur_ms = dur_step / self.srate * 1000
+                    if cutoff_file is None:
+                        print('end of trial without start')
+                        self.trial_durations.append(-1)
+                        self.tasks.append(task)
+                        self.files.append(file)
+                    else:
+                        dur_ms = dur_step / self.srate * 1000
+                        self.trial_durations.append(cutoff_dur_ms+dur_ms)
+                        self.tasks.append(task)
+                        self.files.append(';'.join([cutoff_file,file]))
+                        cutoff_dur_ms=None
+                        cutoff_file=None
                     #if dur_ms < 10000:
-                    self.trial_durations.append(dur_ms)
-                    self.tasks.append(task)
-                    self.files.append(file)
-                    self.precutoff_trial_files.append(len(self.files) - 1)
+                    #self.trial_durations.append(dur_ms)
+                    #self.tasks.append(task)
+                    #self.files.append(file)
+                    #self.precutoff_trial_files.append(len(self.files) - 1)
                 else:
                     print('blip')
             else:
                 print('no start/stop times')
                 dur_ms = len(rec_signal) / self.srate * 1000
                 # if dur_ms < 10000:
-                self.trial_durations.append(dur_ms)
+                self.trial_durations.append(dur_ms-2000)
                 self.tasks.append(task)
                 self.files.append(file)
                 plot=True
@@ -693,6 +708,7 @@ def run_process_trial_info(subj_name, date):
         curr_trial_num = -1
         last_block = -1
         plexon_start=0
+        prev_plexon_start=0
 
         # Go through each intan file
         for t_idx in range(len(intan_set.files)):
@@ -732,13 +748,19 @@ def run_process_trial_info(subj_name, date):
                             trial_info['condition'].append(trial_condition)
                             trial_info['reward'].append(len(plexon_set.recordings[session_idx].trial_events[plx_t_idx]['reward'])>0)
                             status='good'
-                            #if t_idx in intan_set.multiple_trial_files or t_idx in intan_set.cutoff_trial_files or error:
-                            if t_idx in intan_set.precutoff_trial_files or t_idx in intan_set.postcutoff_trial_files or error:
+                            if error:
                                 status='bad'
+                            #if t_idx in intan_set.multiple_trial_files or t_idx in intan_set.cutoff_trial_files or error:
+                            #if t_idx in intan_set.precutoff_trial_files or t_idx in intan_set.postcutoff_trial_files or error:
+                            #    status='bad'
                             trial_info['status'].append(status)
                             trial_info['log_file'].append(os.path.split(log_set.logs[session_idx].file)[1])
                             trial_info['plexon_file'].append(os.path.split(plexon_set.recordings[session_idx].file)[1])
-                            trial_info['intan_file'].append(os.path.split(intan_set.files[t_idx])[1])
+                            file_parts=intan_set.files[t_idx].split(';')
+                            file_fnames=[]
+                            for part in file_parts:
+                                file_fnames.append(os.path.split(part)[1])
+                            trial_info['intan_file'].append(';'.join(file_fnames))
                             trial_info['log_trial_idx'].append(plx_t_idx)
                             trial_info['plexon_trial_idx'].append(plx_t_idx)
                             trial_info['intan_trial_idx'].append(t_idx)
@@ -753,6 +775,7 @@ def run_process_trial_info(subj_name, date):
                     if matched:
                         break
                     else:
+                        prev_plexon_start=plexon_start
                         plexon_start = 0
 
                     last_session_task_matched=True
@@ -763,6 +786,7 @@ def run_process_trial_info(subj_name, date):
 
             # Add to trial info even if not matched
             if not matched:
+                plexon_start=prev_plexon_start
                 trial_info['overall_trial'].append(t_idx)
                 # Try to figure out block number
                 if len(trial_info['task'])>0:
