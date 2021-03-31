@@ -8,7 +8,6 @@ import scipy.io
 import sys
 
 from config import read_config
-from spike_sorting.compute_catalogue import read_and_sort_data_files
 
 cfg = read_config()
 
@@ -66,7 +65,7 @@ def run_process_spikes(subj_name, date):
             time = np.linspace(1 / srate, rec_signal.size / srate, rec_signal.size)
 
             # Find trial start and end points
-            trial_start = np.where(np.diff(rec_signal) == 1)[0]
+            trial_start = np.where(np.diff(rec_signal) == 1)[0]+1
             trial_end = np.where(np.diff(rec_signal) == -1)[0]
 
             # Start of next trial at end
@@ -75,7 +74,7 @@ def run_process_spikes(subj_name, date):
                     print('cutoff without end of trial')
                 cutoff_seg_idx=s_idx
                 cutoff_seg_start_idx=trial_start[-1]
-                cutoff_seg_end_idx=len(rec_signal)
+                cutoff_seg_end_idx=len(rec_signal)-1
                 cutoff_seg_times=time
                 trial_start = trial_start[0:-1]
 
@@ -133,7 +132,7 @@ def run_process_spikes(subj_name, date):
                         print('cutoff without end of trial')
                     cutoff_seg_idx = s_idx
                     cutoff_seg_start_idx = trial_start[-1]
-                    cutoff_seg_end_idx = len(rec_signal)
+                    cutoff_seg_end_idx = len(rec_signal)-1
                     cutoff_seg_times = time
                     # if dur_ms < 10000:
                     # self.trial_durations.append(dur_ms)
@@ -174,9 +173,9 @@ def run_process_spikes(subj_name, date):
                 print('no start/stop times')
                 # if dur_ms < 10000:
                 seg_idx.append([s_idx])
-                seg_trial_start_idx.append([0])
-                seg_trial_end_idx.append([len(rec_signal-1)])
-                seg_times.append(time)
+                seg_trial_start_idx.append([])
+                seg_trial_end_idx.append([])
+                seg_times.append([])
 
 
         # Import spikes
@@ -188,37 +187,35 @@ def run_process_spikes(subj_name, date):
                 new_data={'array':[], 'electrode':[], 'cell':[], 'trial':[], 'time':[]}
 
                 for t_idx, (idx, trial_start_idx, trial_end_idx, times) in enumerate(zip(seg_idx, seg_trial_start_idx, seg_trial_end_idx, seg_times)):
-                    spike_times = []
-
-                    for sub_idx, (x_idx, x_start_idx, x_end_idx, x_times) in enumerate(zip(idx, trial_start_idx, trial_end_idx, times)):
-                        seg_start_time=x_times[int(x_start_idx)]
-                        seg_rows=np.where(electrode_df.segment==x_idx)[0]
-                        seg_spike_idx = np.int64(electrode_df.time[seg_rows])
-                        if len(seg_rows)==1:
-                            if seg_spike_idx>=x_start_idx and seg_spike_idx<=x_end_idx:
-                                trial_spike_times=x_times[seg_spike_idx]-seg_start_time
-                                if sub_idx>0:
-                                    for prev_idx in range(sub_idx):
-                                        prev_start_time=seg_times[idx[prev_idx]][int(trial_start_idx[prev_idx])]
-                                        prev_end_time=seg_times[idx[prev_idx]][-1]
-                                        trial_spike_times=trial_spike_times+(prev_end_time-prev_start_time)
-                                spike_times.append(trial_spike_times)
-                        else:
-                            trial_rows = np.where((seg_spike_idx >= x_start_idx) &
-                                                  (seg_spike_idx <= x_end_idx))[0]
-                            trial_spike_times = x_times[seg_spike_idx[trial_rows]] - seg_start_time
-                            if sub_idx > 0:
-                                for prev_idx in range(sub_idx):
-                                    prev_start_time = seg_times[idx[prev_idx]][int(trial_start_idx[prev_idx])]
-                                    prev_end_time = seg_times[idx[prev_idx]][-1]
-                                    trial_spike_times = trial_spike_times + (prev_end_time - prev_start_time)
-                            spike_times.extend(trial_spike_times)
-                    for spike_time in spike_times:
-                        new_data['array'].append(array_idx)
-                        new_data['electrode'].append(electrode_df.electrode[seg_rows[0]])
-                        new_data['cell'].append(electrode_df.cell[seg_rows[0]])
-                        new_data['trial'].append(t_idx)
-                        new_data['time'].append(spike_time)
+                    if len(trial_start_idx)>0:
+                        spike_times = []
+                        spike_cells = []
+    
+                        time_offset=0
+                        for sub_idx, (x_idx, x_start_idx, x_end_idx, x_times) in enumerate(zip(idx, trial_start_idx, trial_end_idx, times)):
+                            seg_start_time=x_times[int(x_start_idx)]
+                            seg_rows=np.where(electrode_df.segment==x_idx)[0]
+                            seg_spike_idx = np.int64(electrode_df.time[seg_rows])
+                            seg_cells = np.int64(electrode_df.cell[seg_rows])
+                            if len(seg_rows)==1:
+                                if seg_spike_idx>=x_start_idx and seg_spike_idx<=x_end_idx:
+                                    trial_spike_times=(x_times[seg_spike_idx]-seg_start_time)+time_offset
+                                    spike_times.append(trial_spike_times)
+                                    spike_cells.append(seg_cells)
+                            else:
+                                trial_rows = np.where((seg_spike_idx >= x_start_idx) &
+                                                      (seg_spike_idx <= x_end_idx))[0]
+                                trial_spike_times = (x_times[seg_spike_idx[trial_rows]] - seg_start_time)+time_offset
+                                spike_times.extend(trial_spike_times)
+                                spike_cells.extend(seg_cells[trial_rows])
+                            time_offset=time_offset+(x_times[-1]-seg_start_time)
+                                    
+                        for spike_time, spike_cell in zip(spike_times,spike_cells):
+                            new_data['array'].append(array_idx)
+                            new_data['electrode'].append(electrode_df.electrode[seg_rows[0]])
+                            new_data['cell'].append(spike_cell)
+                            new_data['trial'].append(t_idx)
+                            new_data['time'].append(spike_time)
 
 
 
