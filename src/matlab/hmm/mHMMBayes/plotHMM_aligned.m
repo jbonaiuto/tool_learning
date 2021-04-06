@@ -63,7 +63,8 @@ for r=1:length(align_events)
             
         for n=1:length(day_trials)
             %trial_rows=find((forward_probs.subj==d) & (forward_probs.rm==n));
-            trial_rows=find((forward_probs.subj==n));
+            trial_rows=find((forward_probs.rm==n));
+            %trial_rows=find((forward_probs.subj==n));
             
             % Get the bins that we used in the HMM (time>0 and up to 150ms after place)
             bin_idx=find((data.bins>=0) & (data.bins<=(data.metadata.place(day_trials(n))+150)));
@@ -179,5 +180,7 @@ end
 
 %saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_average.png']));
 %saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_average.eps']), 'epsc');
+saveas(f,fullfile(exp_info.base_output_dir,'HMM', 'betta', 'grasp', 'mHMM', [conditions '_' array '50d_mHMM_grasp.png']));
+saveas(f,fullfile(exp_info.base_output_dir,'HMM', 'betta', 'grasp', 'mHMM', [conditions '_' array '50d_mHMM_grasp.png'], 'epsc'));
 %close(f);
 end
