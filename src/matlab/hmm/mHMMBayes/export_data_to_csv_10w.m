@@ -23,7 +23,7 @@ for d_idx=1:length(dates)
     %data.name = ['data_', num2str(d_idx)];
 
     % Filter data - RTs too fast or slow
-    data=filter_data(exp_info,data,'plot_corrs',true,'thresh_percentile', 10);
+    data=filter_data(exp_info,data,conditions,'plot_corrs',true,'thresh_percentile', 10);
     data=rebin_spikes(data,dt);
     
     % Use data from "good" electrodes
