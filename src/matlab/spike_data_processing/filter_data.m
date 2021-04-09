@@ -1,35 +1,31 @@
 function [data,bad_trials]=filter_data(exp_info, data, conditions, varargin)
 
 % FILTER_DATA Filters data by removing trials based on some criteria
-% (currently trials with RT <200 or >1000ms, or correlations less than 10%
-% of the correlation range for that condition)
+% 
 %
-% Syntax: data=filter_data(exp_info, data, varargin);
+% Syntax: data=filter_data(exp_info, data, conditions, varargin);
 %
 % Inputs:
 %    exp_info - experimental info data structure (created with
 %               init_exp_info.m)
 %    data - structure containing data (created by load_multiunit_data)
-%    conditions - list of conditions to look for  correlations
+%    conditions - list of conditions
 %
 % Optional inputs:
 %    min_rt - minimum response time in  ms (excluding fixation; 
 %             default=200)
 %    max_rt - maximum response time in ms (excluding fixation;
 %             default=1000)
-%    thresh_percentile - percentile of the correlation range to use as the
-%                        threshold (default=10)
-%    plot_corrs - whether or not to plot the correlation distribution and
-%                 computed threshold (default=false)
+%    min_mt - minimum movement time in  ms (default=200)
+%    max_mt - maximum movement time in ms (default=1000)
 %
 % Outputs:
 %    data - data structure containing filtered data
 %
 % Example:
-%     data=filter_data(data,'thresh_percentile',100);
+%     data=filter_data(exp_info, data, conditions);
 
-defaults = struct('min_rt',200,'max_rt',1000,'max_obj_contact',5000,...
-    'max_place',10000,'thresh_percentile', 10, 'plot_corrs', false);  %define default values
+defaults = struct('min_rt',200,'max_rt',1000,'min_mt',200,'max_mt',1000,'min_pt',200,'max_pt',1000);  %define default values
 params = struct(varargin{:});
 for f = fieldnames(defaults)',  
     if ~isfield(params, f{1}),
@@ -37,101 +33,71 @@ for f = fieldnames(defaults)',
     end
 end
 
-% Figure out RT of each trial
-rts=data.metadata.hand_mvmt_onset-data.metadata.go;
-
 bad_trials=[];
-if length(conditions)
-    condition_trials=zeros(1,length(data.metadata.condition));
-    for i=1:length(conditions)
-        condition_trials = condition_trials | (strcmp(data.metadata.condition,conditions{i}));
-    end
-    condition_trials=find(condition_trials);
-    bad_trials=setdiff([1:length(data.metadata.condition)],condition_trials);
+
+motor_grasp_conditions={'motor_grasp_left','motor_grasp_center','motor_grasp_right'};
+motor_grasp_trials=zeros(1,length(data.metadata.condition));
+for i=1:length(motor_grasp_conditions)
+  motor_grasp_trials = motor_grasp_trials | (strcmp(data.metadata.condition,motor_grasp_conditions{i}));
 end
+motor_grasp_trials=find(motor_grasp_trials);
+motor_grasp_bad_trials=[];
 
-% Bad trials where RT<200 or >1000
-rt_bad_trials=union(find(rts<params.min_rt),find(rts>params.max_rt));
+% Figure out RT of each trial
+rts=data.metadata.hand_mvmt_onset(motor_grasp_trials)-data.metadata.go(motor_grasp_trials);
+% Figure out MT of each trial
+mts=data.metadata.obj_contact(motor_grasp_trials)-data.metadata.hand_mvmt_onset(motor_grasp_trials);
+% Figure out PT of each trial
+pts=data.metadata.place(motor_grasp_trials)-data.metadata.obj_contact(motor_grasp_trials);
+      
+rt_bad_trials=union(find(rts<200),find(rts>1000));
+disp(sprintf('Removing %d motor grasp trials based on RT', length(rt_bad_trials)));
+motor_grasp_bad_trials=union(motor_grasp_bad_trials,motor_grasp_trials(rt_bad_trials));
 
-disp(sprintf('Removing %d trials based on RT', length(rt_bad_trials)));
-bad_trials=union(bad_trials,rt_bad_trials);
+mt_bad_trials=union(find(mts<200),find(mts>1000));
+disp(sprintf('Removing %d motor grasp trials based on MT', length(mt_bad_trials)));
+motor_grasp_bad_trials=union(motor_grasp_bad_trials,motor_grasp_trials(mt_bad_trials));
 
-oc_bad_trials=find(data.metadata.obj_contact>=params.max_obj_contact);
-disp(sprintf('Removing %d trials based on object contact', length(oc_bad_trials)));
+pt_bad_trials=union(find(pts<200),find(pts>1000));
+disp(sprintf('Removing %d motor grasp trials based on PT', length(pt_bad_trials)));
+motor_grasp_bad_trials=union(motor_grasp_bad_trials,motor_grasp_trials(pt_bad_trials));
 
-bad_trials=union(bad_trials, oc_bad_trials);
+disp(sprintf('Removing %d motor grasp trials total', length(motor_grasp_bad_trials)));
 
-place_bad_trials=find(data.metadata.place>=params.max_place);
-disp(sprintf('Removing %d trials based on place', length(place_bad_trials)));
+bad_trials=union(bad_trials, motor_grasp_bad_trials);
 
-bad_trials=union(bad_trials, place_bad_trials);
 
-% Find trials with correlations less than threshold
-corr_bad_trials=[];
-
-% Go through each condition
-conditions=unique(data.metadata.condition);
-for cond_idx=1:length(conditions)
-    condition=conditions{cond_idx};
-    if find(strcmp(conditions,condition))    
-        % File containing correlations for this condition
-        corr_file=fullfile(exp_info.base_data_dir,'preprocessed_data',...
-            data.subject,sprintf('corr_days_F1_F5hand_%s.mat',condition));
-
-        % If the correlation file exists
-        if exist(corr_file,'file')==2
-            load(corr_file);
-
-            % Figure out the range of correlations for this condition
-            all_corrs=horzcat(data_corr{:,2});
-
-            % Compute the correlation threshold
-            corr_thresh=prctile(all_corrs,params.thresh_percentile);
-
-            if params.plot_corrs
-                figure();
-                hist(all_corrs,100);
-                hold all;
-                plot([corr_thresh corr_thresh],ylim(),'r--');
-                xlabel('Correlation');
-                ylabel('Number of trials');
-                title(condition);
-                close
-            end
-
-            % Go through each date in the data
-            for dat_idx=1:length(data.dates)
-
-                % Convert to date format used in correlation file
-                date=data.dates{dat_idx};
-                corr_date=datestr(datetime(date,'InputFormat','dd.MM.yy'),'dd.mm.YYYY');
-
-                % Find all trials from this date in this condition
-                date_trials=find(strcmp(data.metadata.condition,condition) & (data.trial_date==dat_idx));
-
-                if length(date_trials)>0
-                    % Find all correlations for this date
-                    corr_dat_idx=find(strcmp([data_corr{:,1}],corr_date));
-                    if length(corr_dat_idx)
-                        correlations=data_corr{corr_dat_idx,2};
-
-                        % Add trials with correlation less than threshold to the list
-                        % of bad trials
-                        bad_date_trials=find(correlations<corr_thresh);
-                        if length(bad_date_trials)>0
-                            date_trials_to_remove=setdiff(date_trials(bad_date_trials),bad_trials);
-                            corr_bad_trials(end+1:end+length(date_trials_to_remove))=date_trials_to_remove;
-                        end
-                    end
-                end
-            end
-        end
-    else
-        bad_trials=union(bad_trials, strcmp(data.metadata.condition,condition));
-    end
+visual_grasp_conditions={'visual_grasp_left','visual_grasp_right'};
+visual_grasp_trials=zeros(1,length(data.metadata.condition));
+for i=1:length(visual_grasp_conditions)
+  visual_grasp_trials = visual_grasp_trials | (strcmp(data.metadata.condition,visual_grasp_conditions{i}));
 end
-disp(sprintf('Removing %d trials based on correlation', length(corr_bad_trials)));
+visual_grasp_trials=find(visual_grasp_trials);
+visual_grasp_bad_trials=[];
 
-bad_trials=union(bad_trials, corr_bad_trials);
+% Figure out RT of each trial
+rts=data.metadata.hand_mvmt_onset(visual_grasp_trials)-data.metadata.go(visual_grasp_trials);
+% Figure out MT of each trial
+mts=data.metadata.obj_contact(visual_grasp_trials)-data.metadata.hand_mvmt_onset(visual_grasp_trials);
+% Figure out PT of each trial
+pts=data.metadata.place(visual_grasp_trials)-data.metadata.obj_contact(visual_grasp_trials);
+      
+rt_bad_trials=union(find(rts<200),find(rts>1000));
+disp(sprintf('Removing %d visual grasp trials based on RT', length(rt_bad_trials)));
+visual_grasp_bad_trials=union(visual_grasp_bad_trials,visual_grasp_trials(rt_bad_trials));
+
+mt_bad_trials=union(find(mts<200),find(mts>1000));
+disp(sprintf('Removing %d visual grasp trials based on MT', length(mt_bad_trials)));
+visual_grasp_bad_trials=union(visual_grasp_bad_trials,visual_grasp_trials(mt_bad_trials));
+
+pt_bad_trials=union(find(pts<200),find(pts>1000));
+disp(sprintf('Removing %d visual grasp trials based on PT', length(pt_bad_trials)));
+visual_grasp_bad_trials=union(visual_grasp_bad_trials,visual_grasp_trials(pt_bad_trials));
+
+disp(sprintf('Removing %d visual grasp trials total', length(visual_grasp_bad_trials)));
+
+bad_trials=union(bad_trials, visual_grasp_bad_trials);
+
+disp(sprintf('Removing %d trials total', length(bad_trials)));
 
 data=remove_trials(data, bad_trials);
