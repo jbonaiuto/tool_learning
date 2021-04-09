@@ -6,13 +6,14 @@ import pandas as pd
 import numpy as np
 import scipy.io
 import sys
+import intan
 
 from config import read_config
 
 cfg = read_config()
 
 
-def run_process_spikes(subj_name, date):
+def run_process_spikes(subj_name, date, data_files):
     spike_data_dir = os.path.join(cfg['single_unit_spike_sorting_dir'], subj_name, date)
 
     if os.path.exists(spike_data_dir):
@@ -25,158 +26,12 @@ def run_process_spikes(subj_name, date):
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
 
-        # Find intan dir
         for x in cfg['intan_data_dirs']:
             if os.path.exists(os.path.join(x, subj_name, date)):
                 intan_data_dir = os.path.join(x, subj_name, date)
                 break
-
-        # Read and sort intan files
-        data_file_names = []
-        for x in os.listdir(intan_data_dir):
-            if os.path.splitext(x)[1] == '.rhd':
-                print(x)
-                data_file_names.append(x)
-        data_file_times = []
-        for idx, fname in enumerate(data_file_names):
-            fparts = fname.split('_')
-            filedate = datetime.strptime('%s %s' % (fparts[-2], fparts[-1].split('.')[0]), '%y%m%d %H%M%S')
-            data_file_times.append(filedate)
-        data_file_names = [x for _, x in sorted(zip(data_file_times, data_file_names))]
-
-        seg_idx=[]
-        seg_trial_start_idx=[]
-        seg_trial_end_idx=[]
-        seg_times=[]
-        srate = cfg['intan_srate']
-
-        cutoff_seg_idx=None
-        cutoff_seg_start_idx=None
-        cutoff_seg_end_idx=None
-        cutoff_seg_times=None
-
-        # Process intan files in same way as process_trial_info
-        for s_idx, intan_file in enumerate(sorted(data_file_names)):
-            (bas,ext)=os.path.splitext(intan_file)
-            rec_fname=os.path.join(cfg['preprocessed_data_dir'], subj_name, date,'rhd2000','%s.json' % bas)
-            rec_data = json.load(open(rec_fname))
-            rec_signal = np.array(rec_data['rec_signal'])
-
-            time = np.linspace(1 / srate, rec_signal.size / srate, rec_signal.size)
-
-            # Find trial start and end points
-            trial_start = np.where(np.diff(rec_signal) == 1)[0]+1
-            trial_end = np.where(np.diff(rec_signal) == -1)[0]
-
-            # Start of next trial at end
-            if len(trial_start) > 1 and len(trial_end) > 0 and trial_start[-1] > trial_end[-1]:
-                if cutoff_seg_idx is not None:
-                    print('cutoff without end of trial')
-                cutoff_seg_idx=s_idx
-                cutoff_seg_start_idx=trial_start[-1]
-                cutoff_seg_end_idx=len(rec_signal)-1
-                cutoff_seg_times=time
-                trial_start = trial_start[0:-1]
-
-            # Start of last trial at beginning
-            if len(trial_start) > 0 and len(trial_end) > 1 and trial_end[0] < trial_start[0]:
-                if cutoff_seg_idx is None:
-                    print('end of trial without start')
-                else:
-                    seg_idx.append([cutoff_seg_idx,s_idx])
-                    seg_trial_start_idx.append([cutoff_seg_start_idx,0])
-                    seg_trial_end_idx.append([cutoff_seg_end_idx,trial_end[0]])
-                    seg_times.append([cutoff_seg_times, time])
-                    cutoff_seg_idx = None
-                    cutoff_seg_start_idx = None
-                    cutoff_seg_end_idx = None
-                    cutoff_seg_times = None
-                trial_end = trial_end[1:]
-
-            if len(trial_start) > 0 and len(trial_end) > 0:
-                if len(trial_start) > len(trial_end):
-                    print('more trial start')
-                    trial_start = trial_start[0:-1]
-                elif len(trial_start) < len(trial_end):
-                    print('more trial end')
-                    trial_end = trial_end[1:]
-
-            if len(trial_start) > 0 and len(trial_end) > 0:
-                # Number of time steps between each up and down state switch
-                dur_steps = trial_end - trial_start
-
-                nz_steps = np.where(dur_steps > 1)[0]
-                if len(nz_steps) > 0:
-                    if len(nz_steps) > 1:
-                        print('too many nz steps')
-                    for nz_idx in nz_steps:
-                        seg_idx.append([s_idx])
-                        seg_trial_start_idx.append([trial_start[nz_idx]])
-                        seg_trial_end_idx.append([trial_end[nz_idx]])
-                        seg_times.append([time])
-                else:
-                    print('no nz steps')
-                    seg_idx.append([s_idx])
-                    seg_trial_start_idx.append([])
-                    seg_trial_end_idx.append([])
-                    seg_times.append([])
-
-
-            # If there is a trial start and no trial end - files are split into two if longer than 60s
-            elif len(trial_start) > 0 and len(trial_end) == 0:
-                # Recording goes until end of file
-                dur_step = len(rec_signal) - trial_start[0]
-                # Ignore single time step blups
-                if dur_step > 1:
-                    if cutoff_seg_idx is not None:
-                        print('cutoff without end of trial')
-                    cutoff_seg_idx = s_idx
-                    cutoff_seg_start_idx = trial_start[-1]
-                    cutoff_seg_end_idx = len(rec_signal)-1
-                    cutoff_seg_times = time
-                    # if dur_ms < 10000:
-                    # self.trial_durations.append(dur_ms)
-                    # self.tasks.append(task)
-                    # self.files.append(file)
-                    # self.postcutoff_trial_files.append(len(self.files)-1)
-                else:
-                    print('blip')
-            # If there is a trial end and no trial start- files are split into two if longer than 60s
-            elif len(trial_start) == 0 and len(trial_end) > 0:
-                # Recording starts at beginning of file
-                dur_step = trial_end[0]
-                # Ignore single time step blips
-                if dur_step > 1:
-                    if cutoff_seg_idx is None:
-                        print('end of trial without start')
-                        seg_idx.append([s_idx])
-                        seg_trial_start_idx.append([])
-                        seg_trial_end_idx.append([])
-                        seg_times.append([])
-                    else:
-                        seg_idx.append([cutoff_seg_idx, s_idx])
-                        seg_trial_start_idx.append([cutoff_seg_start_idx, 0])
-                        seg_trial_end_idx.append([cutoff_seg_end_idx, trial_end[0]])
-                        seg_times.append([cutoff_seg_times, time])
-                        cutoff_seg_idx = None
-                        cutoff_seg_start_idx = None
-                        cutoff_seg_end_idx = None
-                        cutoff_seg_times = None
-                    # if dur_ms < 10000:
-                    # self.trial_durations.append(dur_ms)
-                    # self.tasks.append(task)
-                    # self.files.append(file)
-                    # self.precutoff_trial_files.append(len(self.files) - 1)
-                else:
-                    print('blip')
-            else:
-                print('no start/stop times')
-                # if dur_ms < 10000:
-                seg_idx.append([s_idx])
-                seg_trial_start_idx.append([])
-                seg_trial_end_idx.append([])
-                seg_times.append([])
-
+        rhd_rec_out_dir = os.path.join(preproc_dir, 'rhd2000')
+        intan_set= intan.IntanRecordingSet(subj_name, date, intan_data_dir, rhd_rec_out_dir, data_files, plot_rec=False)
 
         # Import spikes
         for array_idx, region in enumerate(cfg['arrays']):
@@ -186,36 +41,73 @@ def run_process_spikes(subj_name, date):
                 electrode_df = pd.read_csv(fname)
                 new_data={'array':[], 'electrode':[], 'cell':[], 'trial':[], 'time':[]}
 
-                for t_idx, (idx, trial_start_idx, trial_end_idx, times) in enumerate(zip(seg_idx, seg_trial_start_idx, seg_trial_end_idx, seg_times)):
-                    if len(trial_start_idx)>0:
-                        spike_times = []
-                        spike_cells = []
-    
+                for t_idx in range(len(intan_set.trial_files)):
+                    seg_idxs=intan_set.trial_seg_idxs[t_idx]
+                    seg_start_idxs=intan_set.trial_start_idxs[t_idx]
+                    seg_end_idxs=intan_set.trial_end_idxs[t_idx]
+                    seg_times=intan_set.trial_times[t_idx]
+
+                    if len(seg_idxs)>0:
+                        spike_times=[]
+                        spike_cells=[]
+
                         time_offset=0
-                        for sub_idx, (x_idx, x_start_idx, x_end_idx, x_times) in enumerate(zip(idx, trial_start_idx, trial_end_idx, times)):
-                            seg_start_time=x_times[int(x_start_idx)]
-                            seg_rows=np.where(electrode_df.segment==x_idx)[0]
-                            seg_spike_idx = np.int64(electrode_df.time[seg_rows])
-                            seg_cells = np.int64(electrode_df.cell[seg_rows])
-                            if len(seg_rows)==1:
-                                if seg_spike_idx>=x_start_idx and seg_spike_idx<=x_end_idx:
-                                    trial_spike_times=(x_times[seg_spike_idx]-seg_start_time)+time_offset
-                                    spike_times.append(trial_spike_times)
-                                    spike_cells.append(seg_cells)
-                            else:
-                                trial_rows = np.where((seg_spike_idx >= x_start_idx) &
-                                                      (seg_spike_idx <= x_end_idx))[0]
-                                trial_spike_times = (x_times[seg_spike_idx[trial_rows]] - seg_start_time)+time_offset
-                                spike_times.extend(trial_spike_times)
-                                spike_cells.extend(seg_cells[trial_rows])
-                            time_offset=time_offset+(x_times[-1]-seg_start_time)
-                                    
+                        for sub_idx in range(len(seg_idxs)):
+                            sub_seg_idx=seg_idxs[sub_idx]
+                            sub_start_idx=seg_start_idxs[sub_idx]
+                            sub_end_idx=seg_end_idxs[sub_idx]
+                            sub_times=seg_times[sub_idx]
+
+                            sub_start_time=sub_times[int(sub_start_idx)]
+                            sub_seg_rows=np.where(electrode_df.segment==sub_seg_idx)[0]
+                            sub_seg_spike_idx=np.int64(electrode_df.time[sub_seg_rows])
+                            sub_seg_cells=np.int64(electrode_df.cell[sub_seg_rows])
+
+                            trial_rows=np.where((sub_seg_spike_idx>=sub_start_idx) &
+                                                (sub_seg_spike_idx<=sub_end_idx))[0]
+                            trial_spike_times = (sub_times[sub_seg_spike_idx[trial_rows]] - sub_start_time) + time_offset
+
+                            spike_times.extend(trial_spike_times)
+                            spike_cells.extend(sub_seg_cells[trial_rows])
+                            time_offset=time_offset+(sub_times[-1]-sub_start_time)
+
                         for spike_time, spike_cell in zip(spike_times,spike_cells):
                             new_data['array'].append(array_idx)
-                            new_data['electrode'].append(electrode_df.electrode[seg_rows[0]])
+                            new_data['electrode'].append(electrode_df.electrode[0])
                             new_data['cell'].append(spike_cell)
                             new_data['trial'].append(t_idx)
                             new_data['time'].append(spike_time)
+
+                # for t_idx, (idx, trial_start_idx, trial_end_idx, times) in enumerate(zip(seg_idx, seg_trial_start_idx, seg_trial_end_idx, seg_times)):
+                #     if len(trial_start_idx)>0:
+                #         spike_times = []
+                #         spike_cells = []
+                #
+                #         time_offset=0
+                #         for sub_idx, (x_idx, x_start_idx, x_end_idx, x_times) in enumerate(zip(idx, trial_start_idx, trial_end_idx, times)):
+                #             seg_start_time=x_times[int(x_start_idx)]
+                #             seg_rows=np.where(electrode_df.segment==x_idx)[0]
+                #             seg_spike_idx = np.int64(electrode_df.time[seg_rows])
+                #             seg_cells = np.int64(electrode_df.cell[seg_rows])
+                #             if len(seg_rows)==1:
+                #                 if seg_spike_idx>=x_start_idx and seg_spike_idx<=x_end_idx:
+                #                     trial_spike_times=(x_times[seg_spike_idx]-seg_start_time)+time_offset
+                #                     spike_times.append(trial_spike_times)
+                #                     spike_cells.append(seg_cells)
+                #             else:
+                #                 trial_rows = np.where((seg_spike_idx >= x_start_idx) &
+                #                                       (seg_spike_idx <= x_end_idx))[0]
+                #                 trial_spike_times = (x_times[seg_spike_idx[trial_rows]] - seg_start_time)+time_offset
+                #                 spike_times.extend(trial_spike_times)
+                #                 spike_cells.extend(seg_cells[trial_rows])
+                #             time_offset=time_offset+(x_times[-1]-seg_start_time)
+                #
+                #         for spike_time, spike_cell in zip(spike_times,spike_cells):
+                #             new_data['array'].append(array_idx)
+                #             new_data['electrode'].append(electrode_df.electrode[seg_rows[0]])
+                #             new_data['cell'].append(spike_cell)
+                #             new_data['trial'].append(t_idx)
+                #             new_data['time'].append(spike_time)
 
 
 
@@ -261,14 +153,12 @@ def rerun(subject, date_start_str):
     current_date = date_start
     while current_date <= date_now:
         date_str = datetime.strftime(current_date, '%d.%m.%y')
-        exists=False
-        for intan_dir in cfg['intan_data_dirs']:
-            recording_path = os.path.join(intan_dir, subject, date_str)
-            if os.path.exists(recording_path):
-                exists=True
-                break
-        if exists:
-            run_process_spikes(subject, date_str)
+        preproc_dir = os.path.join(cfg['preprocessed_data_dir'], subject, date_str)
+        json_fname=os.path.join(preproc_dir, 'intan_files.json')
+        if os.path.exists(json_fname):
+            with open(json_fname, 'r') as infile:
+                data_files = json.load(infile)
+            run_process_spikes(subject, date_str, data_files)
 
         current_date = current_date + timedelta(days=1)
         date_now = datetime.now()
