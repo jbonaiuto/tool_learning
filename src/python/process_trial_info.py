@@ -9,28 +9,9 @@ from config import read_config
 import eventide
 import plexon
 import intan
+import logging
 
 cfg = read_config()
-
-
-class Logger(object):
-    def __init__(self, fname):
-        self.terminal = sys.stdout
-        self.log = open(fname,'w')
-
-    def write(self, message):
-        self.terminal.write(message)
-        self.log.write(message)
-
-    def close(self):
-        self.log.close()
-        sys.stdout=self.terminal
-
-    def flush(self):
-        #this flush method is needed for python 3 compatibility.
-        #this handles the flush command by doing nothing.
-        #you might want to specify some extra behavior here.
-        pass
 
 
 def run_process_trial_info(subj_name, date, intan_data_files):
@@ -58,9 +39,9 @@ def run_process_trial_info(subj_name, date, intan_data_files):
         if not os.path.exists(plexon_rec_out_dir):
             os.mkdir(plexon_rec_out_dir)
 
-        sys.stdout=Logger(os.path.join(out_dir, 'process_trial_info.log'))
-
-        print(date)
+        logging.basicConfig(filename=os.path.join(out_dir, 'process_trial_info.log'), filemode='w', level=logging.INFO)
+        logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
+        logging.info(date)
 
         # Read log and plexon files
         log_set= eventide.EventIDELogSet(subj_name, date, log_dir, plx_data_dir)
@@ -218,7 +199,7 @@ def run_process_trial_info(subj_name, date, intan_data_files):
         # Check that trial durations match
         assert(np.all(np.isnan(np.array(trial_info['plexon_duration']))) or np.nanmax(np.abs(np.array(trial_info['intan_duration'])-np.array(trial_info['plexon_duration'])))<=2)
 
-        print('Total num trials: log=%d, plexon=%d, intan=%d' % (log_set.total_trials(), plexon_set.total_trials(),
+        logging.info('Total num trials: log=%d, plexon=%d, intan=%d' % (log_set.total_trials(), plexon_set.total_trials(),
                                                                  len(trial_info['block'])))
 
         df = pd.DataFrame(trial_info, columns=['overall_trial', 'block', 'task', 'trial', 'condition', 'reward',
@@ -227,7 +208,7 @@ def run_process_trial_info(subj_name, date, intan_data_files):
                                                'plexon_duration', 'intan_duration'])
         df.to_csv(os.path.join(out_dir, 'trial_info.csv'), index=False)
 
-        print('*** Good trials per condition per block ****')
+        logging.info('*** Good trials per condition per block ****')
         data={'condition':[],
               'trials':[]}
         all_good_trials={}
@@ -246,12 +227,12 @@ def run_process_trial_info(subj_name, date, intan_data_files):
                     if not trial_condition in all_good_trials:
                         all_good_trials[trial_condition]=0
                     all_good_trials[trial_condition]=all_good_trials[trial_condition]+1
-            print('Block %d - %s' % (block, block_task))
+            logging.info('Block %d - %s' % (block, block_task))
             for key, val in block_good_trials.items():
-                print('%s - %d trials' % (key, val))
-        print('*** Good trials per condition overall ****')
+                logging.info('%s - %d trials' % (key, val))
+        logging.info('*** Good trials per condition overall ****')
         for key, val in all_good_trials.items():
-            print('%s - %d trials' % (key, val))
+            logging.info('%s - %d trials' % (key, val))
             data['condition'].append(key)
             data['trials'].append(val)
 
@@ -267,8 +248,7 @@ def run_process_trial_info(subj_name, date, intan_data_files):
                     fid.write('%d,%s,%.4f\n' % (trial_idx, evt_code, trial[evt_code][0]))
         fid.close()
 
-        sys.stdout.close()
-        sys.stdout=None
+        logging.shutdown()
 
 
 def check_trial(task, block_idx, trial_idx, condition, trial_events):
@@ -299,73 +279,73 @@ def check_visual_trial(block_idx, trial_idx, condition, sorted_evts):
     error = False
 
     if 'error' in sorted_evts:
-        print('Error, block %d, trial %d-%s, error' % (block_idx, trial_idx, condition))
+        logging.warning('Error, block %d, trial %d-%s, error' % (block_idx, trial_idx, condition))
         error=True
     else:
         if len(sorted_evts) == 0 or not sorted_evts[0] == 'trial_start':
-            print('Error, block %d, trial %d-%s, first event not trial start' % (block_idx, trial_idx, condition))
+            logging.warning('Error, block %d, trial %d-%s, first event not trial start' % (block_idx, trial_idx, condition))
             error = True
 
         start_idx = sorted_evts.index('trial_start')
         if not sorted_evts[start_idx + 1] == 'laser_exp_start_center':
-            print('Error, block %d, trial %d-%s, first event after start not laser' % (block_idx, trial_idx, condition))
+            logging.warning('Error, block %d, trial %d-%s, first event after start not laser' % (block_idx, trial_idx, condition))
             error = True
 
         if 'laser_exp_start_center' in sorted_evts:
             laser_idx = sorted_evts.index('laser_exp_start_center')
             if not sorted_evts[laser_idx + 1] == 'go':
-                print('Error, block %d, trial %d-%s, first event after laser not go' % (block_idx, trial_idx, condition))
+                logging.warning('Error, block %d, trial %d-%s, first event after laser not go' % (block_idx, trial_idx, condition))
                 error = True
         else:
-            print('Error, block %d, trial %d-%s, no laser_exp_start_center event' % (block_idx, trial_idx, condition))
+            logging.warning('Error, block %d, trial %d-%s, no laser_exp_start_center event' % (block_idx, trial_idx, condition))
             error=True
 
         if 'go' in sorted_evts:
             go_idx = sorted_evts.index('go')
             if not sorted_evts[go_idx + 1] == 'exp_start_off':
-                print('Error, block %d, trial %d-%s, first event after go not s_off' % (block_idx, trial_idx, condition))
+                logging.warning('Error, block %d, trial %d-%s, first event after go not s_off' % (block_idx, trial_idx, condition))
                 error = True
         else:
-            print('Error, block %d, trial %d-%s, no go event' % (block_idx, trial_idx, condition))
+            logging.warning('Error, block %d, trial %d-%s, no go event' % (block_idx, trial_idx, condition))
             error = True
 
         if 'exp_start_off' in sorted_evts:
             s_off_idx = sorted_evts.index('exp_start_off')
             if not (condition == 'visual_grasp_right' or condition == 'visual_grasp_left'):
                 if s_off_idx >= len(sorted_evts) - 1 or not sorted_evts[s_off_idx + 1] == 'tool_start_off':
-                    print('Error, block %d, trial %d-%s, first event after s_off not tool_start_off' % (block_idx, trial_idx, condition))
+                    logging.warning('Error, block %d, trial %d-%s, first event after s_off not tool_start_off' % (block_idx, trial_idx, condition))
                     error = True
             else:
                 if s_off_idx >= len(sorted_evts) - 1 or not sorted_evts[s_off_idx + 1] == 'exp_grasp_center':
-                    print('Error, block %d, trial %d-%s, first event after s_off not grasp' % (block_idx, trial_idx, condition))
+                    logging.warning('Error, block %d, trial %d-%s, first event after s_off not grasp' % (block_idx, trial_idx, condition))
                     error = True
         else:
-            print('Error, block %d, trial %d-%s, no s_off event' % (block_idx, trial_idx, condition))
+            logging.warning('Error, block %d, trial %d-%s, no s_off event' % (block_idx, trial_idx, condition))
             error = True
 
         if not (condition == 'visual_grasp_right' or condition == 'visual_grasp_left'):
             if 'tool_start_off' in sorted_evts:
                 s_off_idx = sorted_evts.index('tool_start_off')
                 if s_off_idx >= len(sorted_evts) - 1 or not sorted_evts[s_off_idx + 1] == 'exp_grasp_center':
-                    print('Error, block %d, trial %d-%s, first event after tool_start_off not grasp' % (block_idx, trial_idx, condition))
+                    logging.warning('Error, block %d, trial %d-%s, first event after tool_start_off not grasp' % (block_idx, trial_idx, condition))
                     error = True
             else:
-                print('Error, block %d, trial %d-%s, no tool_start_off event' % (block_idx, trial_idx, condition))
+                logging.warning('Error, block %d, trial %d-%s, no tool_start_off event' % (block_idx, trial_idx, condition))
                 error = True
 
         if 'exp_grasp_center' in sorted_evts:
             grasp_idx = sorted_evts.index('exp_grasp_center')
             if grasp_idx >= len(sorted_evts) - 1 or not (sorted_evts[grasp_idx + 1] == 'exp_place_right' or sorted_evts[grasp_idx + 1] == 'exp_place_left'):
-                print('Error, block %d, trial %d-%s, first event after grasp not place' % (block_idx, trial_idx, condition))
+                logging.warning('Error, block %d, trial %d-%s, first event after grasp not place' % (block_idx, trial_idx, condition))
                 error = True
         else:
-            print('Error, block %d, trial %d-%s, no grasp event' % (block_idx, trial_idx, condition))
+            logging.warning('Error, block %d, trial %d-%s, no grasp event' % (block_idx, trial_idx, condition))
             error = True
 
         if error:
-            print(sorted_evts)
-            # print(sorted_times)
-            print('\n')
+            logging.warning(sorted_evts)
+            # logging.warning(sorted_times)
+            logging.warning('\n')
 
     return error
 
@@ -374,50 +354,50 @@ def check_motor_grasp_trial(block_idx, trial_idx, condition, sorted_evts):
     error = False
 
     if 'error' in sorted_evts:
-        print('Error, block %d, trial %d-%s, error' % (block_idx, trial_idx, condition))
+        logging.warning('Error, block %d, trial %d-%s, error' % (block_idx, trial_idx, condition))
         error=True
     else:
         if len(sorted_evts) == 0 or not sorted_evts[0] == 'trial_start':
-            print('Error, block %d, trial %d-%s, first event not trial start' % (block_idx, trial_idx, condition))
+            logging.warning('Error, block %d, trial %d-%s, first event not trial start' % (block_idx, trial_idx, condition))
             error = True
 
         if 'trial_start' in sorted_evts:
             start_idx = sorted_evts.index('trial_start')
             if not sorted_evts[start_idx + 1] == 'go':
-                print('Error, block %d, trial %d-%s, first event after start not go' % (block_idx, trial_idx, condition))
+                logging.warning('Error, block %d, trial %d-%s, first event after start not go' % (block_idx, trial_idx, condition))
                 error = True
 
         if 'go' in sorted_evts:
             go_idx = sorted_evts.index('go')
             if not sorted_evts[go_idx + 1] == 'monkey_handle_off':
-                print('Error, block %d, trial %d-%s, first event after go not monkey_handle_off' % (block_idx, trial_idx, condition))
+                logging.warning('Error, block %d, trial %d-%s, first event after go not monkey_handle_off' % (block_idx, trial_idx, condition))
                 error = True
         else:
-            print('Error, block %d, trial %d-%s, no go event' % (block_idx, trial_idx, condition))
+            logging.warning('Error, block %d, trial %d-%s, no go event' % (block_idx, trial_idx, condition))
             error = True
 
         if 'monkey_handle_off' in sorted_evts:
             s_off_idx = sorted_evts.index('monkey_handle_off')
             if s_off_idx >= len(sorted_evts) - 1 or not sorted_evts[s_off_idx + 1] == 'trap_edge':
-                print('Error, block %d, trial %d-%s, first event after monkey_handle_off not trap_edge' % (block_idx, trial_idx, condition))
+                logging.warning('Error, block %d, trial %d-%s, first event after monkey_handle_off not trap_edge' % (block_idx, trial_idx, condition))
                 error = True
         else:
-            print('Error, block %d, trial %d-%s, no monkey_handle_off event' % (block_idx, trial_idx, condition))
+            logging.warning('Error, block %d, trial %d-%s, no monkey_handle_off event' % (block_idx, trial_idx, condition))
             error = True
 
         if 'trap_edge' in sorted_evts:
             grasp_idx = sorted_evts.index('trap_edge')
             if grasp_idx >= len(sorted_evts) - 1 or not sorted_evts[grasp_idx + 1] == 'trap_bottom':
-                print('Error, block %d, trial %d-%s, first event after trap_edge not trap_bottom' % (block_idx, trial_idx, condition))
+                logging.warning('Error, block %d, trial %d-%s, first event after trap_edge not trap_bottom' % (block_idx, trial_idx, condition))
                 error = True
         else:
-            print('Error, block %d, trial %d-%s, no trap_edge event' % (block_idx, trial_idx, condition))
+            logging.warning('Error, block %d, trial %d-%s, no trap_edge event' % (block_idx, trial_idx, condition))
             error = True
 
         if error:
-            print(sorted_evts)
-            # print(sorted_times)
-            print('\n')
+            logging.warning(sorted_evts)
+            # logging.warning(sorted_times)
+            logging.warning('\n')
 
     return error
 
@@ -426,79 +406,79 @@ def check_motor_rake_trial(block_idx, trial_idx, condition, sorted_evts):
     error = False
 
     if 'error' in sorted_evts:
-        print('Error, block %d, trial %d-%s, error' % (block_idx, trial_idx, condition))
+        logging.warning('Error, block %d, trial %d-%s, error' % (block_idx, trial_idx, condition))
         error = True
     else:
         if len(sorted_evts) == 0 or not sorted_evts[0] == 'trial_start':
-            print('Error, block %d, trial %d-%s, first event not trial start' % (block_idx, trial_idx, condition))
+            logging.warning('Error, block %d, trial %d-%s, first event not trial start' % (block_idx, trial_idx, condition))
             error = True
 
         if 'trial_start' in sorted_evts:
             start_idx = sorted_evts.index('trial_start')
             if not sorted_evts[start_idx + 1] == 'go':
-                print('Error, block %d, trial %d-%s, first event after start not go' % (block_idx, trial_idx, condition))
+                logging.warning('Error, block %d, trial %d-%s, first event after start not go' % (block_idx, trial_idx, condition))
                 error = True
 
         if 'go' in sorted_evts:
             go_idx = sorted_evts.index('go')
             if not sorted_evts[go_idx + 1] == 'monkey_handle_off':
-                print('Error, block %d, trial %d-%s, first event after go not monkey_handle_off' % (block_idx, trial_idx, condition))
+                logging.warning('Error, block %d, trial %d-%s, first event after go not monkey_handle_off' % (block_idx, trial_idx, condition))
                 error = True
         else:
-            print('Error, block %d, trial %d-%s, no go event' % (block_idx, trial_idx, condition))
+            logging.warning('Error, block %d, trial %d-%s, no go event' % (block_idx, trial_idx, condition))
             error = True
 
         if 'monkey_handle_off' in sorted_evts:
            s_off_idx = sorted_evts.index('monkey_handle_off')
            if s_off_idx >= len(sorted_evts) - 1 or not sorted_evts[s_off_idx + 1] == 'monkey_rake_handle':
-               print('Error, block %d, trial %d-%s, first event after monkey_handle_off not monkey_rake_handle' % (block_idx, trial_idx, condition))
+               logging.warning('Error, block %d, trial %d-%s, first event after monkey_handle_off not monkey_rake_handle' % (block_idx, trial_idx, condition))
                error = True
         else:
-           print('Error, block %d, trial %d-%s, no monkey_handle_off event' % (block_idx, trial_idx, condition))
+           logging.warning('Error, block %d, trial %d-%s, no monkey_handle_off event' % (block_idx, trial_idx, condition))
            error = True
 
         #if not 'monkey_rake_handle' in sorted_evts:
-        #    print('Error, block %d, trial %d-%s, no monkey_rake_handle event' % (block_idx, trial_idx, condition))
+        #    logging.warning('Error, block %d, trial %d-%s, no monkey_rake_handle event' % (block_idx, trial_idx, condition))
         #    error = True
 
         # if not 'monkey_handle_off' in sorted_evts:
-        #     print('Error, block %d, trial %d-%s, no go event' % (block_idx, trial_idx, condition))
+        #     logging.warning('Error, block %d, trial %d-%s, no go event' % (block_idx, trial_idx, condition))
         #     error = True
 
         if condition=='motor_rake_left' or condition=='motor_rake_food_left':
             if not ('monkey_tool_mid_left' in sorted_evts or 'monkey_tool_left' in sorted_evts):
-                print('Error, block %d, trial %d-%s, no tool/object contact event' % (block_idx, trial_idx, condition))
+                logging.warning('Error, block %d, trial %d-%s, no tool/object contact event' % (block_idx, trial_idx, condition))
                 error = True
         elif condition=='motor_rake_right' or condition=='motor_rake_food_right':
             if not ('monkey_tool_right' in sorted_evts or 'monkey_tool_mid_right' in sorted_evts):
-                print('Error, block %d, trial %d-%s, no tool/object contact event' % (block_idx, trial_idx, condition))
+                logging.warning('Error, block %d, trial %d-%s, no tool/object contact event' % (block_idx, trial_idx, condition))
                 error = True
         elif condition=='motor_rake_center' or condition=='motor_rake_food_center':
             if not ('monkey_tool_center' in sorted_evts):
-                print('Error, block %d, trial %d-%s, no tool/object contact event' % (block_idx, trial_idx, condition))
+                logging.warning('Error, block %d, trial %d-%s, no tool/object contact event' % (block_idx, trial_idx, condition))
                 error = True
 
         if not 'trap_edge' in sorted_evts and not 'trap_bottom' in sorted_evts:
-            print('Error, block %d, trial %d-%s, no trap_edge or trap_bottom event' % (block_idx, trial_idx, condition))
+            logging.warning('Error, block %d, trial %d-%s, no trap_edge or trap_bottom event' % (block_idx, trial_idx, condition))
             error = True
 
         # if not 'trap_bottom' in sorted_evts:
-        #     print('Error, block %d, trial %d-%s, no trap_bottom event' % (block_idx, trial_idx, condition))
+        #     logging.warning('Error, block %d, trial %d-%s, no trap_bottom event' % (block_idx, trial_idx, condition))
         #     error = True
 
         # if 'monkey_rake_handle' in sorted_evts:
         #     handle_idx = sorted_evts.index('monkey_rake_handle')
         #     if handle_idx >= len(sorted_evts) - 1 or not sorted_evts[handle_idx + 1] == 'trap_bottom':
-        #         print('Error, block %d, trial %d-%s, first event after trap_edge not trap_bottom' % (block_idx, trial_idx, condition))
+        #         logging.warning('Error, block %d, trial %d-%s, first event after trap_edge not trap_bottom' % (block_idx, trial_idx, condition))
         #         error = True
         # else:
-        #     print('Error, block %d, trial %d-%s, no trap_edge event' % (block_idx, trial_idx, condition))
+        #     logging.warning('Error, block %d, trial %d-%s, no trap_edge event' % (block_idx, trial_idx, condition))
         #     error = True
 
         if error:
-            print(sorted_evts)
-            # print(sorted_times)
-            print('\n')
+            logging.warning(sorted_evts)
+            # logging.warning(sorted_times)
+            logging.warning('\n')
 
     return error
 
@@ -507,35 +487,35 @@ def check_fixation_trial(block_idx, trial_idx, condition, sorted_evts):
     error = False
 
     if 'error' in sorted_evts:
-        print('Error, block %d, trial %d-%s, error' % (block_idx, trial_idx, condition))
+        logging.warning('Error, block %d, trial %d-%s, error' % (block_idx, trial_idx, condition))
         error=True
 
     else:
         if len(sorted_evts) == 0 or not sorted_evts[0] == 'trial_start':
-            print('Error, block %d, trial %d-%s, first event not trial start' % (block_idx, trial_idx, condition))
+            logging.warning('Error, block %d, trial %d-%s, first event not trial start' % (block_idx, trial_idx, condition))
             error = True
         start_idx = sorted_evts.index('trial_start')
         if not sorted_evts[start_idx + 1] == 'laser_exp_start_center':
-            print('Error, block %d, trial %d-%s, first event after start not laser' % (block_idx, trial_idx, condition))
+            logging.warning('Error, block %d, trial %d-%s, first event after start not laser' % (block_idx, trial_idx, condition))
             error = True
 
         if 'laser_exp_start_center' in sorted_evts:
             laser_idx = sorted_evts.index('laser_exp_start_center')
             if not sorted_evts[laser_idx + 1] == 'go':
-                print('Error, block %d, trial %d-%s, first event after laser not go' % (block_idx, trial_idx, condition))
+                logging.warning('Error, block %d, trial %d-%s, first event after laser not go' % (block_idx, trial_idx, condition))
                 error = True
         else:
-            print('Error, block %d, trial %d-%s, no laser_exp_start_center event' % (block_idx, trial_idx, condition))
+            logging.warning('Error, block %d, trial %d-%s, no laser_exp_start_center event' % (block_idx, trial_idx, condition))
             error=True
 
         if not 'go' in sorted_evts:
-            print('Error, block %d, trial %d-%s, no go event' % (block_idx, trial_idx, condition))
+            logging.warning('Error, block %d, trial %d-%s, no go event' % (block_idx, trial_idx, condition))
             error = True
 
         if error:
-            print(sorted_evts)
-            # print(sorted_times)
-            print('\n')
+            logging.warning(sorted_evts)
+            # logging.warning(sorted_times)
+            logging.warning('\n')
 
     return error
 

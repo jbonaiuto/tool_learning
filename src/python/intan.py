@@ -1,7 +1,6 @@
-import glob
 import json
 import os
-from datetime import datetime
+import logging
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -96,7 +95,7 @@ class IntanRecordingSet:
             # Start of next trial at end
             if len(trial_start)>1 and len(trial_end)>0 and trial_start[-1]>trial_end[-1]:
                 if cutoff_file is not None:
-                    print('cutoff without end of trial')
+                    logging.warning('cutoff without end of trial')
                 cutoff_dur_ms=(len(rec_signal)-trial_start[-1])/self.srate*1000.0
                 cutoff_file=data_file['fname']
                 cutoff_seg_idx=idx
@@ -109,7 +108,7 @@ class IntanRecordingSet:
             # Start of last trial at beginning
             if len(trial_start)>0 and len(trial_end)>1 and trial_end[0]<trial_start[0]:
                 if cutoff_file is None:
-                    print('end of trial without start')
+                    logging.warning('end of trial without start')
                 else:
                     self.trial_durations.append(trial_end[0]/self.srate*1000.0+cutoff_dur_ms)
                     self.trial_tasks.append(data_file['task'])
@@ -129,11 +128,11 @@ class IntanRecordingSet:
 
             if len(trial_start) > 0 and len(trial_end) > 0:
                 if len(trial_start)>len(trial_end):
-                    print('more trial start')
+                    logging.warning('more trial start')
                     trial_start=trial_start[0:-1]
                     bad_rec_signal=True
                 elif len(trial_start) < len(trial_end):
-                    print('more trial end')
+                    logging.warning('more trial end')
                     trial_end=trial_end[1:]
                     bad_rec_signal=True
 
@@ -144,7 +143,7 @@ class IntanRecordingSet:
                 nz_steps=np.where(dur_steps>1)[0]
                 if len(nz_steps) > 0:
                     if len(nz_steps) > 1:
-                        print('too many nz steps')
+                        logging.warning('too many nz steps')
                         bad_rec_signal = True
                     dur_step=trial_end[nz_steps]-trial_start[nz_steps]
                     dur_ms = dur_step / self.srate * 1000
@@ -157,7 +156,7 @@ class IntanRecordingSet:
                         self.trial_end_idxs.append([trial_end[nz_idx]])
                         self.trial_times.append([times])
                 else:
-                    print('no nz steps')
+                    logging.warning('no nz steps')
                     self.trial_durations.append(-1)
                     self.trial_tasks.append(data_file['task'])
                     self.trial_files.append(data_file['fname'])
@@ -176,7 +175,7 @@ class IntanRecordingSet:
                 # Ignore single time step blups
                 if dur_step > 1:
                     if cutoff_file is not None:
-                        print('cutoff without end of trial')
+                        logging.warning('cutoff without end of trial')
                     cutoff_dur_ms = dur_step / self.srate * 1000
                     cutoff_file = data_file['fname']
                     cutoff_seg_idx=idx
@@ -189,7 +188,7 @@ class IntanRecordingSet:
                     #self.files.append(file)
                     #self.postcutoff_trial_files.append(len(self.files)-1)
                 else:
-                    print('blip')
+                    logging.warning('blip')
             # If there is a trial end and no trial start- files are split into two if longer than 60s
             elif len(trial_start)==0 and len(trial_end)>0:
                 bad_rec_signal=True
@@ -198,7 +197,7 @@ class IntanRecordingSet:
                 # Ignore single time step blips
                 if dur_step > 1:
                     if cutoff_file is None:
-                        print('end of trial without start')
+                        logging.warning('end of trial without start')
                         self.trial_durations.append(-1)
                         self.trial_tasks.append(data_file['task'])
                         self.trial_files.append(data_file['fname'])
@@ -227,9 +226,9 @@ class IntanRecordingSet:
                     #self.files.append(file)
                     #self.precutoff_trial_files.append(len(self.files) - 1)
                 else:
-                    print('blip')
+                    logging.warning('blip')
             else:
-                print('no start/stop times')
+                logging.warning('no start/stop times')
                 dur_ms = len(rec_signal) / self.srate * 1000
                 # if dur_ms < 10000:
                 self.trial_durations.append(dur_ms-2000)
