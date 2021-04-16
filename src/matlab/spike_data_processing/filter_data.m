@@ -1,4 +1,4 @@
-function [data,bad_trials]=filter_data(exp_info, data, conditions, varargin)
+function [data,bad_trials]=filter_data(data, varargin)
 
 % FILTER_DATA Filters data by removing trials based on some criteria
 % 
@@ -11,21 +11,13 @@ function [data,bad_trials]=filter_data(exp_info, data, conditions, varargin)
 %    data - structure containing data (created by load_multiunit_data)
 %    conditions - list of conditions
 %
-% Optional inputs:
-%    min_rt - minimum response time in  ms (excluding fixation; 
-%             default=200)
-%    max_rt - maximum response time in ms (excluding fixation;
-%             default=1000)
-%    min_mt - minimum movement time in  ms (default=200)
-%    max_mt - maximum movement time in ms (default=1000)
-%
 % Outputs:
 %    data - data structure containing filtered data
 %
 % Example:
 %     data=filter_data(exp_info, data, conditions);
 
-defaults = struct('min_rt',200,'max_rt',1000,'min_mt',200,'max_mt',1000,'min_pt',200,'max_pt',1000);  %define default values
+defaults = struct();  %define default values
 params = struct(varargin{:});
 for f = fieldnames(defaults)',  
     if ~isfield(params, f{1}),
@@ -97,6 +89,43 @@ visual_grasp_bad_trials=union(visual_grasp_bad_trials,visual_grasp_trials(pt_bad
 disp(sprintf('Removing %d visual grasp trials total', length(visual_grasp_bad_trials)));
 
 bad_trials=union(bad_trials, visual_grasp_bad_trials);
+
+visual_pliers_conditions={'visual_pliers_left','visual_pliers_right'};
+visual_pliers_trials=zeros(1,length(data.metadata.condition));
+for i=1:length(visual_pliers_conditions)
+  visual_pliers_trials = visual_pliers_trials | (strcmp(data.metadata.condition,visual_pliers_conditions{i}));
+end
+visual_pliers_trials=find(visual_pliers_trials);
+visual_pliers_bad_trials=[];
+
+% Figure out RT of each trial
+rts=data.metadata.hand_mvmt_onset(visual_pliers_trials)-data.metadata.go(visual_pliers_trials);
+% Figure out TT of each trial
+tts=data.metadata.tool_mvmt_onset(visual_pliers_trials)-data.metadata.hand_mvmt_onset(visual_pliers_trials);
+% Figure out MT of each trial
+mts=data.metadata.obj_contact(visual_pliers_trials)-data.metadata.tool_mvmt_onset(visual_pliers_trials);
+% Figure out PT of each trial
+pts=data.metadata.place(visual_pliers_trials)-data.metadata.obj_contact(visual_pliers_trials);
+      
+rt_bad_trials=union(find(rts<200),find(rts>1000));
+disp(sprintf('Removing %d visual pliers trials based on RT', length(rt_bad_trials)));
+visual_pliers_bad_trials=union(visual_pliers_bad_trials,visual_pliers_trials(rt_bad_trials));
+
+tt_bad_trials=union(find(tts<500),find(tts>1000));
+disp(sprintf('Removing %d visual pliers trials based on MT', length(tt_bad_trials)));
+visual_pliers_bad_trials=union(visual_pliers_bad_trials,visual_pliers_trials(tt_bad_trials));
+
+mt_bad_trials=union(find(mts<200),find(mts>1000));
+disp(sprintf('Removing %d visual pliers trials based on MT', length(mt_bad_trials)));
+visual_pliers_bad_trials=union(visual_pliers_bad_trials,visual_pliers_trials(mt_bad_trials));
+
+pt_bad_trials=union(find(pts<200),find(pts>1000));
+disp(sprintf('Removing %d visual pliers trials based on PT', length(pt_bad_trials)));
+visual_pliers_bad_trials=union(visual_pliers_bad_trials,visual_pliers_trials(pt_bad_trials));
+
+disp(sprintf('Removing %d visual pliers trials total', length(visual_pliers_bad_trials)));
+
+bad_trials=union(bad_trials, visual_pliers_bad_trials);
 
 disp(sprintf('Removing %d trials total', length(bad_trials)));
 
