@@ -3,19 +3,16 @@ function [data,bad_trials]=filter_data(data, varargin)
 % FILTER_DATA Filters data by removing trials based on some criteria
 % 
 %
-% Syntax: data=filter_data(exp_info, data, conditions, varargin);
+% Syntax: data=filter_data( data,  varargin);
 %
 % Inputs:
-%    exp_info - experimental info data structure (created with
-%               init_exp_info.m)
 %    data - structure containing data (created by load_multiunit_data)
-%    conditions - list of conditions
 %
 % Outputs:
 %    data - data structure containing filtered data
 %
 % Example:
-%     data=filter_data(exp_info, data, conditions);
+%     data=filter_data(data);
 
 defaults = struct();  %define default values
 params = struct(varargin{:});
