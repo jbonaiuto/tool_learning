@@ -1,4 +1,7 @@
 #! /usr/bin/Rscript
+args = commandArgs(trailingOnly=TRUE)
+#output_path='E:/project/tool_learnin/data/output/HMM/betta/grasp/04.03.19'
+output_path=args[1]
 
 # Install packages
 devtools::install_github("smildiner/mHMMbayes", ref = "develop")
@@ -9,18 +12,30 @@ library(mHMMbayes)
 # Preferred parallel library
 #library(future.apply)
 
+args = commandArgs()
+
+scriptName = args[substr(args,1,7) == '--file=']
+
+if (length(scriptName) == 0) {
+  scriptName <- rstudioapi::getSourceEditorContext()$path
+} else {
+  scriptName <- substr(scriptName, 8, nchar(scriptName))
+}
+
+pathName = substr(
+  scriptName, 
+  1, 
+  nchar(scriptName) - nchar(strsplit(scriptName, '.*[/|\\]')[[1]][2])
+)
+
 # Load utility functions
-source("C:/Users/kirchher/project/tool_learning/src/R/hmm/utils.R")
+#source("C:/Users/kirchher/project/tool_learning/src/R/hmm/utils.R")
+source(paste0(pathName, "/utils.R"))
 
 # Load data sets
-data <- read_csv("C:/Users/kirchher/project/tool_learning/src/matlab/hmm/mHMMBayes/hmm_data.csv")
+data <- read_csv(paste0(output_path, '/hmm_data.csv'))
 
-# Data cleaning and reshaping to tidy long format
-#data_long <- gather(data_1ms, key = timestep, value = value, -date, -trial, -electrode) %>%
-#  mutate(timestep = as.numeric(timestep)) %>%
-#  drop_na()
-#filter(timestep < 259) %>%
-  
+
 # Save max value
 max_val <- max(data$value)
 
@@ -30,17 +45,20 @@ data_wide <- data %>%
 
 n_electrodes<-max(data$electrode)
 
-# Use first week
+# Use data from the first day
 train <- data_wide %>%
-  select(date, trial, `1`:`15`) %>%
-#  select(date, trial, `1`:`32`) %>%
+  filter(date %in% 1) %>%
+  select(trial, `1`:`32`) %>%
+  #select(date, trial, `1`:`15`) %>%
   as.matrix()
 
+
 # Add informative column names
-colnames(train) <- c("date","trial",paste0("el",1:n_electrodes))
+colnames(train) <- c("trial",paste0("el",1:32))
 #colnames(train) <- c("date","trial",paste0("el",1:15))
 
-n_possible_states=c(2:8)
+n_possible_states=c(2:7)
+
 
 # Set up cluster
 #plan(multiprocess, workers = 3)
@@ -49,6 +67,20 @@ states<-c()
 run<-c()
 aic<-c()
 
+# Set matrix of covariates
+gamma_cov <- data_wide %>%
+  mutate(left = case_when(condition == 3 ~ 1,
+                          condition != 3 ~ 0),
+         right = case_when(condition == 2 ~ 1,
+                           condition != 2 ~ 0)) %>%
+  filter(date == 1) %>%
+  select(trial, left, right) %>%
+  distinct(.keep_all = TRUE) %>%
+  as.matrix()
+
+head(gamma_cov)
+
+
 # Fit models in parallel
 #aics<-future_sapply(n_possible_states, function(m) {
 for(m in n_possible_states) {  
@@ -56,23 +88,31 @@ for(m in n_possible_states) {
   
   # General parameters
   n       <- length(unique(train[,1]))    # Number of subjects (days)
+  #m       <- 5                            # Number of hidden states
+  #m       <- n_possible_states            # Number of hidden states
   n_dep   <- n_electrodes                 # Number of dependent variables
   
   n_runs<-10
-    
+  
+  
+  
+  xx      <- rep(list(matrix(1, nrow = nrow(gamma_cov))), n_dep+1)
+  xx[[1]] <- cbind(xx[[1]], gamma_cov[,-1])
+  
+  
   for(run_idx in 1:n_runs) {
-      
+  #for(run_idx in 1:1) {
+    
     ## Starting values
     # Transition matrix (diagonal of high probability, and lower probabilities in the rest)
-    start_gamma <- diag(0.99, m)
+    start_gamma <- diag(0.9, m)
     start_gamma[lower.tri(start_gamma) | upper.tri(start_gamma)] <- (1 - diag(start_gamma)) / (m - 1)
-      
+    
     # Conditional distributions (starting values for lambdas)
     start_emiss <- vector("list",length = n_dep)
-    for(i in 1:n_dep) {
-      start_emiss[[i]] <- matrix(runif(m, min=0, max=max_val),nrow=m)#matrix(seq(max_val, 0.001, -(max_val - 0.001)/(m-1)), nrow = m, byrow = TRUE)
-    }
+    for(i in 1:n_dep) {start_emiss[[i]] <- matrix(seq(max_val, 0.001, -(max_val - 0.001)/(m-1)), nrow = m, byrow = TRUE)}
       
+    
     # Specify hyper-prior for the poisson emission distribution
     hyp_pr <- list(
       emiss_alpha_a0 = rep(list(rep(1, m)),n_dep),
@@ -82,14 +122,15 @@ for(m in n_possible_states) {
     )
     
     # Fit model
-    out <- mHMM_pois_rm(s_data = train,
+    out <- mHMM_pois(s_data = train,
                         gen = list(m = m, n_dep = n_dep),
                         start_val = c(list(start_gamma), start_emiss),
                         emiss_hyp_prior = hyp_pr,
-                        mcmc = list(J = 1000, burn_in = 500),
+                        xx = xx,
+                        mcmc = list(J = 250, burn_in = 150),
                         show_progress = TRUE,
                         return_fw_prob = TRUE,
-                        alpha_scale = 1,
+                        alpha_scale = 10,
                         force_ordering = TRUE)
     
     # Get a glimpse of the fitted model
@@ -108,24 +149,39 @@ for(m in n_possible_states) {
     # Visualize lower level transition probabilities
     #plot_mHMM(out, level = "lower", burnIn = 0, q = 1, target = "trans", plotType = "trace")
     
-    forward_probs <- get_map_fw(out, burn_in = 500, target = "median")
+    forward_probs <- get_map_fw(out, burn_in = 150, target = "median")
     
     #head(forward_probs)
     
     forward_probs <- forward_probs %>%
       as.data.frame() %>%
-      group_by(subj, rm) %>%
-      mutate(t = row_number()) %>%
-      as.matrix()
+      group_by(subj) %>%
+      mutate(t = row_number())
+      #as.matrix()
+    
+    
+    date1 <- data_wide %>%
+      filter(date == 1) %>%
+      select(trial, condition) %>%
+      rename("subj" = trial) %>%
+      group_by(subj) %>%
+      mutate(t = row_number())
+    
+    merged_data <- inner_join(x = forward_probs, y = date1, by = c("subj","t"))
+    
+    head(merged_data)
     
     #head(forward_probs)
     
-    save(out, file=paste0('model_',m,'states_',run_idx,'.rda'))
+    save(out, file=paste0(output_path, '/model_',m,'states_',run_idx,'.rda'))
     
-    write.csv(forward_probs,paste0('forward_probs_',m,'states_',run_idx,'.csv'))
+    write.csv(merged_data,paste0(output_path, '/forward_probs_',m,'states_',run_idx,'.csv'))
   }
+  
   #return(aic)
-}#, future.seed = 42L)
+}
+
+#, future.seed = 42L)
 # Close cluster
 #plan(sequential)
 #states<-c()
@@ -140,5 +196,4 @@ for(m in n_possible_states) {
 #  }
 #}
 df<-data.frame(states,run,aic)
-write.csv(df,'aic.csv')
-
+write.csv(df,paste0(output_path,'/aic.csv'))
