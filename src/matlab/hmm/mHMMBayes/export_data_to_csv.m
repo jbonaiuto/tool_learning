@@ -1,4 +1,4 @@
-function data=export_data_to_csv(exp_info, subject, array, conditions, date, dt, output_path)
+function data=export_data_to_csv(exp_info, subject, array, conditions, dates, dt, output_path)
 
 %% Load and concatenate spike data
 addpath('../../spike_data_processing');
@@ -7,25 +7,19 @@ dbstop if error
 
 load(fullfile(exp_info.base_data_dir, 'preprocessed_data', subject,...
     date,'multiunit','binned',...
-    sprintf('fr_b_%s_%s_whole_trial.mat',array,date)));
-
-data.electrodes=[1,2,3,4,5,6,7,9,13,18,25,27,29,31,32];
+    sprintf('fr_b_%s_%s_whole_trial.mat',array,dates)));
 
 data.trial_date=ones(1,data.ntrials);
 
 % Filter data - RTs too fast or slow
-data=filter_data(exp_info,data,'plot_corrs',true,'thresh_percentile', 10);
+data=filter_data(exp_info,data, conditions,'plot_corrs',true,'thresh_percentile', 10);
 data=rebin_spikes(data,dt);
 
-% Use data from "good" electrodes
-% good_electrodes=[1,2,3,4,5,6,7,9,13,18,25,27,29,31,32];
-% data.binned_spikes=data.binned_spikes(:,good_electrodes,:,:);
-% data.binned_baseline_spikes=data.binned_baseline_spikes(:,good_electrodes,:,:);
-% data.smoothed_firing_rate=data.smoothed_firing_rate(:,good_electrodes,:,:);
 
-     data.binned_spikes=data.binned_spikes(:,:,:,:);
-     data.binned_baseline_spikes=data.binned_baseline_spikes(:,:,:,:);
-     data.smoothed_firing_rate=data.smoothed_firing_rate(:,:,:,:);
+
+data.binned_spikes=data.binned_spikes(:,:,:,:);
+data.binned_baseline_spikes=data.binned_baseline_spikes(:,:,:,:);
+data.smoothed_firing_rate=data.smoothed_firing_rate(:,:,:,:);
    
 %% Figure out which trials to use and get trial data
 trials=zeros(1,length(data.metadata.condition));
