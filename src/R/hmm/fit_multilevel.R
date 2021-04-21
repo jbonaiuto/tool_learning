@@ -1,10 +1,6 @@
 #! /usr/bin/Rscript
-
-#! /usr/bin/Rscript
 args = commandArgs(trailingOnly=TRUE)
 output_path=args[1]
-#output_path='E:/project/tool_learning/data/output/HMM/betta/grasp/10w_condHMM/F1'
-#output_path='E:/project/tool_learnin/data/output/HMM/betta/grasp/04.03.19'
 
 # Install packages
 devtools::install_github("smildiner/mHMMbayes", ref = "develop")
@@ -33,12 +29,9 @@ pathName = substr(
 
 # Load utility functions
 source(paste0(pathName, "/utils.R"))
-#source("C:/Users/kirchher/project/tool_learning/src/R/hmm/utils.R")
 
 # Load data sets
 data <- read_csv(paste0(output_path, '/hmm_data.csv'))
-#data <- read_csv("C:/Users/kirchher/project/tool_learning/src/matlab/hmm/mHMMBayes/hmm_data.csv")
-
 
 # Save max value
 max_val <- max(data$value)
@@ -52,19 +45,15 @@ n_electrodes<-max(data$electrode)
 
 # Use data from all days and all electrodes
 train <- data_wide %>%
-  #filter(date %in% 1) %>%
-  #select(trial, `1`:`32`) %>%
   select(date, trial, `1`:`32`) %>%
-  filter(date %in% 1:max_date) %>%
-  #filter(date %in% 1:5) %>%
   as.matrix()
 
 
 # Add informative column names
-#colnames(train) <- c("trial",paste0("el",1:32))
 colnames(train) <- c("date","trial",paste0("el",1:32))
 
 n_possible_states=c(2:8)
+#n_possible_states=c(2)
 
 # Set up cluster
 #plan(multiprocess, workers = 3)
@@ -73,39 +62,18 @@ states<-c()
 run<-c()
 aic<-c()
 
-# Set matrix of covariates
-#gamma_cov <- data_wide %>%
- # mutate(left = case_when(condition == 3 ~ 1,
-  #                        condition != 3 ~ 0),
-   #      right = case_when(condition == 2 ~ 1,
-    #                       condition != 2 ~ 0)) %>%
-  #filter(date == 1) %>%
-  #select(trial, left, right) %>%
-  #distinct(.keep_all = TRUE) %>%
-  #as.matrix()
-
-#head(gamma_cov)
-
-
 # Fit models in parallel
 #aics<-future_sapply(n_possible_states, function(m) {
 for(m in n_possible_states) {  
   cat("\nCurrently fitting model with m =",m,"\n")
   
   # General parameters
-  n       <- length(unique(train[,1]))    # Number of subjects (days)
-  #m       <- n_possible_states            # Number of hidden states
   n_dep   <- n_electrodes                 # Number of dependent variables
   
   n_runs<-10
-  
-  
-  #xx      <- rep(list(matrix(1, nrow = nrow(gamma_cov))), n_dep+1)
-  #xx[[1]] <- cbind(xx[[1]], gamma_cov[,-1])
-  
+  #n_runs<-1
   
   for(run_idx in 1:n_runs) {
-  #for(run_idx in 1:1) {
     
     ## Starting values
     # Transition matrix (diagonal of high probability, and lower probabilities in the rest)
@@ -162,18 +130,6 @@ for(m in n_possible_states) {
       group_by(subj,rm) %>%
       mutate(t = row_number()) %>%
       as.matrix()
-    
-    
-    #date1 <- data_wide %>%
-    #  filter(date == 1) %>%
-    #  select(trial, condition) %>%
-    #  rename("subj" = trial) %>%
-    #  group_by(subj) %>%
-    #  mutate(t = row_number())
-    
-    #merged_data <- inner_join(x = forward_probs, y = date1, by = c("subj","t"))
-    
-    #head(merged_data)
     
     head(forward_probs)
     
