@@ -2,6 +2,7 @@ dbstop if error
 %clear all
 
 addpath('../..');
+addpath('../../spike_data_processing');
 exp_info=init_exp_info();
 subject='betta';
 

@@ -2,6 +2,7 @@ dbstop if error
 %clear all
 
 addpath('../..');
+addpath('../../spike_data_processing');
 exp_info=init_exp_info();
 subject='betta';
 
@@ -19,7 +20,7 @@ dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
     '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19'};
 
 % 10ms bins
-dt=1;
+dt=10;
 
 % Create output path if it doesnt exist
 output_path=fullfile(exp_info.base_output_dir, 'HMM', 'betta', 'motor_grasp',...
