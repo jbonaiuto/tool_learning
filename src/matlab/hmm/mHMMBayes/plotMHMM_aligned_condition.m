@@ -94,22 +94,15 @@ for r=1:length(align_events)
         electrode_labels{end+1}=sprintf('electrode %d',m);
     end
     ylim(firing_rate_lims);
-    plot([0 0],ylim(),':k');    
-    xlabel('Time (ms)');
-    if r==length(align_events)
-        orig_pos=get(ax,'Position');
-        l=legend(handles, electrode_labels,'Location','bestoutside');
-        set(ax,'Position',orig_pos);
-    end
+    plot([0 0],ylim(),':k');        
 end
 
 for r=1:length(align_events)
     ax=subplot(2,length(align_events),length(align_events)+r);
     hold all
-    title(strrep(align_events{r},'_',' '));
     ylim([0 1.2]);
     if r==1
-        ylabel({'Motor grasp: right, F1';' ';'State Probability'},'FontSize',12,'FontWeight','bold');
+        ylabel('State Probability','FontSize',12,'FontWeight','bold');
     end
     handles=[];
     state_labels={};

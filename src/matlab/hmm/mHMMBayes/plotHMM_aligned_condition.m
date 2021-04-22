@@ -102,9 +102,11 @@ for cond_idx=1:length(conditions)
         ax=subplot(2*length(conditions),length(align_events),2*(cond_idx-1)*length(align_events)+r);
         fr_colors=get(gca,'ColorOrder');
         hold all;
-        title(strrep(align_events{r},'_',' '));
+        if cond_idx==1
+            title(strrep(align_events{r},'_',' '));
+        end
         if r==1
-            ylabel({strrep(conditions{r},'_',' ');'Firing rate'},'FontSize',12,'FontWeight','bold');
+            ylabel({strrep(conditions{cond_idx},'_',' ');'Firing rate'},'FontSize',12,'FontWeight','bold');
         end
         handles=[];
         electrode_labels={};
@@ -117,21 +119,14 @@ for cond_idx=1:length(conditions)
         end
         ylim(firing_rate_lims);
         plot([0 0],ylim(),':k');    
-        xlabel('Time (ms)');
-        if r==length(align_events)
-            orig_pos=get(ax,'Position');
-            l=legend(handles, electrode_labels,'Location','bestoutside');
-            set(ax,'Position',orig_pos);
-        end
     end
 
     for r=1:length(align_events)
         ax=subplot(2*length(conditions),length(align_events),2*(cond_idx-1)*length(align_events)+length(align_events)+r);
         hold all
-        title(strrep(align_events{r},'_',' '));
         ylim([0 1.2]);
         if r==1
-            ylabel({'Motor grasp: right, F1';' ';'State Probability'},'FontSize',12,'FontWeight','bold');
+            ylabel('State Probability','FontSize',12,'FontWeight','bold');
         end
         handles=[];
         state_labels={};
@@ -152,7 +147,7 @@ for cond_idx=1:length(conditions)
         if cond_idx==length(conditions)
             xlabel('Time (ms)');
         end
-        if r==length(align_events)
+        if cond_idx==1 && r==length(align_events)
             orig_pos=get(ax,'Position');
             legend(handles, state_labels,'Location','bestoutside');
             set(ax,'Position',orig_pos);
