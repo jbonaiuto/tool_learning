@@ -19,7 +19,7 @@ dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
     '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19'};
 
 % 10ms bins
-dt=10;
+dt=1;
 
 % Create output path if it doesnt exist
 output_path=fullfile(exp_info.base_output_dir, 'HMM', 'betta', 'motor_grasp',...
@@ -34,7 +34,7 @@ if exist(fullfile(output_path,'data.mat'),'file')==2
 else
     % Otherwise export to CSV and save
     data=export_data_to_csv(exp_info, subject, array, conditions, dates, dt, output_path);
-    save(fullfile(output_path,'data.mat'),'data');
+    save(fullfile(output_path,'data.mat'),'data','-v7.3');
 end
 
 % Fit the model

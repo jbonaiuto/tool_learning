@@ -35,7 +35,7 @@ for cond_idx=1:length(conditions)
     else
         % Otherwise export to CSV and save
         data=export_data_to_csv(exp_info, subject, array, conditions(cond_idx), dates, dt, output_path);
-        save(fullfile(output_path,'data.mat'),'data');
+        save(fullfile(output_path,'data.mat'),'data','-v7.3');
     end
 
     % Fit the model

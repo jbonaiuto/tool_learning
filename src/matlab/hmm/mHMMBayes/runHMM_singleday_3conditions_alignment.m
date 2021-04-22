@@ -43,7 +43,7 @@ if exist(fullfile(day_output_path,'data.mat'),'file')==2
 else
     % Otherwise export to CSV and save
     data=export_data_to_csv(exp_info, subject, array, conditions, dates(1), dt, day_output_path);
-    save(fullfile(day_output_path,'data.mat'),'data');
+    save(fullfile(day_output_path,'data.mat'),'data','-v7.3');
 end
 
 % Fit the model
@@ -69,7 +69,7 @@ for d_idx=2:length(dates)
     else
         % Otherwise export to CSV and save
         data=export_data_to_csv(exp_info, subject, array, conditions, dates(d_idx), dt, day_output_path);
-        save(fullfile(day_output_path,'data.mat'),'data');
+        save(fullfile(day_output_path,'data.mat'),'data','-v7.3');
     end
 
     % Fit the model
