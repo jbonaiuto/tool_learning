@@ -51,9 +51,11 @@ train <- data_wide %>%
 # Add informative column names
 colnames(train) <- c("trial",paste0("el",1:32))
 
-n_possible_states=c(2:8)
-#n_possible_states=c(2)
+#n_possible_states=c(2:8)
+n_possible_states=c(5)
 
+#n_runs<-10
+n_runs<-1
 
 # Set up cluster
 #plan(multiprocess, workers = 3)
@@ -61,6 +63,7 @@ n_possible_states=c(2:8)
 states<-c()
 run<-c()
 aic<-c()
+bic<-c()
 
 # Set matrix of covariates
 gamma_cov <- data_wide %>%
@@ -82,9 +85,6 @@ for(m in n_possible_states) {
   
   # General parameters
   n_dep   <- n_electrodes                 # Number of dependent variables
-  
-  n_runs<-10
-  #n_runs<-1
   
   xx      <- rep(list(matrix(1, nrow = nrow(gamma_cov))), n_dep+1)
   xx[[1]] <- cbind(xx[[1]], gamma_cov[,-1])
@@ -127,9 +127,11 @@ for(m in n_possible_states) {
     
     # Get averaged AIC across subjects
     run_aic<-get_aic_pois(out)
+    run_bic<-get_bic_pois(out)
     states<-c(states,m)
     run<-c(run,run_idx)
     aic<-c(aic,run_aic)
+    bic<-c(bic,run_bic)
     
     # Visualize higher level transition probabilities
     #plot_mHMM(out, level = "higher", burnIn = 0, q = 1, target = "trans", plotType = "trace")
@@ -139,13 +141,10 @@ for(m in n_possible_states) {
     
     forward_probs <- get_map_fw(out, burn_in = 150, target = "median")
     
-    #head(forward_probs)
-    
     forward_probs <- forward_probs %>%
       as.data.frame() %>%
       group_by(subj) %>%
       mutate(t = row_number())
-    #as.matrix()
     
     
     date1 <- data_wide %>%
@@ -157,8 +156,6 @@ for(m in n_possible_states) {
     merged_data <- inner_join(x = forward_probs, y = date1, by = c("subj","t"))
     
     head(merged_data)
-    
-    #head(forward_probs)
     
     save(out, file=paste0(output_path, '/model_',m,'states_',run_idx,'.rda'))
     
@@ -182,5 +179,5 @@ for(m in n_possible_states) {
 #    aic<-c(aic,state_aic[run_idx])
 #  }
 #}
-df<-data.frame(states,run,aic)
-write.csv(df,paste0(output_path,'/aic.csv'))
+df<-data.frame(states,run,aic,bic)
+write.csv(df,paste0(output_path,'/aic_bic.csv'))

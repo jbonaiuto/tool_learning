@@ -1,3 +1,59 @@
+get_bic_pois <- function(x, burn_in = NULL){
+  
+  # Retrieve model parameters
+  n_subj  <- x[["input"]][["n_subj"]]
+  m       <- x[["input"]][["m"]]
+  n_dep   <- x[["input"]][["n_dep"]]
+  J       <- x[["input"]][["J"]]
+  
+  if(is.null(burn_in)) {
+    burn_in <- x[["input"]][["burn_in"]]
+  }
+  
+  # Extract MAP LL per subject
+  LL      <- numeric(n_subj)
+  for(i in 1:n_subj){
+    LL[i] <- median(x$PD_subj[[i]][((burn_in + 1): J), ((n_dep * m) + m*m + 1)])
+  }
+  
+  num_params<-(sum(n_dep*m)+(m-1)*m)
+  
+  # Calculate and return BIC
+  BIC<-num_params*log(n_subj)-(2*sum(LL));            
+  
+  # Return average AIC over subjects
+  return(BIC)
+  
+}
+
+get_aic_pois <- function(x, burn_in = NULL){
+  
+  # Retrieve model parameters
+  n_subj  <- x[["input"]][["n_subj"]]
+  m       <- x[["input"]][["m"]]
+  n_dep   <- x[["input"]][["n_dep"]]
+  J       <- x[["input"]][["J"]]
+  
+  if(is.null(burn_in)) {
+    burn_in <- x[["input"]][["burn_in"]]
+  }
+  
+  # Extract MAP LL per subject
+  LL      <- numeric(n_subj)
+  for(i in 1:n_subj){
+    LL[i] <- median(x$PD_subj[[i]][((burn_in + 1): J), ((n_dep * m) + m*m + 1)])
+  }
+  
+  num_params<-(sum(n_dep*m)+(m-1)*m)
+  
+  # Calculate and return BIC
+  AIC<-(2*num_params)-(2*sum(LL))
+  
+  # Return average AIC over subjects
+  return(AIC)
+  
+}
+
 #---------------------------#
 #           Plots           :
 #---------------------------#
