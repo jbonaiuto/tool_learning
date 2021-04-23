@@ -26,8 +26,8 @@ metric='euclidean';
 variable='TR';
 
 % Create output path if it doesnt exist
-output_path=fullfile(exp_info.base_output_dir, 'HMM', 'betta', 'motor_grasp',...
-    '10w_singleday_condHMM', array);
+output_path=fullfile(exp_info.base_output_dir, 'HMM', 'betta',...
+    'motor_grasp', '10w_singleday_condHMM', array);
 if exist(output_path,'dir')~=7
     mkdir(output_path);
 end
@@ -43,18 +43,21 @@ if exist(fullfile(day_output_path,'data.mat'),'file')==2
     load(fullfile(day_output_path,'data.mat'));
 else
     % Otherwise export to CSV and save
-    data=export_data_to_csv(exp_info, subject, array, conditions, dates(1), dt, day_output_path);
+    data=export_data_to_csv(exp_info, subject, array, conditions,...
+        dates(1), dt, day_output_path);
     save(fullfile(day_output_path,'data.mat'),'data','-v7.3');
 end
 
 % Fit the model
-system(sprintf('"C:/Program Files/R/R-3.6.1/bin/Rscript" ../../../R/hmm/fit_condition_covar.R "%s"', strrep(day_output_path,'\','/')));
+system(sprintf('"C:/Program Files/R/R-3.6.1/bin/Rscript" ../../../R/hmm/fit_condition_covar.R "%s"',...
+    strrep(day_output_path,'\','/')));
 
 % Load best model (lowest AIC)
 last_model=get_best_model(day_output_path);
 
 % Plot forward probs
-plotHMM_aligned_condition(data, dates(1), conditions, last_model);
+plotHMM_aligned_condition(data, dates(1), conditions, last_model,...
+    'type', 'condition_covar');
 
 %% Run the remaining days
 for d_idx=2:length(dates)
@@ -69,12 +72,14 @@ for d_idx=2:length(dates)
         load(fullfile(day_output_path,'data.mat'));
     else
         % Otherwise export to CSV and save
-        data=export_data_to_csv(exp_info, subject, array, conditions, dates(d_idx), dt, day_output_path);
+        data=export_data_to_csv(exp_info, subject, array, conditions,...
+            dates(d_idx), dt, day_output_path);
         save(fullfile(day_output_path,'data.mat'),'data','-v7.3');
     end
 
     % Fit the model
-    system(sprintf('"C:/Program Files/R/R-3.6.1/bin/Rscript" ../../../R/hmm/fit_condition_covar.R "%s"', strrep(day_output_path,'\','/')));
+    system(sprintf('"C:/Program Files/R/R-3.6.1/bin/Rscript" ../../../R/hmm/fit_condition_covar.R "%s"',...
+        strrep(day_output_path,'\','/')));
     
     % Load best model (lowest AIC)
     model=get_best_model(day_output_path);
@@ -83,7 +88,8 @@ for d_idx=2:length(dates)
     aligned_model=align_models(last_model, model, metric, variable);
     
     % Plot forward probs
-    plotHMM_aligned_condition(data, dates(d_idx), conditions, aligned_model);
+    plotHMM_aligned_condition(data, dates(d_idx), conditions, aligned_model,...
+        'type', 'condition_covar');
     
     % Align to aligned model in next iteration
     last_model=aligned_model;    

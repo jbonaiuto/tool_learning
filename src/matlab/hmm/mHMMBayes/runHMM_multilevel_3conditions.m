@@ -24,8 +24,8 @@ dt=10;
 
 for cond_idx=1:length(conditions)
     % Create output path if it doesnt exist
-    output_path=fullfile(exp_info.base_output_dir, 'HMM', 'betta', 'motor_grasp',...
-        '10w_mHMM', array, conditions{cond_idx});
+    output_path=fullfile(exp_info.base_output_dir, 'HMM', 'betta',...
+        'motor_grasp', '10w_mHMM', array, conditions{cond_idx});
     if exist(output_path,'dir')~=7
         mkdir(output_path);
     end
@@ -35,16 +35,19 @@ for cond_idx=1:length(conditions)
         load(fullfile(output_path,'data.mat'));
     else
         % Otherwise export to CSV and save
-        data=export_data_to_csv(exp_info, subject, array, conditions(cond_idx), dates, dt, output_path);
+        data=export_data_to_csv(exp_info, subject, array,...
+            conditions(cond_idx), dates, dt, output_path);
         save(fullfile(output_path,'data.mat'),'data','-v7.3');
     end
 
     % Fit the model
-    system(sprintf('"C:/Program Files/R/R-3.6.1/bin/Rscript" ../../../R/hmm/fit_multilevel.R "%s"', strrep(output_path,'\','/')));
+    system(sprintf('"C:/Program Files/R/R-3.6.1/bin/Rscript" ../../../R/hmm/fit_multilevel.R "%s"',...
+        strrep(output_path,'\','/')));
 
     % Load best model (lowest AIC)
     model=get_best_model(output_path);
 
     % Plot forward probs
-    plotMHMM_aligned_condition(data, dates, conditions{cond_idx}, model);
+    plotHMM_aligned_condition(data, dates, conditions(cond_idx), model,...
+        'type', 'multilevel');
 end
