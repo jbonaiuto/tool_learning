@@ -51,8 +51,8 @@ train <- data_wide %>%
 # Add informative column names
 colnames(train) <- c("trial",paste0("el",1:32))
 
-#n_possible_states=c(2:8)
-n_possible_states=c(5)
+n_possible_states=c(2:8)
+#n_possible_states=c(5)
 
 #n_runs<-10
 n_runs<-1
