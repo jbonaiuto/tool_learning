@@ -153,8 +153,8 @@ def rerun(subject, date_start_str):
     current_date = date_start
     while current_date <= date_now:
         date_str = datetime.strftime(current_date, '%d.%m.%y')
-        preproc_dir = os.path.join(cfg['preprocessed_data_dir'], subject, date_str)
-        json_fname=os.path.join(preproc_dir, 'intan_files.json')
+        base_path = os.path.join(cfg['preprocessed_data_dir'], subject, date_str)
+        json_fname=os.path.join(base_path, 'intan_files.json')
         if os.path.exists(json_fname):
             with open(json_fname, 'r') as infile:
                 data_files = json.load(infile)
@@ -166,5 +166,14 @@ def rerun(subject, date_start_str):
 if __name__=='__main__':
     subject = sys.argv[1]
     recording_date = sys.argv[2]
-    #run_process_spikes(subject, recording_date)
-    rerun(subject, recording_date)
+
+    recording_path = None
+    for x in cfg['intan_data_dirs']:
+        if os.path.exists(os.path.join(x, subject, recording_date)):
+            base_path = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, recording_date)
+            json_fname = os.path.join(base_path, 'intan_files.json')
+            if os.path.exists(json_fname):
+                with open(json_fname, 'r') as infile:
+                    data_files = json.load(infile)
+                run_process_spikes(subject, recording_date, data_files)
+    #rerun(subject, recording_date)

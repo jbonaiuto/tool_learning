@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta
 import os
 import sys
@@ -10,6 +11,8 @@ import eventide
 import plexon
 import intan
 import logging
+
+from spike_sorting.compute_catalogue import read_and_sort_data_files
 
 cfg = read_config()
 
@@ -530,8 +533,13 @@ def rerun(subject, date_start_str):
         for x in cfg['intan_data_dirs']:
 
             if os.path.exists(os.path.join(x, subject, date_str)):
+                base_path = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, date_str)
+                json_fname = os.path.join(base_path, 'intan_files.json')
+                if os.path.exists(json_fname):
+                    with open(json_fname, 'r') as infile:
+                        data_files = json.load(infile)
 
-                run_process_trial_info(subject, date_str)
+                run_process_trial_info(subject, date_str, data_files)
 
         current_date = current_date + timedelta(days=1)
         date_now = datetime.now()
@@ -539,5 +547,15 @@ def rerun(subject, date_start_str):
 if __name__=='__main__':
     subject = sys.argv[1]
     recording_date = sys.argv[2]
-    run_process_trial_info(subject, recording_date)
+
+    recording_path = None
+    for x in cfg['intan_data_dirs']:
+        if os.path.exists(os.path.join(x, subject, recording_date)):
+            base_path = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, recording_date)
+            json_fname = os.path.join(base_path, 'intan_files.json')
+            if os.path.exists(json_fname):
+                with open(json_fname, 'r') as infile:
+                    data_files = json.load(infile)
+
+                run_process_trial_info(subject, recording_date, data_files)
     #rerun(subject,recording_date)
