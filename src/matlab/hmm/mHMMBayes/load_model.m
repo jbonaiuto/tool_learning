@@ -37,7 +37,8 @@ if exist(fullfile(model.path, model.fname),'file')==2
     % Export transition probabilities if not done already
     model.trans_probs_fname=sprintf('trans_probs_%s.csv',model.name);
     if exist(fullfile(model.path, model.trans_probs_fname),'file')~=2
-        system(sprintf('Rscript ../../../R/hmm/extract_transition_probs.R %s %s', fullfile(model.path,model.fname), fullfile(model.path,model.trans_probs_fname)));
+        system(sprintf('"C:/Program Files/R/R-3.6.1/bin/Rscript" ../../../R/hmm/extract_transition_probs.R "%s" "%s"', fullfile(model.path,model.fname),...
+            fullfile(model.path,model.trans_probs_fname)));
     end
     % Load transition probabilities
     model_trans_probs=readtable(fullfile(model.path, model.trans_probs_fname));
