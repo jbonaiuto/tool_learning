@@ -28,9 +28,9 @@ from config import read_config
 cfg = read_config()
 
 # This is for selecting a GPU
-for e in tdc.get_cl_device_list():
-    print(e)
-tdc.set_default_cl_device(platform_index=0, device_index=0)
+# for e in tdc.get_cl_device_list():
+#     print(e)
+# tdc.set_default_cl_device(platform_index=0, device_index=0)
 
 
 def preprocess_array(array_idx, output_dir, total_duration):
