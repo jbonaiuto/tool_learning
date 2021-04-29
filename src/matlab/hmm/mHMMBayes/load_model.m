@@ -47,6 +47,23 @@ if exist(fullfile(model.path, model.fname),'file')==2
         model.trans_mat(model_trans_probs.From(i),model_trans_probs.To(i))=model_trans_probs.Prob(i);
     end
     
+    % Export emission probabilities if not done already
+    model.emiss_probs_fname=sprintf('emiss_probs_%s.csv',model.name);
+    if exist(fullfile(model.path, model.emiss_probs_fname),'file')~=2
+        system(sprintf('"C:/Program Files/R/R-3.6.1/bin/Rscript" ../../../R/hmm/extract_emission_probs.R "%s" "%s"', fullfile(model.path,model.fname),...
+            fullfile(model.path,model.emiss_probs_fname)));
+    end
+    % Load emission probabilities
+    model_emiss_probs=readtable(fullfile(model.path, model.emiss_probs_fname));
+    model.emiss_alpha_mat=zeros(model.n_states,32);
+    model.emiss_beta_mat=zeros(model.n_states,32);
+    for i=1:size(model_emiss_probs)
+        model.emiss_alpha_mat(model_emiss_probs.State(i),model_emiss_probs.Electrode(i))=model_emiss_probs.Alpha(i);
+        model.emiss_beta_mat(model_emiss_probs.State(i),model_emiss_probs.Electrode(i))=model_emiss_probs.Beta(i);
+    end
+    
+    
+    
     % Initialize model metadata if not done already
     model.metadata_fname=sprintf('metadata_%s.mat',model.name);
     if exist(fullfile(model.path, model.metadata_fname),'file')~=2 || params.reinit_metadata
