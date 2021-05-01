@@ -49,3 +49,5 @@ model=get_best_model(output_path);
 % Plot forward probs
 plotHMM_aligned_condition(data, dates, conditions, model,...
     'type', 'condition_covar');
+
+plot_model_params(model);
