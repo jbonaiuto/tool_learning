@@ -33,29 +33,29 @@ source(paste0(pathName, "/utils.R"))
 # Load data sets
 data <- read_csv(paste0(output_path, '/hmm_data.csv'))
 
-# Save max value
-max_val <- max(data$value)
-
 # Reshape to tidy wide format
 data_wide <- data %>%
   spread(key = electrode, value = value)
 
-n_electrodes<-max(data$electrode)
-
-# Use data from the first day
+# Get training data (don't need date, condition, timestep?)
 train <- data_wide %>%
-  select(trial, `1`:`32`) %>%
+  select(trial, c(`1`,`2`,`3`,`5`,`6`,`7`,`9`,`10`,`13`,`14`,`17`,`18`,`21`,`25`,`26`,`27`,`28`,`29`,`30`,`31`,`32`)) %>%
   as.matrix()
 
+n_electrodes<-ncol(train)-1
+
+# Save max value
+max_val <- max(train[,2:n_electrodes+1])
 
 # Add informative column names
-colnames(train) <- c("trial",paste0("el",1:32))
+colnames(train) <- c("trial",paste0("el",1:n_electrodes))
 
-n_possible_states=c(2:8)
-#n_possible_states=c(5)
+n_possible_states=c(3:8)
 
-#n_runs<-10
-n_runs<-1
+n_runs<-10
+
+n_iterations<-1000
+burn_in<-750
 
 # Set up cluster
 #plan(multiprocess, workers = 3)
@@ -94,12 +94,16 @@ for(m in n_possible_states) {
     
     ## Starting values
     # Transition matrix (diagonal of high probability, and lower probabilities in the rest)
-    start_gamma <- diag(0.9, m)
-    start_gamma[lower.tri(start_gamma) | upper.tri(start_gamma)] <- (1 - diag(start_gamma)) / (m - 1)
+    start_gamma <- diag(1, m)
+    start_gamma[diag(start_gamma)] <- runif(m,min=0.95,max=0.99)
+    start_gamma[lower.tri(start_gamma) | upper.tri(start_gamma)] <- runif((m-1)*m,min=0.0001, max=.05)
+    start_gamma=start_gamma/rowSums(start_gamma)
     
     # Conditional distributions (starting values for lambdas)
     start_emiss <- vector("list",length = n_dep)
-    for(i in 1:n_dep) {start_emiss[[i]] <- matrix(seq(max_val, 0.001, -(max_val - 0.001)/(m-1)), nrow = m, byrow = TRUE)}
+    for(i in 1:n_dep) {
+      start_emiss[[i]]<-matrix(runif(m,min=0,max=max_val),nrow=m,byrow=TRUE)
+    }
     
     
     # Specify hyper-prior for the poisson emission distribution
@@ -116,11 +120,61 @@ for(m in n_possible_states) {
                      start_val = c(list(start_gamma), start_emiss),
                      emiss_hyp_prior = hyp_pr,
                      xx = xx,
-                     mcmc = list(J = 250, burn_in = 150),
+                     mcmc = list(J = n_iterations, burn_in = burn_in),
                      show_progress = TRUE,
                      return_fw_prob = TRUE,
-                     alpha_scale = 10,
-                     force_ordering = TRUE)
+                     alpha_scale = 1,
+                     force_ordering = FALSE)
+    
+    
+    # Check emission convergence
+    emiss_data=data.frame()
+    for (elec in 1:length(out$emiss_alpha_bar)) {
+      e_data <- out$emiss_alpha_bar[[elec]] %>%
+        as.data.frame()
+      names(e_data) <- paste('S',rep(1:m),sep='')
+      e_data <- e_data %>%
+        mutate(iter = row_number()) %>%
+        gather(key = 'variable', value = 'value', -iter)
+      e_data$electrode<-elec
+      e_data$parameter<-'alpha'
+      emiss_data<-rbind(emiss_data,e_data)
+      
+      e_data <- out$emiss_beta_bar[[elec]] %>%
+        as.data.frame()
+      names(e_data) <- paste('S',rep(1:m),sep='')
+      e_data <- e_data %>%
+        mutate(iter = row_number()) %>%
+        gather(key = 'variable', value = 'value', -iter)
+      e_data$electrode<-elec
+      e_data$parameter<-'beta'
+      emiss_data<-rbind(emiss_data,e_data)
+    }
+    dev.new()
+    g<-ggplot(emiss_data[emiss_data$parameter=='alpha',])+
+      geom_line(aes(x=iter,y=value, group=variable, color=variable))+
+      facet_wrap(electrode ~., nrow = 8)
+    print(g)
+    ggsave(paste0(output_path,'/model_',m,'states_',run_idx,'_alpha.png'))
+    dev.off()
+    
+    
+    dev.new()
+    g<-ggplot(emiss_data[emiss_data$parameter=='beta',])+
+      geom_line(aes(x=iter,y=value, group=variable, color=variable))+
+      facet_wrap(electrode ~., nrow = 8)
+    print(g)
+    ggsave(paste0(output_path,'/model_',m,'states_',run_idx,'_beta.png'))
+    dev.off()
+    
+    # Visualize higher level transition probabilities
+    dev.new()
+    plot_mHMM(out, level = "higher", burnIn = 0, q = 1, target = "trans", plotType = "trace")
+    ggsave(paste0(output_path,'/model_',m,'states_',run_idx,'_trans.png'))
+    dev.off()
+    
+    # Visualize lower level transition probabilities
+    #plot_mHMM(out, level = "lower", burnIn = 0, q = 1, target = "trans", plotType = "trace")
     
     # Get a glimpse of the fitted model
     #summary(out)
@@ -133,13 +187,7 @@ for(m in n_possible_states) {
     aic<-c(aic,run_aic)
     bic<-c(bic,run_bic)
     
-    # Visualize higher level transition probabilities
-    #plot_mHMM(out, level = "higher", burnIn = 0, q = 1, target = "trans", plotType = "trace")
-    
-    # Visualize lower level transition probabilities
-    #plot_mHMM(out, level = "lower", burnIn = 0, q = 1, target = "trans", plotType = "trace")
-    
-    forward_probs <- get_map_fw(out, burn_in = 150, target = "median")
+    forward_probs <- get_map_fw(out, burn_in = burn_in, target = "median")
     
     forward_probs <- forward_probs %>%
       as.data.frame() %>%
