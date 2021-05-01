@@ -55,8 +55,8 @@ if exist(fullfile(model.path, model.fname),'file')==2
     end
     % Load emission probabilities
     model_emiss_probs=readtable(fullfile(model.path, model.emiss_probs_fname));
-    model.emiss_alpha_mat=zeros(model.n_states,32);
-    model.emiss_beta_mat=zeros(model.n_states,32);
+    model.emiss_alpha_mat=zeros(model.n_states,length(unique(model_emiss_probs.Electrode)));
+    model.emiss_beta_mat=zeros(model.n_states,length(unique(model_emiss_probs.Electrode)));
     for i=1:size(model_emiss_probs)
         model.emiss_alpha_mat(model_emiss_probs.State(i),model_emiss_probs.Electrode(i))=model_emiss_probs.Alpha(i);
         model.emiss_beta_mat(model_emiss_probs.State(i),model_emiss_probs.Electrode(i))=model_emiss_probs.Beta(i);
