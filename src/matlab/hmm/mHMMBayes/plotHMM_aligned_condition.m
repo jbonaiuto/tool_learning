@@ -73,7 +73,7 @@ for cond_idx=1:length(conditions)
                             
                 % Get the bins that we used in the HMM (time>0 and up to reward)
                 bin_idx=find((data.bins>=0) & (data.bins<=data.metadata.reward(day_trials(n))));
-
+                
                 % Find time of alignment event in this trial
                 event_time = align_event_times(condition_trials(t_idx));
 
@@ -120,7 +120,7 @@ end
 colors=cbrewer('qual','Paired',12);
 
 f=figure();
-set(f, 'Position', get(0, 'Screensize'));
+set(f, 'Position', [0 88 889 987]);
 
 for cond_idx=1:length(conditions)
     cond_aligned_firing_rates=aligned_firing_rates{cond_idx};
