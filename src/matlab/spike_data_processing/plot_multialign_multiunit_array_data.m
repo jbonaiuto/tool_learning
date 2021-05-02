@@ -10,7 +10,7 @@ for i=1:length(dates)
 end
 
 data=concatenate_data(date_data, 'spike_times', false);
-data=filter_data(exp_info, data, conditions);
+%data=filter_data(exp_info, data, conditions);
 % Compute dt
 dt=(data.bins(2)-data.bins(1))/1000;
 
