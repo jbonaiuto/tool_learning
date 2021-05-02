@@ -16,6 +16,9 @@ if n_states2<n_states1
     new_model2_trans_mat=zeros(n_states1, n_states1);
     new_model2_trans_mat(1:n_states2, 1:n_states2)=model2.trans_mat;
     model2.trans_mat=new_model2_trans_mat;
+    for i=1:length(extra_states_added)
+        model2.metadata.state_labels{end+1}='';
+    end
     n_states2=n_states1;
 end
 

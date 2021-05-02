@@ -14,7 +14,7 @@ from process_trial_info import run_process_trial_info
 
 cfg = read_config()
 
-def generate_trial_info_report(subject, date_start_str):
+def generate_trial_info_report(subject, date_start_str, date_end_str=None):
     report_output_dir = os.path.join(cfg['preprocessed_data_dir'],subject)
     if not os.path.exists(report_output_dir):
         os.mkdir(report_output_dir)
@@ -22,7 +22,10 @@ def generate_trial_info_report(subject, date_start_str):
         os.mkdir(os.path.join(report_output_dir, 'img'))
 
     date_start = datetime.strptime(date_start_str, '%d.%m.%y')
-    date_now = datetime.now()
+    if date_end_str is None:
+        date_end = datetime.now()
+    else:
+        date_end = datetime.strptime(date_end_str, '%d.%m.%y')
 
     stage1_start=datetime.strptime('12.02.19', '%d.%m.%y')
     stage2_start = datetime.strptime('27.03.19', '%d.%m.%y')
@@ -40,12 +43,12 @@ def generate_trial_info_report(subject, date_start_str):
         weekly_condition_trial_numbers[condition]=[]
         daily_condition_trial_numbers[condition] = []
 
-    while current_date <= date_now:
+    while current_date <= date_end:
         date_str = datetime.strftime(current_date, '%d.%m.%y')
         info_dir = os.path.join(cfg['preprocessed_data_dir'], subject, date_str)
-        if not os.path.exists(os.path.join(info_dir,'trial_numbers.csv')):
-            run_process_trial_info(subject, date_str)
         if os.path.exists(info_dir):
+            if not os.path.exists(os.path.join(info_dir, 'trial_numbers.csv')):
+                run_process_trial_info(subject, date_str)
             df=pd.read_csv(os.path.join(info_dir, 'trial_numbers.csv'))
             if current_date.weekday()==0:
                 condition_trial_numbers={}
@@ -70,7 +73,7 @@ def generate_trial_info_report(subject, date_start_str):
                     daily_condition_trial_numbers[condition].append(0)
 
         current_date = current_date + timedelta(days=1)
-        date_now = datetime.now()
+        #date_now = datetime.now()
 
     collapsed_weekly_condition_trial_numbers={}
     for collapsed_condition in cfg['collapsed_conditions']:
@@ -104,7 +107,7 @@ def generate_trial_info_report(subject, date_start_str):
     plt.text(stage2_start, max_val, 'Stage 2')
     ax.plot([stage3_start, stage3_start], [0, max_val], 'r--')
     plt.text(stage3_start, max_val, 'Stage 3')
-    plt.xlim((date_start, date_now+timedelta(days=31)))
+    plt.xlim((date_start, date_end+timedelta(days=31)))
     plt.savefig(os.path.join(report_output_dir,'img','collapsed_weekly_condition_trial_numbers.png'))
 
     df=pd.DataFrame(weekly_condition_trial_numbers, index=weekly_date_index)
@@ -116,7 +119,7 @@ def generate_trial_info_report(subject, date_start_str):
     plt.text(stage2_start, max_val, 'Stage 2')
     ax.plot([stage3_start, stage3_start], [0, max_val], 'r--')
     plt.text(stage3_start, max_val, 'Stage 3')
-    plt.xlim((date_start, date_now + timedelta(days=31)))
+    plt.xlim((date_start, date_end + timedelta(days=31)))
     plt.savefig(os.path.join(report_output_dir,'img','weekly_condition_trial_numbers.png'))
 
     df = pd.DataFrame(collapsed_daily_condition_trial_numbers, index=daily_date_index)
@@ -128,7 +131,7 @@ def generate_trial_info_report(subject, date_start_str):
     plt.text(stage2_start, max_val, 'Stage 2')
     ax.plot([stage3_start, stage3_start], [0, max_val], 'r--')
     plt.text(stage3_start, max_val, 'Stage 3')
-    plt.xlim((date_start, date_now + timedelta(days=31)))
+    plt.xlim((date_start, date_end + timedelta(days=31)))
     plt.savefig(os.path.join(report_output_dir, 'img', 'collapsed_daily_condition_trial_numbers.png'))
 
     df = pd.DataFrame(daily_condition_trial_numbers, index=daily_date_index)
@@ -140,7 +143,7 @@ def generate_trial_info_report(subject, date_start_str):
     plt.text(stage2_start, max_val, 'Stage 2')
     ax.plot([stage3_start, stage3_start], [0, max_val], 'r--')
     plt.text(stage3_start, max_val, 'Stage 3')
-    plt.xlim((date_start, date_now + timedelta(days=31)))
+    plt.xlim((date_start, date_end + timedelta(days=31)))
     plt.savefig(os.path.join(report_output_dir, 'img', 'daily_condition_trial_numbers.png'))
 
     env = Environment(loader=FileSystemLoader(cfg['template_dir']))
@@ -157,5 +160,8 @@ def generate_trial_info_report(subject, date_start_str):
 if __name__=='__main__':
     subject=sys.argv[1]
     start_date=sys.argv[2]
-    generate_trial_info_report(subject, start_date)
+    end_date=None
+    if len(sys.argv)>3:
+        end_date=sys.argv[3]
+    generate_trial_info_report(subject, start_date, date_end_str=end_date)
 

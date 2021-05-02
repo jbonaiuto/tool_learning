@@ -50,10 +50,10 @@ concat_data=remove_trials(concat_data,trials_to_remove);
 
 % Get trial spikes
 for trial_idx = 1:length(condition_trials)
-    % Get binned spikes for this trial from time 0 to 150 plus time of
-    % place
-    bin_idx=find((concat_data.bins>=0) & (concat_data.bins<=(concat_data.metadata.place(trial_idx)+150)));
+    % Get binned spikes for this trial from time 0 to reward time
+    bin_idx=find((concat_data.bins>=0) & (concat_data.bins<=concat_data.metadata.reward(trial_idx)));
     trial_spikes=squeeze(concat_data.binned_spikes(1,:,trial_idx,bin_idx));
+    
     % Trial date index
     trial_date_idx=concat_data.trial_date(trial_idx);
     condition_idx=find(strcmp(conditions,concat_data.metadata.condition{trial_idx}));

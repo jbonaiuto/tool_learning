@@ -53,7 +53,10 @@ train <- data_wide %>%
 colnames(train) <- c("date","trial",paste0("el",1:32))
 
 n_possible_states=c(2:8)
-#n_possible_states=c(2)
+#n_possible_states=c(5)
+
+#n_runs<-10
+n_runs<-1
 
 # Set up cluster
 #plan(multiprocess, workers = 3)
@@ -61,6 +64,7 @@ n_possible_states=c(2:8)
 states<-c()
 run<-c()
 aic<-c()
+bic<-c()
 
 # Fit models in parallel
 #aics<-future_sapply(n_possible_states, function(m) {
@@ -69,9 +73,6 @@ for(m in n_possible_states) {
   
   # General parameters
   n_dep   <- n_electrodes                 # Number of dependent variables
-  
-  #n_runs<-10
-  n_runs<-1
   
   for(run_idx in 1:n_runs) {
     
@@ -110,9 +111,11 @@ for(m in n_possible_states) {
     
     # Get averaged AIC across subjects
     run_aic<-get_aic_pois(out)
+    run_bic<-get_bic_pois(out)
     states<-c(states,m)
     run<-c(run,run_idx)
     aic<-c(aic,run_aic)
+    bic<-c(bic,run_bic)
     
     # Visualize higher level transition probabilities
     #plot_mHMM(out, level = "higher", burnIn = 0, q = 1, target = "trans", plotType = "trace")
@@ -122,8 +125,6 @@ for(m in n_possible_states) {
     #plot_mHMM(out, level = "lower", burnIn = 0, q = 1, target = "trans", plotType = "trace")
     
     forward_probs <- get_map_fw(out, burn_in = 150, target = "median")
-    
-    head(forward_probs)
     
     forward_probs <- forward_probs %>%
       as.data.frame() %>%
@@ -155,5 +156,5 @@ for(m in n_possible_states) {
 #    aic<-c(aic,state_aic[run_idx])
 #  }
 #}
-df<-data.frame(states,run,aic)
-write.csv(df,paste0(output_path,'/aic.csv'))
+df<-data.frame(states,run,aic,bic)
+write.csv(df,paste0(output_path,'/aic_bic.csv'))
