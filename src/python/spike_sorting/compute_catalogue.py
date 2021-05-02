@@ -1,7 +1,6 @@
 import json
 import os
 import matplotlib
-import transplant
 from tridesclous.tools import get_pairs_over_threshold
 
 matplotlib.use('Agg')
@@ -316,20 +315,22 @@ def read_and_sort_data_files(data_dir, recording_date):
 
         if ext == '.rhd':
             print(x)
-            file_info = {}
-            file_info['fname'] = os.path.join(data_dir, x)
-            data = IntanRawIO(file_info['fname'])
-            data.parse_header()
-            file_info['duration'] = data.get_signal_size(0, 0, [0]) * 1 / data.get_signal_sampling_rate([0])
+            try:
+                file_info = {}
+                file_info['fname'] = os.path.join(data_dir, x)
+                data = IntanRawIO(file_info['fname'])
+                data.parse_header()
+                file_info['duration'] = data.get_signal_size(0, 0, [0]) * 1 / data.get_signal_sampling_rate([0])
 
-            assert (datetime.strptime(prefix.split('_')[-2], '%y%m%d') == datetime.strptime(recording_date, '%d.%m.%y'))
-            data_datetimes.append(datetime.strptime(prefix.split('_')[-1], '%H%M%S'))
-            task = '_'.join(prefix.split('_')[1:-2])
-            if task == 'visual_task_stage_1-2':
-                task = 'visual_task_stage1-2'
-            file_info['task'] = task
-            data_files.append(file_info)
-
+                assert (datetime.strptime(prefix.split('_')[-2], '%y%m%d') == datetime.strptime(recording_date, '%d.%m.%y'))
+                data_datetimes.append(datetime.strptime(prefix.split('_')[-1], '%H%M%S'))
+                task = '_'.join(prefix.split('_')[1:-2])
+                if task == 'visual_task_stage_1-2':
+                    task = 'visual_task_stage1-2'
+                file_info['task'] = task
+                data_files.append(file_info)
+            except:
+                print('Error reading %s' % x)
     data_files = [x for _, x in sorted(zip(data_datetimes, data_files))]
     return data_files
 
