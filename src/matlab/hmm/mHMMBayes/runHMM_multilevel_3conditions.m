@@ -7,8 +7,8 @@ exp_info=init_exp_info();
 subject='betta';
 
 % Array to run model on
-array='F1';
-%array='F5hand';
+%array='F1';
+array='F5hand';
 %array='46v-12r';
 %array='F5mouth';
 

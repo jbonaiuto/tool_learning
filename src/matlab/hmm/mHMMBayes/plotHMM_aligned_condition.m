@@ -1,4 +1,4 @@
-function aligned_forward_probs=plotHMM_aligned_condition(data, dates,...
+function [aligned_forward_probs,f]=plotHMM_aligned_condition(data, dates,...
     conditions, model, varargin)
 
 % Parse optional arguments
@@ -182,8 +182,4 @@ for cond_idx=1:length(conditions)
         end
     end
 end
-
-%saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_average.png']));
-%saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_average.eps']), 'epsc');
-%close(f);
 end

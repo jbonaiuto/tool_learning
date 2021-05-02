@@ -29,8 +29,6 @@ def check_condition_trial_numbers(subject, date_start_str, date_end_str):
         if current_date_str not in excluded_days:
             print(current_date_str)
             fname=os.path.join(cfg['preprocessed_data_dir'],'%s/%s/trial_info.csv' % (subject, current_date_str))
-            if not os.path.exists(fname):
-                run_process_trial_info(subject, current_date_str)
             if os.path.exists(fname):
                 all_dates.append(current_date_str)
                 date_condition_ntrials[current_date_str]={}
