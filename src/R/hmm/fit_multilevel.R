@@ -70,8 +70,8 @@ for(m in n_possible_states) {
   # General parameters
   n_dep   <- n_electrodes                 # Number of dependent variables
   
-  n_runs<-10
-  #n_runs<-1
+  #n_runs<-10
+  n_runs<-1
   
   for(run_idx in 1:n_runs) {
     
