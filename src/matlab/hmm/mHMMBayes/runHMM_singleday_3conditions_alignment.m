@@ -54,7 +54,7 @@ system(sprintf('"C:/Program Files/R/R-3.6.1/bin/Rscript" ../../../R/hmm/fit_cond
 last_model=get_best_model(day_output_path);
 
 % Plot forward probs
-plotHMM_aligned_condition(data, dates(1), conditions, last_model);
+plotHMM_aligned_condition(data, dates(1), conditions, last_model, array, subject);
 
 %% Run the remaining days
 for d_idx=2:length(dates)
@@ -83,7 +83,7 @@ for d_idx=2:length(dates)
     aligned_model=align_models(last_model, model, metric, variable);
     
     % Plot forward probs
-    plotHMM_aligned_condition(data, dates(d_idx), conditions, aligned_model);
+    plotHMM_aligned_condition(data, dates(d_idx), conditions, aligned_model, array, subject);
     
     % Align to aligned model in next iteration
     last_model=aligned_model;    

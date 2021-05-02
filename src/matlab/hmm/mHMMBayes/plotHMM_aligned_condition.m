@@ -1,6 +1,8 @@
-function aligned_p_states=plotHMM_aligned_condition(data, dates, conditions, model)
+function aligned_p_states=plotHMM_aligned_condition(data, dates, conditions, model, array, subject)
 
 dbstop if error
+
+exp_info=init_exp_info();
 
 data=compute_firing_rate(data, 'baseline_type', 'none', 'win_len', 6);
  
@@ -160,7 +162,10 @@ for cond_idx=1:length(conditions)
     end
 end
 
-%saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_average.png']));
-%saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_average.eps']), 'epsc');
+% saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_average.png']));
+% saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model_name '_average.eps']), 'epsc');
+saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model.name array '_FOFALSE.png']));
+saveas(f,fullfile(exp_info.base_output_dir, 'figures','HMM', subject, [model.name array '_FOFALSE.eps']), 'epsc');
+
 %close(f);
 end
