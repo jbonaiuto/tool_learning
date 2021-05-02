@@ -22,7 +22,7 @@ binwidth=(data.bins(2)-data.bins(1));
 align_events={'go','hand_mvmt_onset','obj_contact','place'};
 
 % Size of epochs around each align event
-win_size=[-150 150];
+win_size=[-200 200];
 
 % Aligned forward probabilities and firing rates for each condition
 aligned_forward_probs={};
@@ -171,7 +171,7 @@ for cond_idx=1:length(conditions)
         end
 
         plot([0 0],ylim(),':k');
-        plot(xlim(),[0.6 0.6],'-.k');
+        plot(xlim(),[1/model.n_states 1/model.n_states],'-.k');
         if cond_idx==length(conditions)
             xlabel('Time (ms)');
         end
