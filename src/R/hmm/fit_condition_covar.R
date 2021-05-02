@@ -210,22 +210,8 @@ for(m in n_possible_states) {
     write.csv(merged_data,paste0(output_path, '/forward_probs_',m,'states_',run_idx,'.csv'))
   }
   
-  #return(aic)
+  # Write AIC-BIC every iteration
+  df<-data.frame(states,run,aic,bic)
+  write.csv(df,paste0(output_path,'/aic_bic.csv'))
 }
 
-#, future.seed = 42L)
-# Close cluster
-#plan(sequential)
-#states<-c()
-#run<-c()
-#aic<-c()
-#for(state_idx in 1:length(aics)){
-#  state_aic<-aics[state_idx]
-#  for(run_idx in 1:length(state_aic)) {
-#    states<-c(states,n_possible_states[state_idx])
-#    run<-c(run,run_idx)
-#    aic<-c(aic,state_aic[run_idx])
-#  }
-#}
-df<-data.frame(states,run,aic,bic)
-write.csv(df,paste0(output_path,'/aic_bic.csv'))
