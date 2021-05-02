@@ -56,13 +56,11 @@ system(sprintf('"C:/Program Files/R/R-3.6.1/bin/Rscript" ../../../R/hmm/fit_cond
 last_model=get_best_model(day_output_path);
 
 % Plot forward probs
-<<<<<<< HEAD
-plotHMM_aligned_condition(data, dates(1), conditions, last_model, array, subject);
-=======
-plotHMM_aligned_condition(data, dates(1), conditions, last_model,...
+[aligned_forward_probs,f]=plotHMM_aligned_condition(data, dates(1), conditions, last_model,...
     'type', 'condition_covar');
->>>>>>> 40f203dae49bc6a1d17ca9b765bf5d500c2d875f
-
+saveas(f,fullfile(day_output_path, [last_model.name '_forward_probs.png']));
+saveas(f,fullfile(day_output_path, [last_model.name '_forward_probs.eps']), 'epsc');
+    
 %% Run the remaining days
 for d_idx=2:length(dates)
     date=dates{d_idx};
