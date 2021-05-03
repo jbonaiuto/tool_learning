@@ -22,7 +22,7 @@ binwidth=(data.bins(2)-data.bins(1));
 align_events={'go','hand_mvmt_onset','obj_contact','place'};
 
 % Size of epochs around each align event
-win_size=[-200 200];
+win_size=[-150 150];
 
 % Aligned forward probabilities and firing rates for each condition
 aligned_forward_probs={};
@@ -145,14 +145,14 @@ for cond_idx=1:length(conditions)
             handles(end+1)=H.mainLine;
             electrode_labels{end+1}=sprintf('electrode %d',m);
         end
+        xlim(win_size);
         ylim(firing_rate_lims);
         plot([0 0],ylim(),':k');    
     end
 
     for r=1:length(align_events)
         ax=subplot(2*length(conditions),length(align_events),2*(cond_idx-1)*length(align_events)+length(align_events)+r);
-        hold all
-        ylim([0 1.2]);
+        hold all        
         if r==1
             ylabel('State Probability','FontSize',12,'FontWeight','bold');
         end
@@ -170,8 +170,10 @@ for cond_idx=1:length(conditions)
             end
         end
 
-        plot([0 0],ylim(),':k');
+        plot([0 0],[0 1],':k');
         plot(xlim(),[1/model.n_states 1/model.n_states],'-.k');
+        xlim(win_size);
+        ylim([0 1]);
         if cond_idx==length(conditions)
             xlabel('Time (ms)');
         end
