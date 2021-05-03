@@ -29,14 +29,12 @@ if exist(output_path,'dir')~=7
     mkdir(output_path);
 end
 
-if exist(fullfile(output_path,'data.mat'),'file')==2
-    % Load data if already exists
-    load(fullfile(output_path,'data.mat'));
-else
+if exist(fullfile(output_path,'data.mat'),'file')~=2
     % Otherwise export to CSV and save
     data=export_data_to_csv(exp_info, subject, array, conditions, dates,...
         dt, output_path);
     save(fullfile(output_path,'data.mat'),'data','-v7.3');
+    clear data;
 end
 
 % Fit the model
@@ -47,6 +45,7 @@ system(sprintf('"C:/Program Files/R/R-3.6.1/bin/Rscript" ../../../R/hmm/fit_cond
 model=get_best_model(output_path);
 
 % Plot forward probs
+load(fullfile(output_path,'data.mat'));
 plotHMM_aligned_condition(data, dates, conditions, model,...
     'type', 'condition_covar');
 
