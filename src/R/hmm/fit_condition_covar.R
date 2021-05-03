@@ -50,8 +50,7 @@ max_val <- max(train[,2:n_electrodes+1])
 # Add informative column names
 colnames(train) <- c("trial",paste0("el",1:n_electrodes))
 
-#n_possible_states=c(3:8)
-n_possible_states=c(5:8)
+n_possible_states=c(3:8)
 
 n_runs<-10
 
