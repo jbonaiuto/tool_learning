@@ -7,8 +7,8 @@ exp_info=init_exp_info();
 subject='betta';
 
 % Array to run model on
-%array='F1';
-array='F5hand';
+array='F1';
+%array='F5hand';
 %array='46v-12r';
 %array='F5mouth';
 
@@ -30,14 +30,12 @@ for cond_idx=1:length(conditions)
         mkdir(output_path);
     end
 
-    if exist(fullfile(output_path,'data.mat'),'file')==2
-        % Load data if already exists
-        load(fullfile(output_path,'data.mat'));
-    else
+    if exist(fullfile(output_path,'data.mat'),'file')~=2
         % Otherwise export to CSV and save
         data=export_data_to_csv(exp_info, subject, array,...
             conditions(cond_idx), dates, dt, output_path);
         save(fullfile(output_path,'data.mat'),'data','-v7.3');
+        clear data;
     end
 
     % Fit the model
@@ -48,6 +46,9 @@ for cond_idx=1:length(conditions)
     model=get_best_model(output_path);
 
     % Plot forward probs
+    load(fullfile(output_path,'data.mat'));
     plotHMM_aligned_condition(data, dates, conditions(cond_idx), model,...
         'type', 'multilevel');
+    
+    plot_model_params(model);
 end
