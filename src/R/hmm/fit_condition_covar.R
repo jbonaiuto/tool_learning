@@ -89,7 +89,6 @@ for(m in n_possible_states) {
   xx      <- rep(list(matrix(1, nrow = nrow(gamma_cov))), n_dep+1)
   xx[[1]] <- cbind(xx[[1]], gamma_cov[,-1])
   
-  
   for(run_idx in 1:n_runs) {
     
     ## Starting values
@@ -104,7 +103,6 @@ for(m in n_possible_states) {
     for(i in 1:n_dep) {
       start_emiss[[i]]<-matrix(runif(m,min=0,max=max_val),nrow=m,byrow=TRUE)
     }
-    
     
     # Specify hyper-prior for the poisson emission distribution
     hyp_pr <- list(
@@ -129,7 +127,7 @@ for(m in n_possible_states) {
     
     # Check emission convergence
     emiss_data=data.frame()
-    for (elec in 1:length(out$emiss_alpha_bar)) {
+    for (elec in 1:n_dep) {
       e_data <- out$emiss_alpha_bar[[elec]] %>%
         as.data.frame()
       names(e_data) <- paste('S',rep(1:m),sep='')
@@ -173,9 +171,6 @@ for(m in n_possible_states) {
     ggsave(paste0(output_path,'/model_',m,'states_',run_idx,'_trans.png'))
     dev.off()
     
-    # Visualize lower level transition probabilities
-    #plot_mHMM(out, level = "lower", burnIn = 0, q = 1, target = "trans", plotType = "trace")
-    
     # Get a glimpse of the fitted model
     #summary(out)
     
@@ -208,24 +203,10 @@ for(m in n_possible_states) {
     save(out, file=paste0(output_path, '/model_',m,'states_',run_idx,'.rda'))
     
     write.csv(merged_data,paste0(output_path, '/forward_probs_',m,'states_',run_idx,'.csv'))
+    
+    # Write AIC-BIC every iteration
+    df<-data.frame(states,run,aic,bic)
+    write.csv(df,paste0(output_path,'/aic_bic.csv'))
   }
-  
-  #return(aic)
 }
 
-#, future.seed = 42L)
-# Close cluster
-#plan(sequential)
-#states<-c()
-#run<-c()
-#aic<-c()
-#for(state_idx in 1:length(aics)){
-#  state_aic<-aics[state_idx]
-#  for(run_idx in 1:length(state_aic)) {
-#    states<-c(states,n_possible_states[state_idx])
-#    run<-c(run,run_idx)
-#    aic<-c(aic,state_aic[run_idx])
-#  }
-#}
-df<-data.frame(states,run,aic,bic)
-write.csv(df,paste0(output_path,'/aic_bic.csv'))

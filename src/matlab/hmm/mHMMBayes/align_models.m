@@ -3,6 +3,7 @@ function model2=align_models(model1, model2, metric, variable)
 % Get number of states
 n_states1=model1.n_states;
 n_states2=model2.n_states;
+ndeps=size(model1.emiss_alpha_mat,2);
 
 % Extra states that were added to new_model
 extra_states_added=[];
@@ -16,6 +17,14 @@ if n_states2<n_states1
     new_model2_trans_mat=zeros(n_states1, n_states1);
     new_model2_trans_mat(1:n_states2, 1:n_states2)=model2.trans_mat;
     model2.trans_mat=new_model2_trans_mat;
+    
+    new_model2_emiss_alpha_mat=zeros(n_states1, ndeps);
+    new_model2_emiss_alpha_mat(1:n_states2,:)=model2.emiss_alpha_mat;
+    model2.emiss_alpha_mat=new_model2_emiss_alpha_mat;
+    new_model2_emiss_beta_mat=zeros(n_states1, ndeps);
+    new_model2_emiss_beta_mat(1:n_states2,:)=model2.emiss_beta_mat;
+    model2.emiss_beta_mat=new_model2_emiss_beta_mat;
+    
     for i=1:length(extra_states_added)
         model2.metadata.state_labels{end+1}='';
     end
@@ -35,13 +44,15 @@ for i=1:n
     % Permute model 2 transition probability and emission probability
     % matrices
     permuted_model2_trans_mat=model2.trans_mat(I(i,:),I(i,:));
-        
+    permuted_model2_emiss_alpha_mat=model2.emiss_alpha_mat(I(i,:),:);
+    permuted_model2_emiss_beta_mat=model2.emiss_beta_mat(I(i,:),:);
+    permuted_model2_emiss=[permuted_model2_emiss_alpha_mat; permuted_model2_emiss_beta_mat];
+    
     % Model 1 transition probability and emission probability matrices
     orig_trans_mat=model1.trans_mat;
-    
-%     % Set diagonals of transition probability matrices to 0
-%     permutedESTTR=permutedESTTR-diag(diag(permutedESTTR));
-%     origESTR=origESTR-diag(diag(origESTR));
+    orig_emiss_alpha_mat=model1.emiss_alpha_mat;
+    orig_emiss_beta_mat=model1.emiss_beta_mat;
+    orig_emiss=[orig_emiss_alpha_mat; orig_emiss_beta_mat];
     
     % Compute adjacency matrices
     origA=zeros(size(orig_trans_mat));
@@ -63,6 +74,8 @@ for i=1:n
             metric_values(i)=norm(permuted_model2_trans_mat - orig_trans_mat,'fro');
         elseif strcmp(variable,'A')
             metric_values(i)=norm(permutedA - origA,'fro');
+        elseif strcmp(variable,'EM')
+            metric_values(i)=norm(permuted_model2_emiss - orig_emiss,'fro');
         end
     %manhattan
     elseif strcmp(metric, 'manhattan')
@@ -70,6 +83,8 @@ for i=1:n
             metric_values(i)=norm(permuted_model2_trans_mat-orig_trans_mat,1);
         elseif strcmp(variable,'A')
             metric_values(i)=norm(permutedA-origA,1);
+        elseif strcmp(variable,'EM')
+            metric_values(i)=norm(permuted_model2_emiss - orig_emiss,1);
         end
     %Pearson correlation
     elseif strcmp(metric, 'pearson')
@@ -77,6 +92,8 @@ for i=1:n
             metric_values(i)=corr(permuted_model2_trans_mat(:),orig_trans_mat(:));
         elseif strcmp(variable,'A')
             metric_values(i)=corr(permutedA(:),origA(:));
+        elseif strcmp(variable,'EM')
+            metric_values(i)=corr(permuted_model2_emiss(:),orig_emiss(:));
         end    
     %Spearman correlation
     elseif strcmp(metric, 'spearman')
@@ -84,6 +101,8 @@ for i=1:n
             metric_values(i)=corr(permuted_model2_trans_mat(:),orig_trans_mat(:), 'Type', 'Spearman');    
         elseif strcmp(variable,'A')
             metric_values(i)=corr(permutedA(:),origA(:), 'Type', 'Spearman');  
+        elseif strcmp(variable,'EM')
+            metric_values(i)=corr(permuted_model2_emiss(:),orig_emiss(:), 'Type', 'Spearman');
         end
     %cosinus similarity
     elseif strcmp(metric, 'cosine')
@@ -91,6 +110,8 @@ for i=1:n
             metric_values(i) = getCosineSimilarity(permuted_model2_trans_mat(:),orig_trans_mat(:));
         elseif strcmp(variable,'A')
             metric_values(i) = getCosineSimilarity(permutedA(:),origA(:));
+        elseif strcmp(variable,'A')
+            metric_values(i) = getCosineSimilarity(permuted_model2_emiss(:),orig_emiss(:));
         end    
     %Covariance
     elseif strcmp(metric, 'covar')
@@ -100,6 +121,9 @@ for i=1:n
         elseif strcmp(variable,'A')
             m=cov(permutedA,origA);
             metric_values(i)=m(1,2);
+        elseif strcmp(variable,'EM')
+            m=cov(permuted_model2_emiss,orig_emiss);
+            metric_values(i)=m(1,2);
         end
     %jaccard index
     elseif strcmp(metric, 'jaccard')
@@ -107,6 +131,8 @@ for i=1:n
             metric_values(i) = 1 - sum(permuted_model2_trans_mat & orig_trans_mat)/sum(permuted_model2_trans_mat | orig_trans_mat);
         elseif strcmp(variable,'A')
             metric_values(i) = 1 - sum(permutedA & origA)/sum(permutedA | origA);
+        elseif strcmp(variable,'EM')
+            metric_values(i) = 1 - sum(permuted_model2_emiss & orig_emiss)/sum(permuted_model2_emiss | orig_emiss);
         end
     end
 end
@@ -148,4 +174,6 @@ if length(extra_states_added)>0
     keep_idx=setdiff([1:n_states2], find(strcmp(old_state_labels,'')));
     model2.metadata.state_labels=model2.metadata.state_labels(keep_idx);
     model2.trans_mat=model2.trans_mat(keep_idx,keep_idx);
+    model2.emiss_alpha_mat=model2.emiss_alpha_mat(keep_idx,:);
+    model2.emiss_beta_mat=model2.emiss_beta_mat(keep_idx,:);
 end
