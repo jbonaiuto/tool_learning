@@ -23,7 +23,7 @@ dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
 dt=10;
 
 metric='euclidean';
-variable='TR';
+variable='EM';
 
 % Create output path if it doesnt exist
 output_path=fullfile(exp_info.base_output_dir, 'HMM', 'betta',...
