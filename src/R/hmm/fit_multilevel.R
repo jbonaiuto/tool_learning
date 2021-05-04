@@ -150,7 +150,7 @@ for(m in n_possible_states) {
     # Extract subject level data from the list and shpe it as a wide data frame
     data <- do.call(rbind, lapply(seq_along(out$PD_subj), function(e) {
       as.data.frame(out$PD_subj[e]) %>%
-        dplyr::select(varNames) %>%
+        dplyr::select(all_of(varNames)) %>%
         mutate(iter = row_number(), id = e)
     }))
     # Reshape subj_data into long format
