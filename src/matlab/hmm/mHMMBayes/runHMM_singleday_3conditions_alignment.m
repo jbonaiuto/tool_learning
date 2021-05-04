@@ -47,7 +47,7 @@ if exist(fullfile(day_output_path,'data.mat'),'file')~=2
 end
 
 % Fit the model
-system(sprintf('"C:/Program Files/R/R-3.6.1/bin/Rscript" ../../../R/hmm/fit_condition_covar.R "%s"',...
+system(sprintf('Rscript ../../../R/hmm/fit_condition_covar.R "%s"',...
     strrep(day_output_path,'\','/')));
 
 % Load best model (lowest AIC)
@@ -77,7 +77,7 @@ for d_idx=2:length(dates)
     end
 
     % Fit the model
-    system(sprintf('"C:/Program Files/R/R-3.6.1/bin/Rscript" ../../../R/hmm/fit_condition_covar.R "%s"',...
+    system(sprintf('Rscript ../../../R/hmm/fit_condition_covar.R "%s"',...
         strrep(day_output_path,'\','/')));
     
     % Load best model (lowest AIC)

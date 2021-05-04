@@ -39,7 +39,7 @@ for cond_idx=1:length(conditions)
     end
 
     % Fit the model
-    system(sprintf('"C:/Program Files/R/R-3.6.1/bin/Rscript" ../../../R/hmm/fit_multilevel.R "%s"',...
+    system(sprintf('Rscript ../../../R/hmm/fit_multilevel.R "%s"',...
         strrep(output_path,'\','/')));
 
     % Load best model (lowest AIC)

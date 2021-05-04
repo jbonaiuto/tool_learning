@@ -38,7 +38,7 @@ if exist(fullfile(output_path,'data.mat'),'file')~=2
 end
 
 % Fit the model
-system(sprintf('"C:/Program Files/R/R-3.6.1/bin/Rscript" ../../../R/hmm/fit_condition_covar.R "%s"',...
+system(sprintf('Rscript ../../../R/hmm/fit_condition_covar.R "%s"',...
     strrep(output_path,'\','/')));
 
 % Load best model (lowest AIC)
