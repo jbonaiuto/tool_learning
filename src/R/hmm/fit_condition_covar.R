@@ -123,7 +123,7 @@ for(m in n_possible_states) {
                      mcmc = list(J = n_iterations, burn_in = burn_in),
                      show_progress = TRUE,
                      return_fw_prob = TRUE,
-                     alpha_scale = 1,
+                     alpha_scale = 10,
                      force_ordering = FALSE)
     
     
