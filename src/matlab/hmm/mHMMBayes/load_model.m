@@ -1,7 +1,7 @@
 function model=load_model(model_path, model_name, varargin)
 
 %define default values
-defaults = struct('reinit_metadata',false);  
+defaults = struct('reinit_metadata',false, 'type','condition_covar');  
 params = struct(varargin{:});
 for f = fieldnames(defaults)',  
     if ~isfield(params, f{1}),
@@ -33,6 +33,14 @@ if exist(fullfile(model.path, model.fname),'file')==2
             end
         end
     end
+    
+    % Initialize model metadata if not done already
+    model.metadata_fname=sprintf('metadata_%s.mat',model.name);
+    if exist(fullfile(model.path, model.metadata_fname),'file')~=2 || params.reinit_metadata
+        init_model_metadata(model);
+    end
+    load(fullfile(model.path, model.metadata_fname));
+    model.metadata=metadata;  
 
     % Export transition probabilities if not done already
     model.trans_probs_fname=sprintf('trans_probs_%s.csv',model.name);
@@ -45,6 +53,27 @@ if exist(fullfile(model.path, model.fname),'file')==2
     model.trans_mat=zeros(model.n_states,model.n_states);
     for i=1:size(model_trans_probs)
         model.trans_mat(model_trans_probs.From(i),model_trans_probs.To(i))=model_trans_probs.Prob(i);
+    end
+    
+    if strcmp(params.type,'condition_covar')
+        % Export condition covariates if not done already
+        model.cond_trans_covs_fname=sprintf('cond_trans_covs_%s.csv',model.name);        
+        if exist(fullfile(model.path, model.cond_trans_covs_fname),'file')~=2
+	    system(sprintf('Rscript ../../../R/hmm/extract_condition_transition_covs.R "%s" "%s" "%s"', fullfile(model.path,model.fname),...
+                fullfile(model.path,model.cond_trans_covs_fname), model.path));
+        end
+        % Load condition covariates
+        model_cond_trans_covs=readtable(fullfile(model.path, model.cond_trans_covs_fname));
+        model.metadata.conditions=unique(model_cond_trans_covs.Cov);
+        model.cond_trans_cov_med_mat=zeros(length(model.metadata.conditions),model.n_states,model.n_states);
+        model.cond_trans_cov_cci_upr_mat=zeros(length(model.metadata.conditions),model.n_states,model.n_states);
+        model.cond_trans_cov_cci_lwr_mat=zeros(length(model.metadata.conditions),model.n_states,model.n_states);
+        for i=1:size(model_cond_trans_covs)
+	    cond_idx=find(strcmp(model.metadata.conditions,model_cond_trans_covs.Cov{i}));
+	    model.cond_trans_cov_med_mat(cond_idx,model_cond_trans_covs.From(i),model_cond_trans_covs.To(i))=model_cond_trans_covs.MedVal(i);
+	    model.cond_trans_cov_cci_upr_mat(cond_idx,model_cond_trans_covs.From(i),model_cond_trans_covs.To(i))=model_cond_trans_covs.CCI_upr(i);
+	    model.cond_trans_cov_cci_lwr_mat(cond_idx,model_cond_trans_covs.From(i),model_cond_trans_covs.To(i))=model_cond_trans_covs.CCI_lwr(i);
+	end
     end
     
     % Export emission probabilities if not done already
@@ -64,12 +93,6 @@ if exist(fullfile(model.path, model.fname),'file')==2
     
     
     
-    % Initialize model metadata if not done already
-    model.metadata_fname=sprintf('metadata_%s.mat',model.name);
-    if exist(fullfile(model.path, model.metadata_fname),'file')~=2 || params.reinit_metadata
-        init_model_metadata(model);
-    end
-    load(fullfile(model.path, model.metadata_fname));
-    model.metadata=metadata;    
+      
 end
     

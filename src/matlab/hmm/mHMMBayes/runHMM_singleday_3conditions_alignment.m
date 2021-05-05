@@ -51,7 +51,7 @@ system(sprintf('Rscript ../../../R/hmm/fit_condition_covar.R "%s"',...
     strrep(day_output_path,'\','/')));
 
 % Load best model (lowest AIC)
-last_model=get_best_model(day_output_path);
+last_model=get_best_model(day_output_path, 'type', 'condition_covar');
 
 % Plot forward probs
 load(fullfile(day_output_path,'data.mat'));
@@ -81,7 +81,7 @@ for d_idx=2:length(dates)
         strrep(day_output_path,'\','/')));
     
     % Load best model (lowest AIC)
-    model=get_best_model(day_output_path);
+    model=get_best_model(day_output_path, 'type', 'condition_covar');
     
     % Align to last model
     aligned_model=align_models(last_model, model, metric, variable);

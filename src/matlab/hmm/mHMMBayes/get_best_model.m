@@ -1,7 +1,7 @@
 function model=get_best_model(output_path, varargin)
 
 % Parse optional arguments
-defaults=struct('method','AIC+BIC');
+defaults=struct('method','AIC+BIC', 'type','condition_covar');
 params=struct(varargin{:});
 for f=fieldnames(defaults)'
     if ~isfield(params, f{1})
@@ -27,4 +27,4 @@ run_idx=T.run(forward_prob_idx);
 
 % Load model
 model_name=sprintf('%dstates_%d',n_states,run_idx);
-model=load_model(output_path,model_name);
+model=load_model(output_path,model_name, 'type',params.type);

@@ -42,7 +42,7 @@ system(sprintf('Rscript ../../../R/hmm/fit_condition_covar.R "%s"',...
     strrep(output_path,'\','/')));
 
 % Load best model (lowest AIC)
-model=get_best_model(output_path);
+model=get_best_model(output_path, 'type', 'condition_covar');
 
 % Plot forward probs
 load(fullfile(output_path,'data.mat'));
