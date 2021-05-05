@@ -43,7 +43,7 @@ for cond_idx=1:length(conditions)
         strrep(output_path,'\','/')));
 
     % Load best model (lowest AIC)
-    model=get_best_model(output_path);
+    model=get_best_model(output_path, 'type', 'multilevel');
 
     % Plot forward probs
     load(fullfile(output_path,'data.mat'));
