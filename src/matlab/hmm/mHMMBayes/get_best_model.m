@@ -1,7 +1,7 @@
 function model=get_best_model(output_path, varargin)
 
 % Parse optional arguments
-defaults=struct('method','AIC+BIC', 'type','condition_covar');
+defaults=struct('method','AIC', 'type','condition_covar');
 params=struct(varargin{:});
 for f=fieldnames(defaults)'
     if ~isfield(params, f{1})
@@ -10,18 +10,19 @@ for f=fieldnames(defaults)'
 end
 
 % Find num states and run with lowest AIC
-T = readtable(fullfile(output_path, 'aic_bic.csv'));
-minAIC=min(T.aic);
-minBIC=min(T.bic);
-minAICBIC=min(T.aic+T.bic);
+T = readtable(fullfile(output_path, 'aic.csv'));
 
 if strcmp(params.method,'AIC')
+    minAIC=min(T.aic);
     forward_prob_idx=find(T.aic==minAIC);
 elseif strcmp(params.method,'BIC')
+    minBIC=min(T.bic);
     forward_prob_idx=find(T.bic==minBIC);
 else
+    minAICBIC=min(T.aic+T.bic);
     forward_prob_idx=find(T.aic+T.bic==minAICBIC);
 end
+forward_prob_idx=find(T.aic==minAIC);
 n_states=T.states(forward_prob_idx);
 run_idx=T.run(forward_prob_idx);
 
