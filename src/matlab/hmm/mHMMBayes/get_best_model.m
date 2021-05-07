@@ -10,7 +10,7 @@ for f=fieldnames(defaults)'
 end
 
 % Find num states and run with lowest AIC
-T = readtable(fullfile(output_path, 'aic.csv'));
+T = readtable(fullfile(output_path, 'aic_bic.csv'));
 
 if strcmp(params.method,'AIC')
     minAIC=min(T.aic);
