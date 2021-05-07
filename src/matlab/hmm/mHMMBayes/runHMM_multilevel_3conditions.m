@@ -48,5 +48,5 @@ for cond_idx=1:length(conditions)
     load(fullfile(output_path,'data.mat'));
     plotHMM_aligned_condition(data, dates, conditions(cond_idx), model);
     
-    plot_model_params(model);
+    plot_model_params(model, conditions(cond_idx));
 end

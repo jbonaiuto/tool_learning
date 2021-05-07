@@ -47,4 +47,4 @@ model=get_best_model(output_path, 'type', 'condition_covar');
 load(fullfile(output_path,'data.mat'));
 plotHMM_aligned_condition(data, dates, conditions, model);
 
-plot_model_params(model);
+plot_model_params(model, conditions);
