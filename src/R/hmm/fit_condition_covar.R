@@ -77,18 +77,15 @@ gamma_cov <- data_wide %>%
 
 head(gamma_cov)
 
-
+xx      <- rep(list(matrix(1, nrow = nrow(gamma_cov))), n_electrodes+1)
+xx[[1]] <- cbind(xx[[1]], gamma_cov[,-1])
+  
+  
 # Fit models in parallel
 #aics<-future_sapply(n_possible_states, function(m) {
 for(m in n_possible_states) {  
   cat("\nCurrently fitting model with m =",m,"\n")
-  
-  # General parameters
-  n_dep   <- n_electrodes                 # Number of dependent variables
-  
-  xx      <- rep(list(matrix(1, nrow = nrow(gamma_cov))), n_dep+1)
-  xx[[1]] <- cbind(xx[[1]], gamma_cov[,-1])
-  
+    
   for(run_idx in 1:n_runs) {
     
     ## Starting values
@@ -99,22 +96,22 @@ for(m in n_possible_states) {
     start_gamma=start_gamma/rowSums(start_gamma)
     
     # Conditional distributions (starting values for lambdas)
-    start_emiss <- vector("list",length = n_dep)
-    for(i in 1:n_dep) {
+    start_emiss <- vector("list",length = n_electrodes)
+    for(i in 1:n_electrodes) {
       start_emiss[[i]]<-matrix(runif(m,min=0,max=max_val),nrow=m,byrow=TRUE)
     }
     
     # Specify hyper-prior for the poisson emission distribution
     hyp_pr <- list(
-      emiss_alpha_a0 = rep(list(rep(1, m)),n_dep),
-      emiss_alpha_b0 = rep(list(rep(1, m)),n_dep),
-      emiss_beta_a0 = rep(list(rep(1, m)),n_dep),
-      emiss_beta_b0 = rep(list(rep(1, m)),n_dep)
+      emiss_alpha_a0 = rep(list(rep(1, m)),n_electrodes),
+      emiss_alpha_b0 = rep(list(rep(1, m)),n_electrodes),
+      emiss_beta_a0 = rep(list(rep(1, m)),n_electrodes),
+      emiss_beta_b0 = rep(list(rep(1, m)),n_electrodes)
     )
     
     # Fit model
     out <- mHMM_pois(s_data = train,
-                     gen = list(m = m, n_dep = n_dep),
+                     gen = list(m = m, n_dep = n_electrodes),
                      start_val = c(list(start_gamma), start_emiss),
                      emiss_hyp_prior = hyp_pr,
                      xx = xx,
@@ -127,7 +124,7 @@ for(m in n_possible_states) {
     
     # Check emission convergence
     emiss_data=data.frame()
-    for (elec in 1:n_dep) {
+    for (elec in 1:n_electrodes) {
       e_data <- out$emiss_alpha_bar[[elec]] %>%
         as.data.frame()
       names(e_data) <- paste('S',rep(1:m),sep='')
