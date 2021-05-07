@@ -1,4 +1,4 @@
-dbstop if error
+%dbstop if error
 %clear all
 
 addpath('../..');
