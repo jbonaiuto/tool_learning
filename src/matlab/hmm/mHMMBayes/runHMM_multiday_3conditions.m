@@ -1,5 +1,4 @@
-dbstop if error
-%clear all
+clear all
 
 addpath('../..');
 addpath('../../spike_data_processing');
@@ -46,7 +45,6 @@ model=get_best_model(output_path, 'type', 'condition_covar');
 
 % Plot forward probs
 load(fullfile(output_path,'data.mat'));
-plotHMM_aligned_condition(data, dates, conditions, model,...
-    'type', 'condition_covar');
+plotHMM_aligned_condition(data, dates, conditions, model);
 
 plot_model_params(model);

@@ -1,5 +1,4 @@
-dbstop if error
-%clear all
+clear all
 
 addpath('../..');
 addpath('../../spike_data_processing');
@@ -55,8 +54,8 @@ last_model=get_best_model(day_output_path, 'type', 'condition_covar');
 
 % Plot forward probs
 load(fullfile(day_output_path,'data.mat'));
-[aligned_forward_probs,f]=plotHMM_aligned_condition(data, dates(1), conditions, last_model,...
-    'type', 'condition_covar');
+[aligned_forward_probs,f]=plotHMM_aligned_condition(data, dates(1),...
+    conditions, last_model);
 saveas(f,fullfile(day_output_path, [last_model.name '_forward_probs.png']));
 saveas(f,fullfile(day_output_path, [last_model.name '_forward_probs.eps']), 'epsc');
     
@@ -88,8 +87,8 @@ for d_idx=2:length(dates)
     
     % Plot forward probs
     load(fullfile(day_output_path,'data.mat'));
-    [aligned_forward_probs,f]=plotHMM_aligned_condition(data, dates(d_idx), conditions, aligned_model,...
-        'type', 'condition_covar');
+    [aligned_forward_probs,f]=plotHMM_aligned_condition(data, dates(d_idx),...
+        conditions, aligned_model);
 
     saveas(f,fullfile(day_output_path, [aligned_model.name '_forward_probs.png']));
     saveas(f,fullfile(day_output_path, [aligned_model.name '_forward_probs.eps']), 'epsc');

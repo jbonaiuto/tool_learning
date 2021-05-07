@@ -1,5 +1,4 @@
-dbstop if error
-%clear all
+clear all
 
 addpath('../..');
 addpath('../../spike_data_processing');
@@ -47,8 +46,7 @@ for cond_idx=1:length(conditions)
 
     % Plot forward probs
     load(fullfile(output_path,'data.mat'));
-    plotHMM_aligned_condition(data, dates, conditions(cond_idx), model,...
-        'type', 'multilevel');
+    plotHMM_aligned_condition(data, dates, conditions(cond_idx), model);
     
     plot_model_params(model);
 end

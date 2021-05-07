@@ -15,6 +15,7 @@ model=[];
 model.name=model_name;
 model.path=model_path;
 model.fname=sprintf('model_%s.rda',model.name);
+model.type=params.type;
 
 % If model file from R exists
 if exist(fullfile(model.path, model.fname),'file')==2
@@ -55,7 +56,7 @@ if exist(fullfile(model.path, model.fname),'file')==2
         model.trans_mat(model_trans_probs.From(i),model_trans_probs.To(i))=model_trans_probs.Prob(i);
     end
     
-    if strcmp(params.type,'condition_covar')
+    if strcmp(model.type,'condition_covar')
         % Export condition covariates if not done already
         model.cond_trans_covs_fname=sprintf('cond_trans_covs_%s.csv',model.name);        
         if exist(fullfile(model.path, model.cond_trans_covs_fname),'file')~=2

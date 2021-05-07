@@ -2,7 +2,7 @@ function [aligned_forward_probs,f]=plotHMM_aligned_condition(data, dates,...
     conditions, model, varargin)
 
 % Parse optional arguments
-defaults=struct('type','condition_covar');
+defaults=struct();
 params=struct(varargin{:});
 for f=fieldnames(defaults)'
     if ~isfield(params, f{1})
@@ -32,10 +32,6 @@ aligned_firing_rates={};
 for cond_idx=1:length(conditions)
     % Find data trials for this condition
     condition_trials = find(strcmp(data.metadata.condition,conditions{cond_idx}));
-    % Find forward probs for trials for this condition
-    if strcmp(params.type,'condition_covar')
-        cond_trials=unique(model.forward_probs.subj(model.forward_probs.condition==cond_idx));
-    end
     
     % Date index of each trial for this condition
     trial_date=data.trial_date(condition_trials);
@@ -65,9 +61,8 @@ for cond_idx=1:length(conditions)
             for n=1:length(day_trials)
                 
                 % Rows of forward probabilities for this trial
-                if strcmp(params.type,'condition_covar')
-                    trial_rows=find((model.forward_probs.condition==cond_idx) & (model.forward_probs.subj==cond_trials(t_idx)));
-                elseif strcmp(params.type,'multilevel')
+                trial_rows=find((model.forward_probs.subj==day_trials(n)));
+                if strcmp(model.type,'multilevel')
                     trial_rows=find((model.forward_probs.subj==d) & (model.forward_probs.rm==n));
                 end
                             
@@ -75,7 +70,7 @@ for cond_idx=1:length(conditions)
                 bin_idx=find((data.bins>=0) & (data.bins<=data.metadata.reward(day_trials(n))));
                 
                 % Find time of alignment event in this trial
-                event_time = align_event_times(condition_trials(t_idx));
+                event_time = align_event_times(day_trials(n));
 
                 % Window around event to get data
                 win_start_idx=knnsearch(data.bins(bin_idx)',event_time+win_size(1));
