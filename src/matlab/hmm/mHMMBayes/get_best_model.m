@@ -13,18 +13,29 @@ end
 T = readtable(fullfile(output_path, 'aic_bic.csv'));
 
 if strcmp(params.method,'AIC')
-    minAIC=min(T.aic);
-    forward_prob_idx=find(T.aic==minAIC);
+    min_aic=min(T.aic);
+    n_states=T.states(find(T.aic==min_aic,1));
+    run_idx=T.run(find(T.aic==min_aic,1));
+    
+    figure();
+    plot(T.states,T.aic,'.');
+    hold all;
+    plot(n_states,min_aic,'or');
+    xlabel('# states');
+    ylabel('AIC');    
+    
 elseif strcmp(params.method,'BIC')
-    minBIC=min(T.bic);
-    forward_prob_idx=find(T.bic==minBIC);
-else
-    minAICBIC=min(T.aic+T.bic);
-    forward_prob_idx=find(T.aic+T.bic==minAICBIC);
+    min_bic=min(T.bic(state_rows));
+    n_states=T.states(find(T.aic==min_bic,1));
+    run_idx=T.run(find(T.aic==min_bic,1));
+    
+    figure();
+    plot(T.states,T.bic,'.');
+    hold all;
+    plot(n_states,min_bic,'or');
+    xlabel('# states');
+    ylabel('BIC');
 end
-forward_prob_idx=find(T.aic==minAIC);
-n_states=T.states(forward_prob_idx);
-run_idx=T.run(forward_prob_idx);
 
 % Load model
 model_name=sprintf('%dstates_%d',n_states,run_idx);
