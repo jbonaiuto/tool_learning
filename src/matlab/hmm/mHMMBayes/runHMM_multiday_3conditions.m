@@ -48,3 +48,5 @@ load(fullfile(output_path,'data.mat'));
 plotHMM_aligned_condition(data, dates, conditions, model);
 
 plot_model_params(model, conditions);
+
+plot_fwd_probs_event_sorted(data, model, conditions, dates);
