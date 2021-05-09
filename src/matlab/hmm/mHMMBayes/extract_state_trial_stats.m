@@ -1,4 +1,13 @@
-function state_trial_stats=extract_state_trial_stats(model, data, dates)
+function state_trial_stats=extract_state_trial_stats(model, data, dates, varargin)
+
+%define default values
+defaults = struct('min_time_steps',2);  
+params = struct(varargin{:});
+for f = fieldnames(defaults)',  
+    if ~isfield(params, f{1}),
+        params.(f{1}) = defaults.(f{1});
+    end
+end
 
 state_trial_stats.state_onsets={};
 state_trial_stats.state_offsets={};
@@ -36,12 +45,9 @@ for d=1:length(dates)
             
             trial_state_probs=trial_fwd_probs(sub_bin_idx);
             mask=(trial_state_probs>thresh);
-            state_on=zeros(size(trial_state_probs));
-            state_on(mask)=1;
-            state_diff=diff([0; state_on; 0]);
-            onsets=trial_times(find(state_diff==1));
-            offsets=trial_times(find(state_diff==-1)-1);
-            durations=offsets-onsets+(trial_times(2)-trial_times(1));
+            onsets = trial_times(strfind([0 mask'], [0 ones(1,params.min_time_steps)]));
+            offsets = trial_times(strfind([mask' 0], [ones(1,params.min_time_steps) 0]));
+            durations=offsets-onsets;
             state_trial_stats.state_onsets{i,all_t_idx}=onsets;
             state_trial_stats.state_offsets{i,all_t_idx}=offsets;
             state_trial_stats.state_durations{i,all_t_idx}=durations;
