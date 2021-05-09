@@ -21,6 +21,9 @@ dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
 % 10ms bins
 dt=10;
 
+metric='euclidean';
+variable='EM';
+
 for cond_idx=1:length(conditions)
     % Create output path if it doesnt exist
     output_path=fullfile(exp_info.base_output_dir, 'HMM', 'betta',...
@@ -42,11 +45,22 @@ for cond_idx=1:length(conditions)
         strrep(output_path,'\','/')));
 
     % Load best model (lowest AIC)
-    model=get_best_model(output_path, 'type', 'multilevel');
+    models(cond_idx)=get_best_model(output_path, 'type', 'multilevel');
+    
+end
 
+for cond_idx=1:length(conditions)
+    model=models(cond_idx);
+    if cond_idx>1
+        model=align_models(models(1), model, metric, variable);
+    end
     % Plot forward probs
+    output_path=fullfile(exp_info.base_output_dir, 'HMM', 'betta',...
+       'motor_grasp', '10w_mHMM', array, conditions{cond_idx});
     load(fullfile(output_path,'data.mat'));
     plotHMM_aligned_condition(data, dates, conditions(cond_idx), model);
     
     plot_model_params(model, conditions(cond_idx));
+    
+    plot_fwd_probs_event_sorted(data, model, conditions, dates);
 end
