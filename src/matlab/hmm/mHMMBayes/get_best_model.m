@@ -1,7 +1,7 @@
 function model=get_best_model(output_path, varargin)
 
 % Parse optional arguments
-defaults=struct('method','AIC', 'type','condition_covar');
+defaults=struct('method','AIC', 'type','condition_covar', 'plot', false);
 params=struct(varargin{:});
 for f=fieldnames(defaults)'
     if ~isfield(params, f{1})
@@ -17,24 +17,30 @@ if strcmp(params.method,'AIC')
     n_states=T.states(find(T.aic==min_aic,1));
     run_idx=T.run(find(T.aic==min_aic,1));
     
-    figure();
-    plot(T.states,T.aic,'.');
-    hold all;
-    plot(n_states,min_aic,'or');
-    xlabel('# states');
-    ylabel('AIC');    
+    if params.plot
+        figure();
+        plot(T.states,T.aic-max(T.aic),'.');
+        hold all;
+        plot(n_states,min_aic-max(T.aic),'or');
+        xlim([min(T.states)-1 max(T.states)+1]);
+        xlabel('# states');
+        ylabel('\Delta AIC');    
+    end
     
 elseif strcmp(params.method,'BIC')
-    min_bic=min(T.bic(state_rows));
-    n_states=T.states(find(T.aic==min_bic,1));
-    run_idx=T.run(find(T.aic==min_bic,1));
+    min_bic=min(T.bic);
+    n_states=T.states(find(T.bic==min_bic,1));
+    run_idx=T.run(find(T.bic==min_bic,1));
     
-    figure();
-    plot(T.states,T.bic,'.');
-    hold all;
-    plot(n_states,min_bic,'or');
-    xlabel('# states');
-    ylabel('BIC');
+    if params.plot
+        figure();
+        plot(T.states,T.bic-max(T.bic),'.');
+        hold all;
+        plot(n_states,min_bic-max(T.bic),'or');
+        xlim([min(T.states)-1 max(T.states)+1]);
+        xlabel('# states');
+        ylabel('\Delta BIC');
+    end
 end
 
 % Load model
