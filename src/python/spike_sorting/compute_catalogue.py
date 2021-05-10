@@ -357,7 +357,10 @@ if __name__ == '__main__':
 
         json_fname = os.path.join(base_path, 'intan_files.json')
 
-        if preprocess:
+        if os.path.exists(json_fname):
+            with open(json_fname, 'r') as infile:
+                data_files = json.load(infile)
+        else:
             # Compute total duration (want to use all data for clustering)
             data_files = read_and_sort_data_files(data_dir, recording_date)
 
@@ -365,11 +368,8 @@ if __name__ == '__main__':
                 with open(json_fname, 'w') as outfile:
                     json.dump(data_files, outfile)
 
+        if len(data_files) > 0:
+            if preprocess:
                 print('Preprocessing')
                 preprocess_data(subject, recording_date, data_files)
-        elif os.path.exists(json_fname):
-            with open(json_fname, 'r') as infile:
-                data_files = json.load(infile)
-
-        if len(data_files) > 0:
             compute_catalogue(subject, recording_date, data_files)

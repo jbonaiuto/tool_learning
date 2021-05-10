@@ -530,32 +530,38 @@ def rerun(subject, date_start_str):
     current_date = date_start
     while current_date <= date_now:
         date_str = datetime.strftime(current_date, '%d.%m.%y')
-        for x in cfg['intan_data_dirs']:
-
-            if os.path.exists(os.path.join(x, subject, date_str)):
-                base_path = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, date_str)
-                json_fname = os.path.join(base_path, 'intan_files.json')
-                if os.path.exists(json_fname):
-                    with open(json_fname, 'r') as infile:
-                        data_files = json.load(infile)
-
-                run_process_trial_info(subject, date_str, data_files)
+        run_single_day(subject, date_str)
 
         current_date = current_date + timedelta(days=1)
         date_now = datetime.now()
+
+def run_single_day(subject, recording_date):
+    recording_path = None
+    for x in cfg['intan_data_dirs']:
+        data_dir = os.path.join(x, subject, recording_date)
+        if os.path.exists(data_dir):
+
+            base_path = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, recording_date)
+            if not os.path.exists(base_path):
+                os.mkdir(base_path)
+            json_fname = os.path.join(base_path, 'intan_files.json')
+            if os.path.exists(json_fname):
+                with open(json_fname, 'r') as infile:
+                    data_files = json.load(infile)
+            else:
+                # Compute total duration (want to use all data for clustering)
+                data_files = read_and_sort_data_files(data_dir, recording_date)
+
+                if len(data_files) > 0:
+                    with open(json_fname, 'w') as outfile:
+                        json.dump(data_files, outfile)
+            if len(data_files) > 0:
+                run_process_trial_info(subject, recording_date, data_files)
+            break
 
 if __name__=='__main__':
     subject = sys.argv[1]
     recording_date = sys.argv[2]
 
-    recording_path = None
-    for x in cfg['intan_data_dirs']:
-        if os.path.exists(os.path.join(x, subject, recording_date)):
-            base_path = os.path.join(cfg['single_unit_spike_sorting_dir'], subject, recording_date)
-            json_fname = os.path.join(base_path, 'intan_files.json')
-            if os.path.exists(json_fname):
-                with open(json_fname, 'r') as infile:
-                    data_files = json.load(infile)
-
-                run_process_trial_info(subject, recording_date, data_files)
-    #rerun(subject,recording_date)
+    #run_single_day(subject, recording_date)
+    rerun(subject,recording_date)
