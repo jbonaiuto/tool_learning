@@ -10,8 +10,6 @@ for f=fieldnames(defaults)'
     end
 end
 
-dbstop if error
-
 % Compute firing rate
 data=compute_firing_rate(data, 'baseline_type', 'none', 'win_len', 6);
  
