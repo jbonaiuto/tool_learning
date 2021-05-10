@@ -26,7 +26,7 @@ variable='EM';
 
 for cond_idx=1:length(conditions)
     % Create output path if it doesnt exist
-    output_path=fullfile(exp_info.base_output_dir, 'HMM', 'betta',...
+    output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
         'motor_grasp', '10w_mHMM', array, conditions{cond_idx});
     if exist(output_path,'dir')~=7
         mkdir(output_path);
@@ -55,7 +55,7 @@ for cond_idx=1:length(conditions)
         model=align_models(models(1), model, metric, variable);
     end
     % Plot forward probs
-    output_path=fullfile(exp_info.base_output_dir, 'HMM', 'betta',...
+    output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
        'motor_grasp', '10w_mHMM', array, conditions{cond_idx});
     load(fullfile(output_path,'data.mat'));
     plotHMM_aligned_condition(data, dates, conditions(cond_idx), model);

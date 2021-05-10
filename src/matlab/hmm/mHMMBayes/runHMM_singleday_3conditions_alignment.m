@@ -25,7 +25,7 @@ metric='euclidean';
 variable='EM';
 
 % Create output path if it doesnt exist
-output_path=fullfile(exp_info.base_output_dir, 'HMM', 'betta',...
+output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
     'motor_grasp', '10w_singleday_condHMM', array);
 if exist(output_path,'dir')~=7
     mkdir(output_path);
@@ -83,7 +83,7 @@ for d_idx=2:length(dates)
     model=get_best_model(day_output_path, 'type', 'condition_covar');
     
     % Align to last model
-    aligned_model=align_models(last_model, model, metric, variable);
+    [aligned_model,~]=align_models(last_model, model, metric, variable);
     
     % Plot forward probs
     load(fullfile(day_output_path,'data.mat'));
