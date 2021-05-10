@@ -1,4 +1,4 @@
-function model2=align_models(model1, model2, metric, variable)
+function [model2,bestMetric]=align_models(model1, model2, metric, variable)
 
 % Get number of states
 n_states1=model1.n_states;
