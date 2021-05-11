@@ -44,11 +44,11 @@ rt_bad_trials=union(find(rts<100),find(rts>1500));
 disp(sprintf('Removing %d motor grasp trials based on RT', length(rt_bad_trials)));
 motor_grasp_bad_trials=union(motor_grasp_bad_trials,motor_grasp_trials(rt_bad_trials));
 
-mt_bad_trials=union(find(mts<200),find(mts>800));
+mt_bad_trials=union(find(mts<100),find(mts>1000));
 disp(sprintf('Removing %d motor grasp trials based on MT', length(mt_bad_trials)));
 motor_grasp_bad_trials=union(motor_grasp_bad_trials,motor_grasp_trials(mt_bad_trials));
 
-pt_bad_trials=union(find(pts<250),find(pts>1350));
+pt_bad_trials=union(find(pts<100),find(pts>1200));
 disp(sprintf('Removing %d motor grasp trials based on PT', length(pt_bad_trials)));
 motor_grasp_bad_trials=union(motor_grasp_bad_trials,motor_grasp_trials(pt_bad_trials));
 
@@ -72,15 +72,15 @@ mts=data.metadata.obj_contact(visual_grasp_trials)-data.metadata.hand_mvmt_onset
 % Figure out PT of each trial
 pts=data.metadata.place(visual_grasp_trials)-data.metadata.obj_contact(visual_grasp_trials);
       
-rt_bad_trials=union(find(rts<350),find(rts>700));
+rt_bad_trials=union(find(rts<100),find(rts>1500));
 disp(sprintf('Removing %d visual grasp trials based on RT', length(rt_bad_trials)));
 visual_grasp_bad_trials=union(visual_grasp_bad_trials,visual_grasp_trials(rt_bad_trials));
 
-mt_bad_trials=union(find(mts<400),find(mts>750));
+mt_bad_trials=union(find(mts<100),find(mts>1000));
 disp(sprintf('Removing %d visual grasp trials based on MT', length(mt_bad_trials)));
 visual_grasp_bad_trials=union(visual_grasp_bad_trials,visual_grasp_trials(mt_bad_trials));
 
-pt_bad_trials=union(find(pts<350),find(pts>800));
+pt_bad_trials=union(find(pts<100),find(pts>1200));
 disp(sprintf('Removing %d visual grasp trials based on PT', length(pt_bad_trials)));
 visual_grasp_bad_trials=union(visual_grasp_bad_trials,visual_grasp_trials(pt_bad_trials));
 
@@ -107,19 +107,19 @@ mts=data.metadata.obj_contact(visual_pliers_trials)-data.metadata.tool_mvmt_onse
 % Figure out PT of each trial
 pts=data.metadata.place(visual_pliers_trials)-data.metadata.obj_contact(visual_pliers_trials);
       
-rt_bad_trials=union(find(rts<200),find(rts>700));
+rt_bad_trials=union(find(rts<100),find(rts>1500));
 disp(sprintf('Removing %d visual pliers trials based on RT', length(rt_bad_trials)));
 visual_pliers_bad_trials=union(visual_pliers_bad_trials,visual_pliers_trials(rt_bad_trials));
 
-tt_bad_trials=union(find(tts<500),find(tts>1100));
+tt_bad_trials=union(find(tts<400),find(tts>1200));
 disp(sprintf('Removing %d visual pliers trials based on MT', length(tt_bad_trials)));
 visual_pliers_bad_trials=union(visual_pliers_bad_trials,visual_pliers_trials(tt_bad_trials));
 
-mt_bad_trials=union(find(mts<200),find(mts>1000));
+mt_bad_trials=union(find(mts<100),find(mts>1200));
 disp(sprintf('Removing %d visual pliers trials based on MT', length(mt_bad_trials)));
 visual_pliers_bad_trials=union(visual_pliers_bad_trials,visual_pliers_trials(mt_bad_trials));
 
-pt_bad_trials=union(find(pts<400),find(pts>1000));
+pt_bad_trials=union(find(pts<100),find(pts>1200));
 disp(sprintf('Removing %d visual pliers trials based on PT', length(pt_bad_trials)));
 visual_pliers_bad_trials=union(visual_pliers_bad_trials,visual_pliers_trials(pt_bad_trials));
 
@@ -146,19 +146,19 @@ mts=data.metadata.obj_contact(visual_rake_pull_trials)-data.metadata.tool_mvmt_o
 % Figure out PT of each trial
 pts=data.metadata.place(visual_rake_pull_trials)-data.metadata.obj_contact(visual_rake_pull_trials);
       
-rt_bad_trials=union(find(rts<200),find(rts>750));
+rt_bad_trials=union(find(rts<100),find(rts>1500));
 disp(sprintf('Removing %d visual rake pull trials based on RT', length(rt_bad_trials)));
 visual_rake_pull_bad_trials=union(visual_rake_pull_bad_trials,visual_rake_pull_trials(rt_bad_trials));
 
-tt_bad_trials=union(find(tts<500),find(tts>1100));
+tt_bad_trials=union(find(tts<400),find(tts>1200));
 disp(sprintf('Removing %d visual rake pull trials based on MT', length(tt_bad_trials)));
 visual_rake_pull_bad_trials=union(visual_rake_pull_bad_trials,visual_rake_pull_trials(tt_bad_trials));
 
-mt_bad_trials=union(find(mts<200),find(mts>1200));
+mt_bad_trials=union(find(mts<100),find(mts>1200));
 disp(sprintf('Removing %d visual rake pull trials based on MT', length(mt_bad_trials)));
 visual_rake_pull_bad_trials=union(visual_rake_pull_bad_trials,visual_rake_pull_trials(mt_bad_trials));
 
-pt_bad_trials=union(find(pts<200),find(pts>800));
+pt_bad_trials=union(find(pts<100),find(pts>1200));
 disp(sprintf('Removing %d visual rake pull trials based on PT', length(pt_bad_trials)));
 visual_rake_pull_bad_trials=union(visual_rake_pull_bad_trials,visual_rake_pull_trials(pt_bad_trials));
 
@@ -186,19 +186,19 @@ mts=data.metadata.obj_contact(visual_rake_push_trials)-data.metadata.tool_mvmt_o
 % Figure out PT of each trial
 pts=data.metadata.place(visual_rake_push_trials)-data.metadata.obj_contact(visual_rake_push_trials);
       
-rt_bad_trials=union(find(rts<200),find(rts>800));
+rt_bad_trials=union(find(rts<100),find(rts>1500));
 disp(sprintf('Removing %d visual rake push trials based on RT', length(rt_bad_trials)));
 visual_rake_push_bad_trials=union(visual_rake_push_bad_trials,visual_rake_push_trials(rt_bad_trials));
 
-tt_bad_trials=union(find(tts<500),find(tts>1100));
+tt_bad_trials=union(find(tts<400),find(tts>1200));
 disp(sprintf('Removing %d visual rake push trials based on MT', length(tt_bad_trials)));
 visual_rake_push_bad_trials=union(visual_rake_push_bad_trials,visual_rake_push_trials(tt_bad_trials));
 
-mt_bad_trials=union(find(mts<200),find(mts>1200));
+mt_bad_trials=union(find(mts<100),find(mts>1200));
 disp(sprintf('Removing %d visual rake push trials based on MT', length(mt_bad_trials)));
 visual_rake_push_bad_trials=union(visual_rake_push_bad_trials,visual_rake_push_trials(mt_bad_trials));
 
-pt_bad_trials=union(find(pts<200),find(pts>600));
+pt_bad_trials=union(find(pts<100),find(pts>1200));
 disp(sprintf('Removing %d visual rake push trials based on PT', length(pt_bad_trials)));
 visual_rake_push_bad_trials=union(visual_rake_push_bad_trials,visual_rake_push_trials(pt_bad_trials));
 
@@ -226,19 +226,19 @@ mts=data.metadata.obj_contact(visual_stick_trials)-data.metadata.tool_mvmt_onset
 % Figure out PT of each trial
 pts=data.metadata.place(visual_stick_trials)-data.metadata.obj_contact(visual_stick_trials);
       
-rt_bad_trials=union(find(rts<300),find(rts>800));
+rt_bad_trials=union(find(rts<100),find(rts>1500));
 disp(sprintf('Removing %d visual stick trials based on RT', length(rt_bad_trials)));
 visual_stick_bad_trials=union(visual_stick_bad_trials,visual_stick_trials(rt_bad_trials));
 
-tt_bad_trials=union(find(tts<700),find(tts>1200));
+tt_bad_trials=union(find(tts<400),find(tts>1200));
 disp(sprintf('Removing %d visual stick trials based on MT', length(tt_bad_trials)));
 visual_stick_bad_trials=union(visual_stick_bad_trials,visual_stick_trials(tt_bad_trials));
 
-mt_bad_trials=union(find(mts<500),find(mts>1100));
+mt_bad_trials=union(find(mts<100),find(mts>1200));
 disp(sprintf('Removing %d visual stick trials based on MT', length(mt_bad_trials)));
 visual_stick_bad_trials=union(visual_stick_bad_trials,visual_stick_trials(mt_bad_trials));
 
-pt_bad_trials=union(find(pts<500),find(pts>1000));
+pt_bad_trials=union(find(pts<100),find(pts>1200));
 disp(sprintf('Removing %d visual stick trials based on PT', length(pt_bad_trials)));
 visual_stick_bad_trials=union(visual_stick_bad_trials,visual_stick_trials(pt_bad_trials));
 
