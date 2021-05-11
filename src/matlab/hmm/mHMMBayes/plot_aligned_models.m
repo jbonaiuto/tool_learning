@@ -30,6 +30,7 @@ multiday_model=get_best_model(output_path, 'type', 'condition_covar');
 load(fullfile(output_path,'data.mat'));
 plotHMM_aligned_condition(data, dates, conditions, multiday_model);
 
+plot_fwd_probs_event_sorted(data, multiday_model, conditions, dates)
 
 
 % Load multilevel
@@ -55,11 +56,10 @@ for cond_idx=1:length(conditions)
     models{cond_idx}=aligned_model;
     metric_vals(end+1)=metric_val;        
     
-    load(fullfile(output_path,'data.mat'));
-    
-    plotHMM_aligned_condition(data, dates, conditions(cond_idx), aligned_model);
-    
+    load(fullfile(output_path,'data.mat'));    
     datasets{cond_idx}=data;
+    
+    plot_fwd_probs_event_sorted(data, aligned_model, conditions(cond_idx), dates)
         
 end
 
@@ -77,7 +77,7 @@ plotHMM_aligned_condition_combine_models(datasets, dates, conditions, models);
 % Single day models
 % Days to run on
 dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
-    '05.03.19','07.03.19','08.03.19'};
+    '05.03.19','07.03.19','08.03.19','11.03.19'};
 
 
 output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
@@ -106,6 +106,8 @@ for d_idx=1:length(dates)
     load(fullfile(day_output_path,'data.mat'));
     datasets{d_idx}=data;
         
+    plot_fwd_probs_event_sorted(data, aligned_model, conditions(cond_idx), dates)
+    
     % Align to aligned model in next iteration
     last_model=aligned_model;    
 end
