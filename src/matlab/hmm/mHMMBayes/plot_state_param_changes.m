@@ -34,7 +34,7 @@ el_num=size(multiday_model.emiss_alpha_mat,2);
 % Single day models
 % Days to run on
 dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
-    '05.03.19','07.03.19','08.03.19','11.03.19'};
+    '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19'};
 
 
 output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
@@ -97,36 +97,37 @@ for s1=1:max_state_lbl
     end
 end       
 
+vals=[0:.1:100];
+
 %plots
 figure();
-elProbDay=zeros(el_num,length(dates));
-
-%plot el prob by day for each state
-for st=1:length( max_state_lbl)
-    for d=1:length(dates)
-        elProbDay(:,d)=overall_Ea_mat(:,st,d);
+for st=1:max_state_lbl
+    for el=1:el_num
+        subplot(el_num,max_state_lbl,(el-1)*max_state_lbl+st);
+        el_stat_pdf=zeros(length(vals),length(models));
+        for m=1:length(models)
+            alpha=overall_Ea_mat(el,st,m);
+            beta=overall_Eb_mat(el,st,m);
+            el_stat_pdf(:,m)=gampdf(vals,alpha,beta);
+        end
+        imagesc([1:length(dates)],vals,el_stat_pdf);
+        set(gca,'XTickLabel','');
+        ax = gca;
+        outerpos = ax.OuterPosition;
+        ti = ax.TightInset; 
+        left = outerpos(1) + ti(1);
+        bottom = outerpos(2) + ti(2);
+        ax_width = outerpos(3) - ti(1) - ti(3);
+        ax_height = outerpos(4) - ti(2) - ti(4);
+        ax.Position = [left bottom ax_width ax_height];
+        if st==1
+            ylabel(sprintf('E%d',el));
+        end
+        if el==1
+            title(sprintf('State %d',st));
+        end
+        if el==el_num
+            xlabel('Day');
+        end
     end
-    plot([1:length(dates)],elProbDay);   
-end    
-
-figure();
-elProbDay=zeros(el_num,length(dates));
-
-%plot el prob by day for each state
-for st=1:length( max_state_lbl)
-    for d=1:length(dates)
-        elProbDay(:,d)=overall_Eb_mat(:,st,d);
-    end
-    plot([1:length(dates)],elProbDay);   
-end    
-
-figure();
-elProbDay=zeros(el_num,length(dates));
-
-%plot el prob by day for each state
-for st=1:length( max_state_lbl)
-    for d=1:length(dates)
-        elProbDay(:,d)=overall_Eb_mat(:,st,d);
-    end
-    plot([1:length(dates)],elProbDay);   
-end    
+end
