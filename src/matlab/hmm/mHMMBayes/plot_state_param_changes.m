@@ -14,6 +14,10 @@ array='F1';
 % Conditions to run on
 conditions={'motor_grasp_center','motor_grasp_right','motor_grasp_left'};
 
+% metric for the alignment
+metric='euclidean';
+variable='EM';
+
 % Days to run on
 dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
     '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19'};
@@ -25,7 +29,7 @@ output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
 
 % Load best model (lowest AIC)
 multiday_model=get_best_model(output_path, 'type', 'condition_covar');
-el_num=size(multiday_model,size(emiss_alpha_mat,2));
+el_num=size(multiday_model.emiss_alpha_mat,2);
 
 % Single day models
 % Days to run on
@@ -38,7 +42,6 @@ output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
 
 last_model=multiday_model;
 
-datasets={};
 models={};
 max_state_lbl=-1;
 
@@ -54,11 +57,9 @@ for d_idx=1:length(dates)
     [aligned_model,metric_val]=align_models(last_model, model, metric, variable);
     models{d_idx}=aligned_model;
     
-    load(fullfile(day_output_path,'data.mat'));
-    datasets{d_idx}=data;
         
     max_states_model=max([cellfun(@str2num,aligned_model.metadata.state_labels)]);
-    max_state_lbl=max([max_state_lbl, max_states_model1]);
+    max_state_lbl=max([max_state_lbl, max_states_model]);
     
     % Align to aligned model in next iteration
     last_model=aligned_model;    
@@ -96,4 +97,36 @@ for s1=1:max_state_lbl
     end
 end       
 
+%plots
+figure();
+elProbDay=zeros(el_num,length(dates));
 
+%plot el prob by day for each state
+for st=1:length( max_state_lbl)
+    for d=1:length(dates)
+        elProbDay(:,d)=overall_Ea_mat(:,st,d);
+    end
+    plot([1:length(dates)],elProbDay);   
+end    
+
+figure();
+elProbDay=zeros(el_num,length(dates));
+
+%plot el prob by day for each state
+for st=1:length( max_state_lbl)
+    for d=1:length(dates)
+        elProbDay(:,d)=overall_Eb_mat(:,st,d);
+    end
+    plot([1:length(dates)],elProbDay);   
+end    
+
+figure();
+elProbDay=zeros(el_num,length(dates));
+
+%plot el prob by day for each state
+for st=1:length( max_state_lbl)
+    for d=1:length(dates)
+        elProbDay(:,d)=overall_Eb_mat(:,st,d);
+    end
+    plot([1:length(dates)],elProbDay);   
+end    
