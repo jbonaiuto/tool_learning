@@ -31,12 +31,9 @@ output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
 multiday_model=get_best_model(output_path, 'type', 'condition_covar');
 el_num=size(multiday_model.emiss_alpha_mat,2);
 
+
 % Single day models
 % Days to run on
-dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
-    '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19'};
-
-
 output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
     'motor_grasp', '10w_singleday_condHMM', array);
 
@@ -131,3 +128,13 @@ for st=1:max_state_lbl
         end
     end
 end
+
+%transition plots
+figure();
+for s1=1:max_state_lbl
+    for s2=1:max_state_lbl
+        subplot(max_state_lbl,max_state_lbl,(s1-1)*max_state_lbl+s2);
+        plot(squeeze(overall_trans_mat(s1,s2,:)));
+        ylim([0,1]);
+    end
+end       
