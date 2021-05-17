@@ -22,6 +22,12 @@ if strcmp(params.method,'AIC')
         plot(T.states,T.aic-max(T.aic),'.');
         hold all;
         plot(n_states,min_aic-max(T.aic),'or');
+        mean_per_n_states=[];
+        for i=min(T.states):max(T.states)
+            rows=find(T.states==i);
+            mean_per_n_states(end+1)=mean(T.aic(rows)-max(T.aic));
+        end
+        plot(min(T.states):max(T.states),mean_per_n_states,'og');
         xlim([min(T.states)-1 max(T.states)+1]);
         xlabel('# states');
         ylabel('\Delta AIC');    
@@ -37,6 +43,12 @@ elseif strcmp(params.method,'BIC')
         plot(T.states,T.bic-max(T.bic),'.');
         hold all;
         plot(n_states,min_bic-max(T.bic),'or');
+        mean_per_n_states=[];
+        for i=min(T.states):max(T.states)
+            rows=find(T.states==i);
+            mean_per_n_states(end+1)=mean(T.bic(rows)-max(T.bic));
+        end
+        plot(min(T.states):max(T.states),mean_per_n_states,'og');
         xlim([min(T.states)-1 max(T.states)+1]);
         xlabel('# states');
         ylabel('\Delta BIC');
