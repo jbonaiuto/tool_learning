@@ -65,7 +65,7 @@ overall_Eb_mat=zeros(el_num, max_state_lbl,length(dates)).*NaN;
 
 basis=[0.01:0.01:8];
 
-cm=cbrewer('seq','Reds',length(models));
+cm=cbrewer('seq','Blues',length(models));
 for s=1:max_state_lbl
     figure();
     for e=1:el_num
