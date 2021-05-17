@@ -17,8 +17,6 @@ m2_matched=[];
 % Match until can't go any further
 matched=true;
 
-%basis=[0.1:0.1:10];
-
 while matched
 
     % Distance between each combination of model1/model2
@@ -63,24 +61,7 @@ while matched
         %  Update new state labels
         s1=state_distance(1,1);
         s2=state_distance(1,2);
-
-        %figure();
-        %for e=1:ndeps
-        %    subplot(ceil(ndeps/3),3,e);
-        %    hold all;
-        %    alpha1=model1.emiss_alpha_mat(s1,e);
-        %    beta1=model1.emiss_beta_mat(s1,e);
-        %    alpha2=model2.emiss_alpha_mat(s2,e);
-        %    beta2=model2.emiss_beta_mat(s2,e);
-        %    plot(basis,gampdf(basis, alpha1, 1/beta1));
-        %    plot(basis,gampdf(basis, alpha2, 1/beta2));
-        %    ylabel(sprintf('KL=%.3f',kl_gamma(1/beta1,alpha1,1/beta2,alpha2)));
-        %    if e==1
-        %        title(sprintf('State %d - %d', s1, s2));
-        %    elseif e==2
-        %        title(num2str(state_distance(1,3)));
-        %    end
-        %end
+        
         new_state_labels{s2}=model1.metadata.state_labels{s1};
         
         % Add to list of matched states

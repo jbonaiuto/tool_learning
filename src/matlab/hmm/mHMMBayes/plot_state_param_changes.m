@@ -63,13 +63,27 @@ end
 overall_Ea_mat=zeros(el_num, max_state_lbl,length(dates)).*NaN;
 overall_Eb_mat=zeros(el_num, max_state_lbl,length(dates)).*NaN;
 
+basis=[0.01:0.01:8];
+
+cm=cbrewer('seq','Reds',length(models));
 for s=1:max_state_lbl
-    for m=1:length(models)
-        model=models{m};
-        state_idx=find(strcmp(model.metadata.state_labels,num2str(s)));
-        if length(state_idx)>0        
-            overall_Ea_mat(:,s,m)=model.emiss_alpha_mat(state_idx,:);
-            overall_Eb_mat(:,s,m)=model.emiss_beta_mat(state_idx,:);
+    figure();
+    for e=1:el_num
+        subplot(ceil(el_num/3),3,e);
+        hold all;
+        for m=1:length(models)
+            model=models{m};
+            state_idx=find(strcmp(model.metadata.state_labels,num2str(s)));
+            if length(state_idx)>0        
+                alpha=model.emiss_alpha_mat(state_idx,e);
+                beta=model.emiss_beta_mat(state_idx,e);
+                overall_Ea_mat(e,s,m)=alpha;
+                overall_Eb_mat(e,s,m)=beta;
+                plot(basis,gampdf(basis, alpha, 1/beta),'Color',cm(m,:));
+            end
+        end
+        if e==1
+            legend();
         end
     end
 end
