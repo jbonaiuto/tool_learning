@@ -14,10 +14,6 @@ array='F1';
 % Conditions to run on
 conditions={'motor_grasp_center','motor_grasp_right','motor_grasp_left'};
 
-% metric for the alignment
-metric='euclidean';
-variable='EM';
-
 % Days to run on
 dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
     '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19'};
@@ -51,7 +47,7 @@ for d_idx=1:length(dates)
     model=get_best_model(day_output_path, 'type', 'condition_covar');
     
     % Align to last model
-    [aligned_model,metric_val]=align_models(last_model, model, metric, variable);
+    aligned_model=align_models(last_model, model);
     models{d_idx}=aligned_model;
     
         
@@ -64,22 +60,22 @@ end
 
 
 %Emission matrice
-overall_Ea_mat=zeros(el_num, max_state_lbl,length(dates));
-overall_Eb_mat=zeros(el_num, max_state_lbl,length(dates));
+overall_Ea_mat=zeros(el_num, max_state_lbl,length(dates)).*NaN;
+overall_Eb_mat=zeros(el_num, max_state_lbl,length(dates)).*NaN;
 
 for s=1:max_state_lbl
     for m=1:length(models)
         model=models{m};
         state_idx=find(strcmp(model.metadata.state_labels,num2str(s)));
         if length(state_idx)>0        
-            overall_Ea_mat(:,state_idx,m)=model.emiss_alpha_mat(s,:);
-            overall_Eb_mat(:,state_idx,m)=model.emiss_beta_mat(s,:);
+            overall_Ea_mat(:,s,m)=model.emiss_alpha_mat(state_idx,:);
+            overall_Eb_mat(:,s,m)=model.emiss_beta_mat(state_idx,:);
         end
     end
 end
 
 %transition matrice
-overall_trans_mat=zeros(max_state_lbl,max_state_lbl,length(dates));
+overall_trans_mat=zeros(max_state_lbl,max_state_lbl,length(dates)).*NaN;
 
 for s1=1:max_state_lbl
     for s2=1:max_state_lbl
@@ -88,13 +84,13 @@ for s1=1:max_state_lbl
             state1_idx=find(strcmp(model.metadata.state_labels,num2str(s1)));
             state2_idx=find(strcmp(model.metadata.state_labels,num2str(s2)));
             if length(state1_idx)>0 && length(state2_idx)>0
-                overall_trans_mat(state1_idx,state2_idx,m)=model.trans_mat(s1,s2);  
+                overall_trans_mat(s1,s2,m)=model.trans_mat(state1_idx,state2_idx);  
             end
         end
     end
 end       
 
-vals=[0:.1:100];
+vals=[0.01:0.01:5];
 
 %plots
 figure();
@@ -105,7 +101,7 @@ for st=1:max_state_lbl
         for m=1:length(models)
             alpha=overall_Ea_mat(el,st,m);
             beta=overall_Eb_mat(el,st,m);
-            el_stat_pdf(:,m)=gampdf(vals,alpha,beta);
+            el_stat_pdf(:,m)=gampdf(vals,alpha,1/beta);
         end
         imagesc([1:length(dates)],vals,el_stat_pdf);
         set(gca,'XTickLabel','');

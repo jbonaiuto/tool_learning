@@ -1,179 +1,109 @@
-function [model2,bestMetric]=align_models(model1, model2, metric, variable)
+function model2=align_models(model1, model2)
 
-% Get number of states
+
+% Get number of states and electrodes
 n_states1=model1.n_states;
 n_states2=model2.n_states;
 ndeps=size(model1.emiss_alpha_mat,2);
 
-% Extra states that were added to new_model
-extra_states_added=[];
 
-% If there are fewer states in new_model, add some empty states at the end
-if n_states2<n_states1
-    extra_states_added=[n_states2+1:n_states1];
+% Initialize new state labels
+new_state_labels=model2.metadata.state_labels;
 
-    % Create new transition prob matrix, initialize first entries with
-    % transition probs from new_model and the rest with zeros
-    new_model2_trans_mat=zeros(n_states1, n_states1);
-    new_model2_trans_mat(1:n_states2, 1:n_states2)=model2.trans_mat;
-    model2.trans_mat=new_model2_trans_mat;
+% States that have already been matched
+m1_matched=[];
+m2_matched=[];
+
+% Match until can't go any further
+matched=true;
+
+%basis=[0.1:0.1:10];
+
+while matched
+
+    % Distance between each combination of model1/model2
+    % states
+    state_distance=[];
     
-    new_model2_emiss_alpha_mat=zeros(n_states1, ndeps);
-    new_model2_emiss_alpha_mat(1:n_states2,:)=model2.emiss_alpha_mat;
-    model2.emiss_alpha_mat=new_model2_emiss_alpha_mat;
-    new_model2_emiss_beta_mat=zeros(n_states1, ndeps);
-    new_model2_emiss_beta_mat(1:n_states2,:)=model2.emiss_beta_mat;
-    model2.emiss_beta_mat=new_model2_emiss_beta_mat;
+    % States that have not already been matched
+    s1_left=setdiff([1:n_states1],m1_matched);
+    s2_left=setdiff([1:n_states2],m2_matched);
     
-    for i=1:length(extra_states_added)
-        model2.metadata.state_labels{end+1}='';
-    end
-    n_states2=n_states1;
-end
-
-% Get all possible permutations of new_model states
-[M,I]=npermutek([1:n_states2], n_states1);
-% Number of permutations
-n=size(I,1);
-
-% Value of metric for each permutation
-metric_values=zeros(1,n);
-
-% For each permutation
-for i=1:n
-    % Permute model 2 transition probability and emission probability
-    % matrices
-    permuted_model2_trans_mat=model2.trans_mat(I(i,:),I(i,:));
-    permuted_model2_emiss_alpha_mat=model2.emiss_alpha_mat(I(i,:),:);
-    permuted_model2_emiss_beta_mat=model2.emiss_beta_mat(I(i,:),:);
-    permuted_model2_emiss=[permuted_model2_emiss_alpha_mat; permuted_model2_emiss_beta_mat];
+    % Go through each combination of model1 and model2
+    % states that haven't yet been matched
+    if length(s1_left)>0 && length(s2_left)>0
+        for i=1:length(s1_left)
+            s1=s1_left(i);
+            for j=1:length(s2_left)
+                s2=s2_left(j);
+            
+                % Compute KL divergence for each electrode
+                kl_divs=[];
+                for e=1:ndeps
+                    % Gamma distribution parameters from model1
+                    % and model2
+                    alpha1=model1.emiss_alpha_mat(s1,e);
+                    beta1=model1.emiss_beta_mat(s1,e);
+                    alpha2=model2.emiss_alpha_mat(s2,e);
+                    beta2=model2.emiss_beta_mat(s2,e);
+                
+                    % Compute KL divergence
+                    kl_divs(e)=kl_gamma(1/beta1,alpha1,1/beta2,alpha2);
+                
+                end
+                % Add sum of KL divergence across electrodes to list
+                state_distance(end+1,:)=[s1 s2 mean(kl_divs)];
+            end
+        end
     
-    % Model 1 transition probability and emission probability matrices
-    orig_trans_mat=model1.trans_mat;
-    orig_emiss_alpha_mat=model1.emiss_alpha_mat;
-    orig_emiss_beta_mat=model1.emiss_beta_mat;
-    orig_emiss=[orig_emiss_alpha_mat; orig_emiss_beta_mat];
+        % Sort by distance
+        [~,sorted_idx]=sort(state_distance(:,3));
+        state_distance=state_distance(sorted_idx,:);
+        
+        %  Update new state labels
+        s1=state_distance(1,1);
+        s2=state_distance(1,2);
+
+        %figure();
+        %for e=1:ndeps
+        %    subplot(ceil(ndeps/3),3,e);
+        %    hold all;
+        %    alpha1=model1.emiss_alpha_mat(s1,e);
+        %    beta1=model1.emiss_beta_mat(s1,e);
+        %    alpha2=model2.emiss_alpha_mat(s2,e);
+        %    beta2=model2.emiss_beta_mat(s2,e);
+        %    plot(basis,gampdf(basis, alpha1, 1/beta1));
+        %    plot(basis,gampdf(basis, alpha2, 1/beta2));
+        %    ylabel(sprintf('KL=%.3f',kl_gamma(1/beta1,alpha1,1/beta2,alpha2)));
+        %    if e==1
+        %        title(sprintf('State %d - %d', s1, s2));
+        %    elseif e==2
+        %        title(num2str(state_distance(1,3)));
+        %    end
+        %end
+        new_state_labels{s2}=model1.metadata.state_labels{s1};
+        
+        % Add to list of matched states
+        m1_matched(end+1)=s1;
+        m2_matched(end+1)=s2;
+    else
+        matched=false;
+    end
+end
+
+% Find any states in model2 that haven't been matched
+s2_left=setdiff([1:n_states2],m2_matched);
+if length(s2_left)>0
+    % Max state label
+    max_lbl=max(cellfun(@str2num,cat(2,model1.metadata.state_labels,new_state_labels(m2_matched))));
     
-    % Compute adjacency matrices
-    origA=zeros(size(orig_trans_mat));
-    permutedA=zeros(size(permuted_model2_trans_mat));
-    % For each state
-    for j=1:n_states1
-        projections1=orig_trans_mat(j,:);
-        projections2=permuted_model2_trans_mat(j,:);
-        k1=find(projections1>1e-6);
-        k2=find(projections2>1e-6);
-        % Add them to the adjacency matrix
-        origA(j,k1)=1;
-        permutedA(j,k2)=1;
-    end
-
-    %euclidean 
-    if strcmp(metric,'euclidean')
-        if strcmp(variable,'TR')
-            metric_values(i)=norm(permuted_model2_trans_mat - orig_trans_mat,'fro');
-        elseif strcmp(variable,'A')
-            metric_values(i)=norm(permutedA - origA,'fro');
-        elseif strcmp(variable,'EM')
-            metric_values(i)=norm(permuted_model2_emiss - orig_emiss,'fro');
-        end
-    %manhattan
-    elseif strcmp(metric, 'manhattan')
-        if strcmp(variable,'TR')
-            metric_values(i)=norm(permuted_model2_trans_mat-orig_trans_mat,1);
-        elseif strcmp(variable,'A')
-            metric_values(i)=norm(permutedA-origA,1);
-        elseif strcmp(variable,'EM')
-            metric_values(i)=norm(permuted_model2_emiss - orig_emiss,1);
-        end
-    %Pearson correlation
-    elseif strcmp(metric, 'pearson')
-        if strcmp(variable,'TR')
-            metric_values(i)=corr(permuted_model2_trans_mat(:),orig_trans_mat(:));
-        elseif strcmp(variable,'A')
-            metric_values(i)=corr(permutedA(:),origA(:));
-        elseif strcmp(variable,'EM')
-            metric_values(i)=corr(permuted_model2_emiss(:),orig_emiss(:));
-        end    
-    %Spearman correlation
-    elseif strcmp(metric, 'spearman')
-        if strcmp(variable,'TR')
-            metric_values(i)=corr(permuted_model2_trans_mat(:),orig_trans_mat(:), 'Type', 'Spearman');    
-        elseif strcmp(variable,'A')
-            metric_values(i)=corr(permutedA(:),origA(:), 'Type', 'Spearman');  
-        elseif strcmp(variable,'EM')
-            metric_values(i)=corr(permuted_model2_emiss(:),orig_emiss(:), 'Type', 'Spearman');
-        end
-    %cosinus similarity
-    elseif strcmp(metric, 'cosine')
-        if strcmp(variable,'TR')
-            metric_values(i) = getCosineSimilarity(permuted_model2_trans_mat(:),orig_trans_mat(:));
-        elseif strcmp(variable,'A')
-            metric_values(i) = getCosineSimilarity(permutedA(:),origA(:));
-        elseif strcmp(variable,'A')
-            metric_values(i) = getCosineSimilarity(permuted_model2_emiss(:),orig_emiss(:));
-        end    
-    %Covariance
-    elseif strcmp(metric, 'covar')
-        if strcmp(variable,'TR')
-            m=cov(permuted_model2_trans_mat,orig_trans_mat);
-            metric_values(i)=m(1,2);
-        elseif strcmp(variable,'A')
-            m=cov(permutedA,origA);
-            metric_values(i)=m(1,2);
-        elseif strcmp(variable,'EM')
-            m=cov(permuted_model2_emiss,orig_emiss);
-            metric_values(i)=m(1,2);
-        end
-    %jaccard index
-    elseif strcmp(metric, 'jaccard')
-        if strcmp(variable,'TR')
-            metric_values(i) = 1 - sum(permuted_model2_trans_mat & orig_trans_mat)/sum(permuted_model2_trans_mat | orig_trans_mat);
-        elseif strcmp(variable,'A')
-            metric_values(i) = 1 - sum(permutedA & origA)/sum(permutedA | origA);
-        elseif strcmp(variable,'EM')
-            metric_values(i) = 1 - sum(permuted_model2_emiss & orig_emiss)/sum(permuted_model2_emiss | orig_emiss);
-        end
+    % Relabel remaining states and increment max state
+    % label
+    for i=1:length(s2_left)
+        new_state_labels{s2_left(i)}=num2str(max_lbl+1);
+        max_lbl=max_lbl+1;
     end
 end
 
-% Get the best metric - minimum if euclidean or manhattan distance, maximum
-% otherwise
-if strcmp(metric,'euclidean') || strcmp(metric,'manhattan')
-    [bestMetric,bestPermIdx]=min(metric_values);
-else
-    [bestMetric,bestPermIdx]=max(metric_values);
-end
-
-% Get the order of states in the best permutation
-permutedStates=I(bestPermIdx,:);
-
-old_state_labels=model2.metadata.state_labels;
-% Store maximum state label to rename extra states
-max_state_label=-Inf;
-% Rename states
-for i=1:length(model2.metadata.state_labels)
-    if length(find(permutedStates==i))
-        model2.metadata.state_labels{i}=model1.metadata.state_labels{find(permutedStates==i)};
-        if str2num(model2.metadata.state_labels{i})>max_state_label
-            max_state_label=max([max_state_label str2num(model2.metadata.state_labels{i})]);
-        end
-    end
-end
-% If there are more states in new_model - find the ones not used in the
-% permutation
-for i=1:length(model2.metadata.state_labels)
-    if length(find(permutedStates==i))==0
-        model2.metadata.state_labels{i}=num2str(max_state_label+1);
-        max_state_label=max_state_label+1;
-    end
-end
-
-% Remove any extra states that were added just to make the algorithm work
-if length(extra_states_added)>0
-    keep_idx=setdiff([1:n_states2], find(strcmp(old_state_labels,'')));
-    model2.metadata.state_labels=model2.metadata.state_labels(keep_idx);
-    model2.trans_mat=model2.trans_mat(keep_idx,keep_idx);
-    model2.emiss_alpha_mat=model2.emiss_alpha_mat(keep_idx,:);
-    model2.emiss_beta_mat=model2.emiss_beta_mat(keep_idx,:);
-end
+% Update state labels
+model2.metadata.state_labels=new_state_labels;
