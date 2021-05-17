@@ -233,32 +233,33 @@ class PlexonRecording:
                 # End event to start looking from
                 curr_end_idx = last_end_idx + 1
 
-                # Current trial duration
-                last_dur = stop_times[curr_end_idx] - start_times[start_idx]
+                if curr_end_idx<len(stop_times) and start_idx<len(start_times):
+                    # Current trial duration
+                    last_dur = stop_times[curr_end_idx] - start_times[start_idx]
 
-                # Initialize matched stop time index
-                matched_end_idx = curr_end_idx
+                    # Initialize matched stop time index
+                    matched_end_idx = curr_end_idx
 
-                # Look for better stop time index
-                for end_idx in range(curr_end_idx + 1, len(stop_times)):
+                    # Look for better stop time index
+                    for end_idx in range(curr_end_idx + 1, len(stop_times)):
 
-                    # Update matched stop time index if trial duration closer to that of log file
-                    trial_dur = stop_times[end_idx] - start_times[start_idx]
-                    if trial_dur > 0 and np.abs(trial_dur - log_duration) < np.abs(last_dur - log_duration):  # and trial_dur<12000:
-                        matched_end_idx = end_idx
-                    last_dur = trial_dur
+                        # Update matched stop time index if trial duration closer to that of log file
+                        trial_dur = stop_times[end_idx] - start_times[start_idx]
+                        if trial_dur > 0 and np.abs(trial_dur - log_duration) < np.abs(last_dur - log_duration):  # and trial_dur<12000:
+                            matched_end_idx = end_idx
+                        last_dur = trial_dur
 
-                # Final best matching trial duration
-                curr_dur = stop_times[matched_end_idx] - start_times[start_idx]
+                    # Final best matching trial duration
+                    curr_dur = stop_times[matched_end_idx] - start_times[start_idx]
 
-                # If within 10ms of log trial duration, match was successful
-                if curr_dur > 0 and np.abs(curr_dur - log_duration) <= 10:
-                    matched_start_times.append(start_times[start_idx])
-                    matched_stop_times.append(stop_times[matched_end_idx])
-                    matched_start_idx.append(start_idx)
-                    matched_stop_idx.append(matched_end_idx)
-                    matched = True
-                    break
+                    # If within 10ms of log trial duration, match was successful
+                    if curr_dur > 0 and np.abs(curr_dur - log_duration) <= 10:
+                        matched_start_times.append(start_times[start_idx])
+                        matched_stop_times.append(stop_times[matched_end_idx])
+                        matched_start_idx.append(start_idx)
+                        matched_stop_idx.append(matched_end_idx)
+                        matched = True
+                        break
 
             # Start looking from next start event if matched
             if matched:
