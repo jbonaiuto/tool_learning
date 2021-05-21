@@ -21,9 +21,6 @@ dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
 % 10ms bins
 dt=10;
 
-metric='euclidean';
-variable='EM';
-
 % Create output path if it doesnt exist
 output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
     'motor_grasp', '10w_singleday_condHMM', array);
@@ -50,14 +47,15 @@ system(sprintf('Rscript ../../../R/hmm/fit_condition_covar.R "%s"',...
     strrep(day_output_path,'\','/')));
 
 % Load best model (lowest AIC)
-last_model=get_best_model(day_output_path, 'type', 'condition_covar');
+model=get_best_model(day_output_path, 'type', 'condition_covar');
+prev_models=[model];
 
 % Plot forward probs
 load(fullfile(day_output_path,'data.mat'));
 [aligned_forward_probs,f]=plotHMM_aligned_condition(data, dates(1),...
-    conditions, last_model);
-saveas(f,fullfile(day_output_path, [last_model.name '_forward_probs.png']));
-saveas(f,fullfile(day_output_path, [last_model.name '_forward_probs.eps']), 'epsc');
+    conditions, model);
+saveas(f,fullfile(day_output_path, [model.name '_forward_probs.png']));
+saveas(f,fullfile(day_output_path, [model.name '_forward_probs.eps']), 'epsc');
     
 %% Run the remaining days
 for d_idx=2:length(dates)
@@ -83,7 +81,7 @@ for d_idx=2:length(dates)
     model=get_best_model(day_output_path, 'type', 'condition_covar');
     
     % Align to last model
-    [aligned_model,~]=align_models(last_model, model, metric, variable);
+    aligned_model=align_models(prev_models, model);
     
     % Plot forward probs
     load(fullfile(day_output_path,'data.mat'));
@@ -94,5 +92,5 @@ for d_idx=2:length(dates)
     saveas(f,fullfile(day_output_path, [aligned_model.name '_forward_probs.eps']), 'epsc');
 
     % Align to aligned model in next iteration
-    last_model=aligned_model;    
+    prev_models(end+1)=aligned_model;    
 end

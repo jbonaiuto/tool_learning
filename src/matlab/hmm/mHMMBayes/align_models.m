@@ -1,10 +1,25 @@
-function model2=align_models(model1, model2)
+function model2=align_models(prev_models, model2)
 
+
+prev_state_labels={};
+prev_emiss_alphas=[];
+prev_emiss_betas=[];
+for i=1:length(prev_models)
+    prev_model=prev_models(i);
+    for j=1:length(prev_model.metadata.state_labels)
+        lbl=prev_model.metadata.state_labels{j};
+        if ~any(strcmp(prev_state_labels,lbl))
+            prev_state_labels{end+1}=lbl;
+            prev_emiss_alphas(end+1,:)=prev_model.emiss_alpha_mat(j,:);
+            prev_emiss_betas(end+1,:)=prev_model.emiss_beta_mat(j,:);
+        end
+    end
+end
 
 % Get number of states and electrodes
-n_states1=model1.n_states;
+n_states1=length(prev_state_labels);
 n_states2=model2.n_states;
-ndeps=size(model1.emiss_alpha_mat,2);
+ndeps=size(model2.emiss_alpha_mat,2);
 
 
 % Initialize new state labels
@@ -40,8 +55,8 @@ while matched
                 for e=1:ndeps
                     % Gamma distribution parameters from model1
                     % and model2
-                    alpha1=model1.emiss_alpha_mat(s1,e);
-                    beta1=model1.emiss_beta_mat(s1,e);
+                    alpha1=prev_emiss_alphas(s1,e);
+                    beta1=prev_emiss_betas(s1,e);
                     alpha2=model2.emiss_alpha_mat(s2,e);
                     beta2=model2.emiss_beta_mat(s2,e);
                 
@@ -62,7 +77,7 @@ while matched
         s1=state_distance(1,1);
         s2=state_distance(1,2);
         
-        new_state_labels{s2}=model1.metadata.state_labels{s1};
+        new_state_labels{s2}=prev_state_labels{s1};
         
         % Add to list of matched states
         m1_matched(end+1)=s1;
@@ -76,7 +91,7 @@ end
 s2_left=setdiff([1:n_states2],m2_matched);
 if length(s2_left)>0
     % Max state label
-    max_lbl=max(cellfun(@str2num,cat(2,model1.metadata.state_labels,new_state_labels(m2_matched))));
+    max_lbl=max(cellfun(@str2num,cat(2,prev_state_labels,new_state_labels(m2_matched))));
     
     % Relabel remaining states and increment max state
     % label

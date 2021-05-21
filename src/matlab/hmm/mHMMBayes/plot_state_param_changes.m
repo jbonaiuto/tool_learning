@@ -26,17 +26,33 @@ output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
 % Load best model (lowest AIC)
 multiday_model=get_best_model(output_path, 'type', 'condition_covar');
 el_num=size(multiday_model.emiss_alpha_mat,2);
+max_state_lbl=max([cellfun(@str2num,multiday_model.metadata.state_labels)]);
 
+
+% Load multilevel
+multilevel_models={};
+for cond_idx=1:length(conditions)
+    output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
+        'motor_grasp', '10w_mHMM', array, conditions{cond_idx});
+        
+    % Load best model (lowest AIC)
+    model=get_best_model(output_path, 'type', 'multilevel');
+    
+    % Align to last model
+    aligned_model=align_models([multiday_model], model);
+    multilevel_models{cond_idx}=aligned_model;
+
+    max_states_model=max([cellfun(@str2num,aligned_model.metadata.state_labels)]);
+    max_state_lbl=max([max_state_lbl, max_states_model]);
+end
 
 % Single day models
-% Days to run on
 output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
     'motor_grasp', '10w_singleday_condHMM', array);
 
-last_model=multiday_model;
+prev_models=[multiday_model];
 
-models={};
-max_state_lbl=-1;
+singleday_models={};
 
 %% Run the remaining days
 for d_idx=1:length(dates)
@@ -44,46 +60,68 @@ for d_idx=1:length(dates)
     
     day_output_path=fullfile(output_path,date);
     % Load best model (lowest AIC)
-    model=get_best_model(day_output_path, 'type', 'condition_covar');
+    model=get_best_model(day_output_path, 'type', 'condition_covar', 'plot', false);
     
     % Align to last model
-    aligned_model=align_models(last_model, model);
-    models{d_idx}=aligned_model;
-    
-        
+    aligned_model=align_models(prev_models, model);
+    singleday_models{d_idx}=aligned_model;
+           
     max_states_model=max([cellfun(@str2num,aligned_model.metadata.state_labels)]);
     max_state_lbl=max([max_state_lbl, max_states_model]);
     
     % Align to aligned model in next iteration
-    last_model=aligned_model;    
+    prev_models(end+1)=aligned_model;    
 end
 
 
 %Emission matrice
-overall_Ea_mat=zeros(el_num, max_state_lbl,length(dates)).*NaN;
-overall_Eb_mat=zeros(el_num, max_state_lbl,length(dates)).*NaN;
+overall_Ea_mat=zeros(el_num, max_state_lbl,length(dates)+1+length(conditions)).*NaN;
+overall_Eb_mat=zeros(el_num, max_state_lbl,length(dates)+1+length(conditions)).*NaN;
 
 basis=[0.01:0.01:8];
 
-cm=cbrewer('seq','Blues',length(models));
+cm=cbrewer('seq','Blues',length(singleday_models));
 for s=1:max_state_lbl
     figure();
     for e=1:el_num
         subplot(ceil(el_num/3),3,e);
+        leg_lbls={};
         hold all;
-        for m=1:length(models)
-            model=models{m};
+        state_idx=find(strcmp(multiday_model.metadata.state_labels,num2str(s)));
+        if length(state_idx)>0        
+            leg_lbls{end+1}='multiday';
+            alpha=multiday_model.emiss_alpha_mat(state_idx,e);
+            beta=multiday_model.emiss_beta_mat(state_idx,e);
+            overall_Ea_mat(e,s,1)=alpha;
+            overall_Eb_mat(e,s,1)=beta;
+            plot(basis,gampdf(basis, alpha, 1/beta));
+        end
+        for m=1:length(conditions)
+            model=multilevel_models{m};
             state_idx=find(strcmp(model.metadata.state_labels,num2str(s)));
-            if length(state_idx)>0        
+            if length(state_idx)>0 
+                leg_lbls{end+1}=sprintf('Multilevel - %s', conditions{m});       
                 alpha=model.emiss_alpha_mat(state_idx,e);
                 beta=model.emiss_beta_mat(state_idx,e);
-                overall_Ea_mat(e,s,m)=alpha;
-                overall_Eb_mat(e,s,m)=beta;
+                overall_Ea_mat(e,s,m+1)=alpha;
+                overall_Eb_mat(e,s,m+1)=beta;
+                plot(basis,gampdf(basis, alpha, 1/beta));
+            end
+        end
+        for m=1:length(singleday_models)
+            model=singleday_models{m};
+            state_idx=find(strcmp(model.metadata.state_labels,num2str(s)));
+            if length(state_idx)>0 
+                leg_lbls{end+1}=num2str(m);       
+                alpha=model.emiss_alpha_mat(state_idx,e);
+                beta=model.emiss_beta_mat(state_idx,e);
+                overall_Ea_mat(e,s,m+1+length(conditions))=alpha;
+                overall_Eb_mat(e,s,m+1+length(conditions))=beta;
                 plot(basis,gampdf(basis, alpha, 1/beta),'Color',cm(m,:));
             end
         end
         if e==1
-            legend();
+            legend(leg_lbls);
         end
     end
 end
@@ -93,8 +131,8 @@ overall_trans_mat=zeros(max_state_lbl,max_state_lbl,length(dates)).*NaN;
 
 for s1=1:max_state_lbl
     for s2=1:max_state_lbl
-        for m=1:length(models)
-            model=models{m};
+        for m=1:length(dates)
+            model=singleday_models{m};
             state1_idx=find(strcmp(model.metadata.state_labels,num2str(s1)));
             state2_idx=find(strcmp(model.metadata.state_labels,num2str(s2)));
             if length(state1_idx)>0 && length(state2_idx)>0
@@ -111,13 +149,18 @@ figure();
 for st=1:max_state_lbl
     for el=1:el_num
         subplot(el_num,max_state_lbl,(el-1)*max_state_lbl+st);
-        el_stat_pdf=zeros(length(vals),length(models));
-        for m=1:length(models)
+        el_stat_pdf=zeros(length(vals),length(dates)+1);
+        for m=1:length(dates)+1+length(conditions)
             alpha=overall_Ea_mat(el,st,m);
             beta=overall_Eb_mat(el,st,m);
             el_stat_pdf(:,m)=gampdf(vals,alpha,1/beta);
         end
-        imagesc([1:length(dates)],vals,el_stat_pdf);
+        imagesc([1:length(dates)+length(conditions)],vals,el_stat_pdf);
+        hold on
+        plot([1.5 1.5],ylim(),'w--');
+        for m=1:length(conditions)
+            plot([1.5 1.5]+m,ylim(),'w--');
+        end
         set(gca,'XTickLabel','');
         ax = gca;
         outerpos = ax.OuterPosition;
@@ -144,7 +187,23 @@ figure();
 for s1=1:max_state_lbl
     for s2=1:max_state_lbl
         subplot(max_state_lbl,max_state_lbl,(s1-1)*max_state_lbl+s2);
+        hold all;
         plot(squeeze(overall_trans_mat(s1,s2,:)));
+        state1_idx=find(strcmp(multiday_model.metadata.state_labels,num2str(s1)));
+        state2_idx=find(strcmp(multiday_model.metadata.state_labels,num2str(s2)));
+        if length(state1_idx)>0 && length(state2_idx)>0
+            p=multiday_model.trans_mat(state1_idx,state2_idx);  
+            plot(xlim(),[p p]);
+        end
+        for m=1:length(conditions)
+            model=multilevel_models{m};
+            state1_idx=find(strcmp(model.metadata.state_labels,num2str(s1)));
+            state2_idx=find(strcmp(model.metadata.state_labels,num2str(s2)));
+            if length(state1_idx)>0 && length(state2_idx)>0
+                p=model.trans_mat(state1_idx,state2_idx);  
+                plot(xlim(),[p p]);
+            end
+        end
         ylim([0,1]);
     end
 end       

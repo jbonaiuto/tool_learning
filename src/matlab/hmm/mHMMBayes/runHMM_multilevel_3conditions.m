@@ -21,9 +21,6 @@ dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
 % 10ms bins
 dt=10;
 
-metric='euclidean';
-variable='EM';
-
 for cond_idx=1:length(conditions)
     % Create output path if it doesnt exist
     output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
@@ -52,7 +49,7 @@ end
 for cond_idx=1:length(conditions)
     model=models(cond_idx);
     if cond_idx>1
-        model=align_models(models(1), model, metric, variable);
+        model=align_models([models(1)], model);
     end
     % Plot forward probs
     output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...

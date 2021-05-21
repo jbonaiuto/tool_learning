@@ -30,12 +30,12 @@ multiday_model=get_best_model(output_path, 'type', 'condition_covar');
 load(fullfile(output_path,'data.mat'));
 plotHMM_aligned_condition(data, dates, conditions, multiday_model);
 
-%plot_fwd_probs_event_sorted(data, multiday_model, conditions, dates)
+plot_fwd_probs_event_sorted(data, multiday_model, conditions, dates)
 
 
 % Load multilevel
 datasets={};
-models={};
+multilevel_models={};
 
 for cond_idx=1:length(conditions)
     % Create output path if it doesnt exist
@@ -46,17 +46,18 @@ for cond_idx=1:length(conditions)
     model=get_best_model(output_path, 'type', 'multilevel');
     
     % Align to last model
-    aligned_model=align_models(multiday_model, model);
-    models{cond_idx}=aligned_model;
+    aligned_model=align_models([multiday_model], model);
+    multilevel_models{cond_idx}=aligned_model;
     
     load(fullfile(output_path,'data.mat'));    
     datasets{cond_idx}=data;
     
-    plot_fwd_probs_event_sorted(data, aligned_model, conditions(cond_idx), dates)
+    %plotHMM_aligned_condition(data, dates, conditions(cond_idx), aligned_model);
+    %plot_fwd_probs_event_sorted(data, aligned_model, conditions(cond_idx), dates)
         
 end
 
-plotHMM_aligned_condition_combine_models(datasets, dates, conditions, models);
+plotHMM_aligned_condition_combine_models(datasets, dates, conditions, multilevel_models);
 
 
 
@@ -64,10 +65,9 @@ plotHMM_aligned_condition_combine_models(datasets, dates, conditions, models);
 output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
     'motor_grasp', '10w_singleday_condHMM', array);
 
-last_model=multiday_model;
-
 datasets={};
-models={};
+singleday_models={};
+prev_models=[multiday_model];
 
 %% Run the remaining days
 for d_idx=1:length(dates)
@@ -78,16 +78,17 @@ for d_idx=1:length(dates)
     model=get_best_model(day_output_path, 'type', 'condition_covar');
     
     % Align to last model
-    aligned_model=align_models(last_model, model);
-    models{d_idx}=aligned_model;
+    aligned_model=align_models(prev_models, model);
+    singleday_models{d_idx}=aligned_model;
     
     load(fullfile(day_output_path,'data.mat'));
     datasets{d_idx}=data;
         
+    %plotHMM_aligned_condition(data, dates(d_idx), conditions, aligned_model);
     %plot_fwd_probs_event_sorted(data, aligned_model, conditions(cond_idx), dates)
     
     % Align to aligned model in next iteration
-    last_model=aligned_model;    
+    prev_models(end+1)=aligned_model;    
 end
 
-plotHMM_aligned_condition_combine_days(datasets, dates,conditions, models);
+plotHMM_aligned_condition_combine_days(datasets, dates,conditions, singleday_models);
