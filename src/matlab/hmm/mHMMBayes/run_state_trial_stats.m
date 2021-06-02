@@ -1,3 +1,4 @@
+exp_info=init_exp_info();
 array='F1';
 subject='betta';
 conditions={'motor_grasp_center','motor_grasp_right','motor_grasp_left'};
@@ -36,9 +37,8 @@ for cond_idx=1:length(conditions)
         for tc=1:length(condition_trials)
             active_mat_cond(sc,tc)=length(state_onsets_cond{sc,tc});
         end
-   
-        mean_active_mat_cond(cond_idx,:)=mean(active_mat_cond,2);
     end
+    mean_active_mat_cond(cond_idx,:)=mean(active_mat_cond,2);
 end
 
 %%
@@ -134,9 +134,8 @@ for cond_idx=1:length(conditions)
         for tc=1:length(condition_trials)
             LT_max_cond(sc,tc)=max(lifetime_cond{sc,tc});
         end
-   
-        mean_LT_max_cond(cond_idx,:)=mean(LT_max_cond,2);
     end
+    mean_LT_max_cond(cond_idx,:)=mean(LT_max_cond,2);
 end
 
         %mean state lifetime based on the maximum activation length of a trial
@@ -144,7 +143,7 @@ end
         for s=1:model.n_states
             state=LT_max(s,:);
             state_zeros=find(LT_max(s,:)==0);
-            state([state1_zeros])=[];
+            state([state_zeros])=[];
             mean_LT_max_no0(s)=mean(state,2);
         end    
         mean_LT_max_no0=mean_LT_max_no0';
@@ -185,9 +184,8 @@ for cond_idx=1:length(conditions)
         for tc=1:length(condition_trials)
             LT_sum_cond(sc,tc)=sum(lifetime_cond{sc,tc});
         end
-   
-        mean_LT_sum_cond(cond_idx,:)=mean(LT_sum_cond,2);
     end
+    mean_LT_sum_cond(cond_idx,:)=mean(LT_sum_cond,2);
 end
 
 %%
@@ -209,10 +207,6 @@ legend('Center','Right','Left','State mean','Location','northeastoutside')
 
 %%
 % fractional occupancy
-
-%trial length
-trial_length=data.metadata.reward
-
 for s=1:model.n_states
      for t=1:data.ntrials
         fractional_time(s,t)=(LT_sum(s,t)/data.metadata.reward(t))*100;
@@ -220,6 +214,7 @@ for s=1:model.n_states
  end
 mean_fractional_time=mean(fractional_time,2);
 
+mean_fractional_time_cond=zeros(length(conditions),model.n_states);
 for cond_idx=1:length(conditions)
     condition_trials = find(strcmp(data.metadata.condition,conditions{cond_idx}));
     for sc=1:model.n_states
@@ -227,27 +222,26 @@ for cond_idx=1:length(conditions)
         trial_length_cond=data.metadata.reward(condition_trials);
         for tc=1:length(condition_trials)
             fractional_time_cond(sc,tc)=(LT_sum_cond(sc,tc)/trial_length_cond(tc))*100;
-        end
-   
-        mean_fractional_time_cond(cond_idx,:)=mean(fractional_time_cond,2);
+        end   
     end
+    mean_fractional_time_cond(cond_idx,:)=mean(fractional_time_cond,2);
 end
 
 %%
 figure()
-center=mean_LT_sum_cond(1,:);
-right=mean_LT_sum_cond(2,:);
-left=mean_LT_sum_cond(3,:);
+center=mean_fractional_time_cond(1,:);
+right=mean_fractional_time_cond(2,:);
+left=mean_fractional_time_cond(3,:);
 
 bar_cond=bar(1:model.n_states, [center' right' left'], 1);
 
 hold on
-plot(mean_LT_sum,'Marker','s','LineStyle','none','MarkerSize',10,'MarkerFaceColor','k');
+plot(mean_fractional_time,'Marker','s','LineStyle','none','MarkerSize',10,'MarkerFaceColor','k');
 
-title('Mean sum lifetime per trial')
+title('Mean fractional occupancy per trial')
 xlabel('States')
-ylabel('Mean lifetime (ms)')
-ylim([0 ceil(max(mean_LT_sum_cond(:)))])
+ylabel('occupancy (% of time trial)')
+ylim([0 ceil(max(mean_fractional_time_cond(:)))])
 legend('Center','Right','Left','State mean','Location','northeastoutside')
 
 %%
