@@ -245,5 +245,64 @@ ylim([0 ceil(max(mean_fractional_time_cond(:)))])
 legend('Center','Right','Left','State mean','Location','northeastoutside')
 
 %%
+%state interval time (time between two visits in the same state)
+time_interval={};
+for s=1:model.n_states
+     for t=1:data.ntrials
+        offset=state_trial_stats.state_offsets{s,t};
+        onset=state_trial_stats.state_onsets{s,t};
+        offon_nbr=length(offset);
+        if offon_nbr==1
+            break
+        else
+            TI_idx=zeros(1,offon_nbr-1);
+            for off=1:offon_nbr-1
+                on=off+1;
+                TI_idx(off)=onset(on)-offset(off);    
+            end
+        end    
+        time_interval{s,t}=TI_idx;
+     end  
+end
 
+%mean_trial_time_interval=zeros(length(time_interval(:,1)),length(time_interval(1,:)));
 
+ 
+ 
+
+ for s=1:model.n_states
+     for t=1:length(time_interval(1,:))
+        if isempty(time_interval{s,t})==1
+           time_interval{s,t}=0;
+        end    
+     end
+ end
+ 
+ for s=1:model.n_states
+     for t=1:length(time_interval(1,:))
+         mean_trial_time_interval(s,t)=mean(time_interval{s,t});  
+     end
+ end
+ 
+
+  for s=1:model.n_states
+            state=mean_trial_time_interval(s,:);
+            state_zeros=find(mean_trial_time_interval(s,:)==0);
+            state([state_zeros])=[];
+            mean_time_interval(s)=mean(state,2);
+  end    
+
+ mean_time_interval=mean_time_interval';
+ 
+ %%
+figure()
+plot(mean_time_interval,'Marker','s','LineStyle','none','MarkerSize',10,'MarkerFaceColor','k');
+
+title('Mean time interval per trial')
+xlabel('States')
+xticks([1 2 3 4 5 6])
+ylabel('Mean time interval (ms)')
+ylim([0 ceil(max(mean_time_interval(:)))])
+xlim([0 model.n_states+1])
+
+%%
