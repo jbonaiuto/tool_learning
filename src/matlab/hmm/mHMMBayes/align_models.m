@@ -1,4 +1,4 @@
-function model2=align_models(prev_models, model2)
+function model2=align_models(prev_models, model2, threshold)
 
 
 prev_state_labels={};
@@ -8,11 +8,9 @@ for i=1:length(prev_models)
     prev_model=prev_models(i);
     for j=1:length(prev_model.metadata.state_labels)
         lbl=prev_model.metadata.state_labels{j};
-        if ~any(strcmp(prev_state_labels,lbl))
-            prev_state_labels{end+1}=lbl;
-            prev_emiss_alphas(end+1,:)=prev_model.emiss_alpha_mat(j,:);
-            prev_emiss_betas(end+1,:)=prev_model.emiss_beta_mat(j,:);
-        end
+        prev_state_labels{end+1}=lbl;
+        prev_emiss_alphas(end+1,:)=prev_model.emiss_alpha_mat(j,:);
+        prev_emiss_betas(end+1,:)=prev_model.emiss_beta_mat(j,:);
     end
 end
 
@@ -61,27 +59,32 @@ while matched
                     beta2=model2.emiss_beta_mat(s2,e);
                 
                     % Compute KL divergence
-                    kl_divs(e)=kl_gamma(1/beta1,alpha1,1/beta2,alpha2);
+                    kl_divs(e)=.5*(kl_gamma(1/beta1,alpha1,1/beta2,alpha2)+kl_gamma(1/beta2,alpha2,1/beta1,alpha1));                    
                 
                 end
                 % Add sum of KL divergence across electrodes to list
-                state_distance(end+1,:)=[s1 s2 mean(kl_divs)];
+                state_distance(end+1,:)=[s1 s2 sum(kl_divs)];
             end
         end
     
-        % Sort by distance
-        [~,sorted_idx]=sort(state_distance(:,3));
-        state_distance=state_distance(sorted_idx,:);
+        state_distance=state_distance(state_distance(:,3)<threshold,:);
+        if size(state_distance,1)>0
+            % Sort by distance
+            [~,sorted_idx]=sort(state_distance(:,3));
+            state_distance=state_distance(sorted_idx,:);
         
-        %  Update new state labels
-        s1=state_distance(1,1);
-        s2=state_distance(1,2);
+            %  Update new state labels
+            s1=state_distance(1,1);
+            s2=state_distance(1,2);
         
-        new_state_labels{s2}=prev_state_labels{s1};
+            new_state_labels{s2}=prev_state_labels{s1};
         
-        % Add to list of matched states
-        m1_matched(end+1)=s1;
-        m2_matched(end+1)=s2;
+            % Add to list of matched states
+            m1_matched(end+1)=s1;
+            m2_matched(end+1)=s2;
+        else
+            matched=false;
+        end
     else
         matched=false;
     end
