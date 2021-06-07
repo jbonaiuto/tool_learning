@@ -151,6 +151,7 @@ for s_idx=1:model.n_states
     for cond_idx=1:length(conditions)
         condition_trials = find(strcmp(data.metadata.condition,conditions{cond_idx}));
         LT_max=[];
+
         for tc=1:length(condition_trials)
             if ~isempty(lifetime{s_idx,condition_trials(tc)})
                 LT_max(end+1)=max(lifetime{s_idx,condition_trials(tc)});
@@ -234,3 +235,44 @@ for s_idx=1:model.n_states
     title(model.metadata.state_labels{s_idx});
 end
 
+
+
+%%
+%state interval time (time between two visits in the same state)
+time_interval={};
+for s=1:model.n_states
+    interval_mat=[];
+    for t=1:data.ntrials
+        offset=state_trial_stats.state_offsets{s,t};
+        onset=state_trial_stats.state_onsets{s,t};
+        if length(offset)>1
+            interval_mat(end+1)=mean(onset(2:end)-offset(1:end-1));
+        end
+    end
+    time_interval{s}=interval_mat;
+end
+plot_state_statistics(time_interval,model.metadata.state_labels,'zero_bounded',true,'density_type','rash');
+xlabel('interval (ms)');
+
+figure();
+for s_idx=1:model.n_states
+    ax=subplot(3,ceil(model.n_states/3),s_idx);    
+    interval_cond={};
+    for cond_idx=1:length(conditions)
+        condition_trials = find(strcmp(data.metadata.condition,conditions{cond_idx}));
+        interval_mat=[];
+        for tc=1:length(condition_trials)
+            offset=state_trial_stats.state_offsets{s_idx,condition_trials(tc)};
+            onset=state_trial_stats.state_onsets{s_idx,condition_trials(tc)};
+            if length(offset)>1
+                interval_mat(end+1)=mean(onset(2:end)-offset(1:end-1));
+            end
+        end
+        interval_cond{cond_idx}=interval_mat;
+    end
+    plot_state_statistics(interval_cond,cond_labels,'zero_bounded',true,'density_type','rash','ax',ax);
+    if s_idx==model.n_states || s_idx==model.n_states-1
+        xlabel('interval (ms)');
+    end
+    title(model.metadata.state_labels{s_idx});
+end
