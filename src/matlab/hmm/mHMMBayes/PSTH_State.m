@@ -2,6 +2,7 @@
 addpath('../../');
 exp_info=init_exp_info();
 rmpath('../../');
+% LOAD THE DATA WITH 1MS BIN SIZE
 dt=10;
 subject='betta';
 array='F1';
@@ -9,12 +10,13 @@ condition='motor_grasp_right';
 %conditions={'motor_grasp_center','motor_grasp_right','motor_grasp_left'};
 
 state_nbr=5;
+win_len=100;
 
 dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
     '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19'};
 
 output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
-    'motor_grasp', '10w_multiday_condHMM', array);
+    'motor_grasp', '2w_multiday_condHMM', array);
 
 model=get_best_model(output_path, 'type', 'condition_covar');
 
@@ -36,6 +38,7 @@ figure()
     condition_trials = find(strcmp(data.metadata.condition,condition));
 
     % Go through each good electrode
+    % WE ARE NOT USING ALL 32 ELECTRODES NOW - SEE R code
     for elec_idx=1:length(data.electrodes)
         % Get the electrode number
         good_elect=data.electrodes(elec_idx);
@@ -82,6 +85,8 @@ figure()
                     for i=1:length(DaySTATE_idx)
                         % Find the time (from the downsampled multiunit data) where the threshold is crossed
                         threshCrossIdx=DaySTATE_idx(i);
+                        % THIS IS NOT THE RIGHT BIN IDX - SEE
+                        % EXPORT_DATA_TO_CSV
                         bin_idx=find((data.bins>=0) & (data.bins<=(data.metadata.place(day_cond_trials(TOI_idx))+150)));
                         threshCrossTime=data.bins(bin_idx(threshCrossIdx));
 
@@ -104,13 +109,13 @@ figure()
             end
         end
         %bar([-50:50],mean(StateElectrodeSpikes));
-        bar(mean(StateElectrodeSpikes));
+        bar([-50:dt:50],mean(StateElectrodeSpikes,1));
         hold all
         plot([0 0],ylim(),'r--');
         xlabel('Time (ms)');
         ylabel('Firing Rate');
         title(sprintf('Electrode %d', good_elect));
         condition_title=replace(condition,'_',' ');
-        sgtitle(sprintf('State: %d      Condition: %s',state_nbr, condition_title));
+        %sgtitle(sprintf('State: %d      Condition: %s',state_nbr, condition_title));
     end
 %end
