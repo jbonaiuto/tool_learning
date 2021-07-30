@@ -26,7 +26,6 @@ load(fullfile(output_path,'data1ms.mat'));
 % Read data from each day in week 4
 date_data={};
 
-%good_electrodes={'1','2','3','5','6','7','9','10','13','14','17','18','21','25','26','27','28','29','30','31','32'};
 good_electrodes=[1,2,3,5,6,7,9,10,13,14,17,18,21,25,26,27,28,29,30,31,32];
 
 loop_idx=0;
