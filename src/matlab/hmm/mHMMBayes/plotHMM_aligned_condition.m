@@ -35,10 +35,10 @@ for cond_idx=1:length(conditions)
     trial_date=data.trial_date(condition_trials);
 
     % Aligned forward probabilities and firing rates for this condition
-    cond_forward_probs=zeros(length(condition_trials), model.n_states,...
-            length(align_events), length([win_size(1):binwidth:win_size(2)]));
-    cond_firing_rates=zeros(length(condition_trials), length(data.electrodes),...
-        length(align_events), length([win_size(1):binwidth:win_size(2)]));
+    cond_forward_probs=[];%zeros(length(condition_trials), model.n_states,...
+            %length(align_events), length([win_size(1):binwidth:win_size(2)]));
+    cond_firing_rates=[];%zeros(length(condition_trials), length(data.electrodes),...
+        %length(align_events), length([win_size(1):binwidth:win_size(2)]));
     
     % For each alignment event
     for r=1:length(align_events)
