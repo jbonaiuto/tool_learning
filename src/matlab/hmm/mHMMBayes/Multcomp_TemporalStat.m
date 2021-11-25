@@ -66,7 +66,6 @@ for s_idx=1:model.n_states
     eval(['active_S' num2str(s_idx) 'C3=active_mat_cond_state(find(active_mat_state==s_idx & active_mat_cond==3));']); 
 end
 
-next_state=0;
 for s_idx=1:model.n_states-1
         for ss_idx=s_idx+1:model.n_states
             anova_State_mat(:,1)=eval(['active_S' num2str(s_idx)]);
@@ -74,7 +73,7 @@ for s_idx=1:model.n_states-1
             
             [p, tbl, stats]=anova1(anova_State_mat);
             results=multcompare(stats,'dimension',[1 2]);
-            title(sprintf('state%d - state%d',s_idx,ss_idx))
+            title(sprintf('mean number of activation - state%d / state%d',s_idx,ss_idx))
             legend(['p value' ' ' num2str(p)],'location','EastOutside')
         end
 end
@@ -92,12 +91,16 @@ for s_idx=1:model.n_states
     
     [p, tbl, stats]=anova1(anova_State_cond_mat);
     results=multcompare(stats,'dimension',[1 2]);
-    title(sprintf('state%d - 3conditions',s_idx))
+    title(sprintf('mean number of activation - state%d / 3conditions',s_idx))
 end
 
 
-%%
+%% Life time calculated based on the max duration of a state 
 figure()
+
+anova_State_mat=NaN(state_trials,2);
+anova_State_cond_mat=NaN(max_cond_trials,3);
+
 lifetime=state_trial_stats.state_durations;
 for s=1:model.n_states
      for t=1:data.ntrials
@@ -133,44 +136,46 @@ for s=1:model.n_states
     end
 end
 
-[p, tbl, stats]=anovan(LT_max_cond_state,{LT_max_state,LT_max_cond},'model','interaction',...
-    'varnames',{'LT_max_state','LT_max_cond'});
-results=multcompare(stats,'dimension',[1 2]);
-
-%%
-figure()
-for s_idx=1:model.n_states    
-    for cond_idx=1:length(conditions)
-        condition_trials = find(strcmp(data.metadata.condition,conditions{cond_idx}));
-        LT_max=[];
-        trial_cond=zeros(1,length(condition_trials));
-        trial_state=zeros(1,length(condition_trials));
-        for tc=1:length(condition_trials)
-            if ~isempty(lifetime{s_idx,condition_trials(tc)})
-                LT_max(end+1)=max(lifetime{s_idx,condition_trials(tc)});
-            end
-            trial_cond(tc)=c_idx;
-            trial_state(tc)=s_idx;
-        end
-        
-        if c_idx==1 && s_idx==1
-        LT_max_cond_state=LT_max;
-        LT_max_state=trial_state;
-        LT_max_cond=trial_cond;
-        else
-        LT_max_cond_state= [LT_max_cond_state LT_max];
-        LT_max_state=[LT_max_state trial_state];
-        LT_max_cond=[LT_max_cond trial_cond];
-        end
-    end
+for s_idx=1:model.n_states
+    eval(['LT_max_S' num2str(s_idx) '=LT_max_cond_state(find(LT_max_state==s_idx));']);
+    eval(['LT_max_S' num2str(s_idx) 'C1=LT_max_cond_state(find(LT_max_state==s_idx & LT_max_cond==1));']);
+    eval(['LT_max_S' num2str(s_idx) 'C2=LT_max_cond_state(find(LT_max_state==s_idx & LT_max_cond==2));']);
+    eval(['LT_max_S' num2str(s_idx) 'C3=LT_max_cond_state(find(LT_max_state==s_idx & LT_max_cond==3));']); 
 end
 
-[p, tbl, stats]=anovan(LT_max_cond_state,{LT_max_state,LT_max_cond},'model','interaction',...
-    'varnames',{'LT_max_state','LT_max_cond'});
-results=multcompare(stats,'dimension',[1 2],'Display','on');
+for s_idx=1:model.n_states-1
+        for ss_idx=s_idx+1:model.n_states
+            anova_State_mat(:,1)=eval(['LT_max_S' num2str(s_idx)]);
+            anova_State_mat(:,2)=eval(['LT_max_S' num2str(ss_idx)]);
+            
+            [p, tbl, stats]=anova1(anova_State_mat);
+            results=multcompare(stats,'dimension',[1 2]);
+            title(sprintf('lifeteime based on max duration - state%d / state%d',s_idx,ss_idx))
+            legend(['p value' ' ' num2str(p)],'location','EastOutside')
+        end
+end
 
+for s_idx=1:model.n_states
+    for t_idx=1:cond_trial_nbr(1)
+        anova_State_cond_mat(t_idx,1)=eval(['LT_max_S' num2str(s_idx) 'C1(t_idx)']);
+    end
+    for t_idx=1:cond_trial_nbr(2)
+        anova_State_cond_mat(t_idx,2)=eval(['LT_max_S' num2str(s_idx) 'C2(t_idx)']);
+    end
+    for t_idx=1:cond_trial_nbr(3)
+        anova_State_cond_mat(t_idx,3)=eval(['LT_max_S' num2str(s_idx) 'C3(t_idx)']);
+    end
+    
+    [p, tbl, stats]=anova1(anova_State_cond_mat);
+    results=multcompare(stats,'dimension',[1 2]);
+    title(sprintf('lifetime based on max duration - state%d / 3conditions',s_idx))
+end
 
-%%
+%% lifetime of a state based on the sum of activation
+
+anova_State_mat=NaN(state_trials,2);
+anova_State_cond_mat=NaN(max_cond_trials,3);
+
 figure()
  for s_idx=1:model.n_states
     for c_idx=1:length(conditions)
@@ -196,13 +201,48 @@ figure()
         LT_sum_cond=[LT_sum_cond trial_cond];
         end
     end
+ end
+
+for s_idx=1:model.n_states
+    eval(['LT_sum_S' num2str(s_idx) '=LT_sum_cond_state(find(LT_sum_state==s_idx));']);
+    eval(['LT_sum_S' num2str(s_idx) 'C1=LT_sum_cond_state(find(LT_sum_state==s_idx & LT_sum_cond==1));']);
+    eval(['LT_sum_S' num2str(s_idx) 'C2=LT_sum_cond_state(find(LT_sum_state==s_idx & LT_sum_cond==2));']);
+    eval(['LT_sum_S' num2str(s_idx) 'C3=LT_sum_cond_state(find(LT_sum_state==s_idx & LT_sum_cond==3));']); 
 end
 
-[p, tbl, stats]=anovan(LT_sum_cond_state,{LT_sum_state,LT_sum_cond},'model','interaction',...
-    'varnames',{'LT_sum_state','LT_sum_cond'});
-results=multcompare(stats,'dimension',[1 2]);
+for s_idx=1:model.n_states-1
+        for ss_idx=s_idx+1:model.n_states
+            anova_State_mat(:,1)=eval(['LT_sum_S' num2str(s_idx)]);
+            anova_State_mat(:,2)=eval(['LT_sum_S' num2str(ss_idx)]);
+            
+            [p, tbl, stats]=anova1(anova_State_mat);
+            results=multcompare(stats,'dimension',[1 2]);
+            title(sprintf('lifetime (sum of activation) - state%d / state%d',s_idx,ss_idx))
+            legend(['p value' ' ' num2str(p)],'location','EastOutside')
+        end
+end
 
-%%
+for s_idx=1:model.n_states
+    for t_idx=1:cond_trial_nbr(1)
+        anova_State_cond_mat(t_idx,1)=eval(['LT_sum_S' num2str(s_idx) 'C1(t_idx)']);
+    end
+    for t_idx=1:cond_trial_nbr(2)
+        anova_State_cond_mat(t_idx,2)=eval(['LT_sum_S' num2str(s_idx) 'C2(t_idx)']);
+    end
+    for t_idx=1:cond_trial_nbr(3)
+        anova_State_cond_mat(t_idx,3)=eval(['LT_sum_S' num2str(s_idx) 'C3(t_idx)']);
+    end
+    
+    [p, tbl, stats]=anova1(anova_State_cond_mat);
+    results=multcompare(stats,'dimension',[1 2]);
+    title(sprintf('lifetime (sum of activation) - state%d / 3conditions',s_idx))
+end
+
+%% fracional time occupancy of a state
+
+anova_State_mat=NaN(state_trials,2);
+anova_State_cond_mat=NaN(max_cond_trials,3);
+
 figure()
 for s_idx=1:model.n_states
     for c_idx=1:length(conditions)
@@ -229,11 +269,46 @@ for s_idx=1:model.n_states
     end
 end
 
-[p, tbl, stats]=anovan(ft_mat_cond_state,{ft_mat_state,ft_mat_cond},'model','interaction',...
-    'varnames',{'ft_mat_state','ft_mat_cond'});
-results=multcompare(stats,'dimension',[1 2]);
+for s_idx=1:model.n_states
+    eval(['ft_S' num2str(s_idx) '=ft_mat_cond_state(find(ft_mat_state==s_idx));']);
+    eval(['ft_S' num2str(s_idx) 'C1=ft_mat_cond_state(find(ft_mat_state==s_idx & ft_mat_cond==1));']);
+    eval(['ft_S' num2str(s_idx) 'C2=ft_mat_cond_state(find(ft_mat_state==s_idx & ft_mat_cond==2));']);
+    eval(['ft_S' num2str(s_idx) 'C3=ft_mat_cond_state(find(ft_mat_state==s_idx & ft_mat_cond==3));']); 
+end
 
-%%
+for s_idx=1:model.n_states-1
+        for ss_idx=s_idx+1:model.n_states
+            anova_State_mat(:,1)=eval(['ft_S' num2str(s_idx)]);
+            anova_State_mat(:,2)=eval(['ft_S' num2str(ss_idx)]);
+            
+            [p, tbl, stats]=anova1(anova_State_mat);
+            results=multcompare(stats,'dimension',[1 2]);
+            title(sprintf('fractional time - state%d / state%d',s_idx,ss_idx))
+            legend(['p value' ' ' num2str(p)],'location','EastOutside')
+        end
+end
+
+for s_idx=1:model.n_states
+    for t_idx=1:cond_trial_nbr(1)
+        anova_State_cond_mat(t_idx,1)=eval(['ft_S' num2str(s_idx) 'C1(t_idx)']);
+    end
+    for t_idx=1:cond_trial_nbr(2)
+        anova_State_cond_mat(t_idx,2)=eval(['ft_S' num2str(s_idx) 'C2(t_idx)']);
+    end
+    for t_idx=1:cond_trial_nbr(3)
+        anova_State_cond_mat(t_idx,3)=eval(['ft_S' num2str(s_idx) 'C3(t_idx)']);
+    end
+    
+    [p, tbl, stats]=anova1(anova_State_cond_mat);
+    results=multcompare(stats,'dimension',[1 2]);
+    title(sprintf('fractional time - state%d / 3conditions',s_idx))
+end
+
+%% interval time between same state activation
+
+anova_State_mat=NaN(state_trials,2);
+anova_State_cond_mat=NaN(max_cond_trials,3);
+
 figure()
 for s_idx=1:model.n_states
     for c_idx=1:length(conditions)
@@ -264,11 +339,49 @@ for s_idx=1:model.n_states
     end
 end
 
-[p, tbl, stats]=anovan(interval_mat_cond_state,{interval_mat_state,interval_mat_cond},'model','interaction',...
-    'varnames',{'interval_mat_state','interval_mat_cond'});
-results=multcompare(stats,'dimension',[1 2]);
+for s_idx=1:model.n_states
+    eval(['interval_S' num2str(s_idx) '=interval_mat_cond_state(find(interval_mat_state==s_idx));']);
+    eval(['interval_S' num2str(s_idx) 'C1=interval_mat_cond_state(find(interval_mat_state==s_idx & interval_mat_cond==1));']);
+    eval(['interval_S' num2str(s_idx) 'C2=interval_mat_cond_state(find(interval_mat_state==s_idx & interval_mat_cond==2));']);
+    eval(['interval_S' num2str(s_idx) 'C3=interval_mat_cond_state(find(interval_mat_state==s_idx & interval_mat_cond==3));']); 
+end
 
-%%
+for s_idx=1:model.n_states-1
+        for ss_idx=s_idx+1:model.n_states
+            for t_idx=1:length(eval(['interval_S' num2str(s_idx)]))
+                anova_State_mat(t_idx,1)=eval(['interval_S' num2str(s_idx) '(t_idx)']);
+            end
+            for t_idx=1:length(eval(['interval_S' num2str(ss_idx)]))
+                anova_State_mat(t_idx,2)=eval(['interval_S' num2str(ss_idx) '(t_idx)']);
+            end
+            [p, tbl, stats]=anova1(anova_State_mat);
+            results=multcompare(stats,'dimension',[1 2]);
+            title(sprintf('intervale time between same state activation - state%d / state%d',s_idx,ss_idx))
+            legend(['p value' ' ' num2str(p)],'location','EastOutside')
+        end
+end
+
+for s_idx=1:model.n_states
+    for t_idx=1:cond_trial_nbr(1)
+        anova_State_cond_mat(t_idx,1)=eval(['interval_S' num2str(s_idx) 'C1(t_idx)']);
+    end
+    for t_idx=1:cond_trial_nbr(2)
+        anova_State_cond_mat(t_idx,2)=eval(['interval_S' num2str(s_idx) 'C2(t_idx)']);
+    end
+    for t_idx=1:cond_trial_nbr(3)
+        anova_State_cond_mat(t_idx,3)=eval(['interval_S' num2str(s_idx) 'C3(t_idx)']);
+    end
+    
+    [p, tbl, stats]=anova1(anova_State_cond_mat);
+    results=multcompare(stats,'dimension',[1 2]);
+    title(sprintf('intervale time between same state activation - state%d / 3conditions',s_idx))
+end
+
+%% state blips (activation of 10ms or less)
+
+anova_State_mat=NaN(state_trials,2);
+anova_State_cond_mat=NaN(max_cond_trials,3);
+
 figure()
 for s_idx=1:model.n_states
     for c_idx=1:length(conditions)
@@ -295,7 +408,39 @@ for s_idx=1:model.n_states
     end
 end
 
-[p, tbl, stats]=anovan(blip_mat_cond_state,{blip_mat_state,blip_mat_cond},'model','interaction',...
-    'varnames',{'blip_mat_state','blip_mat_cond'});
-results=multcompare(stats,'dimension',[1 2]);
+for s_idx=1:model.n_states
+    eval(['blip_S' num2str(s_idx) '=blip_mat_cond_state(find(blip_mat_state==s_idx));']);
+    eval(['blip_S' num2str(s_idx) 'C1=blip_mat_cond_state(find(blip_mat_state==s_idx & blip_mat_cond==1));']);
+    eval(['blip_S' num2str(s_idx) 'C2=blip_mat_cond_state(find(blip_mat_state==s_idx & blip_mat_cond==2));']);
+    eval(['blip_S' num2str(s_idx) 'C3=blip_mat_cond_state(find(blip_mat_state==s_idx & blip_mat_cond==3));']); 
+end
+
+for s_idx=1:model.n_states-1
+        for ss_idx=s_idx+1:model.n_states
+            anova_State_mat(:,1)=eval(['blip_S' num2str(s_idx)]);
+            anova_State_mat(:,2)=eval(['blip_S' num2str(ss_idx)]);
+            
+            [p, tbl, stats]=anova1(anova_State_mat);
+            results=multcompare(stats,'dimension',[1 2]);
+            title(sprintf('same state blip - state%d / state%d',s_idx,ss_idx))
+            legend(['p value' ' ' num2str(p)],'location','EastOutside')
+        end
+end
+
+for s_idx=1:model.n_states
+    for t_idx=1:cond_trial_nbr(1)
+        anova_State_cond_mat(t_idx,1)=eval(['blip_S' num2str(s_idx) 'C1(t_idx)']);
+    end
+    for t_idx=1:cond_trial_nbr(2)
+        anova_State_cond_mat(t_idx,2)=eval(['blip_S' num2str(s_idx) 'C2(t_idx)']);
+    end
+    for t_idx=1:cond_trial_nbr(3)
+        anova_State_cond_mat(t_idx,3)=eval(['blip_S' num2str(s_idx) 'C3(t_idx)']);
+    end
+    
+    [p, tbl, stats]=anova1(anova_State_cond_mat);
+    results=multcompare(stats,'dimension',[1 2]);
+    title(sprintf('same state blip - state%d / 3conditions',s_idx))
+end
+
 
