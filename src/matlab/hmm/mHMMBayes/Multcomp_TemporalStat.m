@@ -30,9 +30,8 @@ state_trials=sum(cond_trial_nbr);
 anova_State_mat=NaN(state_trials,2);
 anova_State_cond_mat=NaN(max_cond_trials,3);
 
-%%
-%mean number of activation for each state
-figure()
+%% mean number of activation for each state
+%between state comparison
 for s_idx=1:model.n_states
     for c_idx=1:length(conditions)
         % Find data trials for this condition
@@ -66,17 +65,35 @@ for s_idx=1:model.n_states
     eval(['active_S' num2str(s_idx) 'C3=active_mat_cond_state(find(active_mat_state==s_idx & active_mat_cond==3));']); 
 end
 
+state1={};
+state2={};
+pValue={};
+
 for s_idx=1:model.n_states-1
         for ss_idx=s_idx+1:model.n_states
             anova_State_mat(:,1)=eval(['active_S' num2str(s_idx)]);
             anova_State_mat(:,2)=eval(['active_S' num2str(ss_idx)]);
             
             [p, tbl, stats]=anova1(anova_State_mat);
-            results=multcompare(stats,'dimension',[1 2]);
-            title(sprintf('mean number of activation - state%d / state%d',s_idx,ss_idx))
-            legend(['p value' ' ' num2str(p)],'location','EastOutside')
+            
+            state1{end+1}=sprintf('state%d',s_idx);
+            state2{end+1}=sprintf('state%d',ss_idx);
+            pValue{end+1}=p;
         end
 end
+
+state1=state1';
+state2=state2';
+pValue=pValue';
+
+T2states_activation=table(state1,state2,pValue);
+
+writetable(T2states_activation,fullfile(output_path,'T2states_activation.txt'),'Delimiter','\t');
+
+%between condition comparison
+state={};
+condition={};
+pValue={};
 
 for s_idx=1:model.n_states
     for t_idx=1:cond_trial_nbr(1)
@@ -90,13 +107,24 @@ for s_idx=1:model.n_states
     end
     
     [p, tbl, stats]=anova1(anova_State_cond_mat);
-    results=multcompare(stats,'dimension',[1 2]);
-    title(sprintf('mean number of activation - state%d / 3conditions',s_idx))
+    [c,m,h,gnames]=multcompare(stats,'dimension',[1 2]);
+
+    for c_idx=1:length(conditions)
+        state{end+1}=sprintf('state%d',s_idx);
+        condition{end+1}=sprintf('condition%d',c_idx);
+        pValue{end+1}=c(c_idx,6);
+    end
 end
 
+state=state';
+condition=condition';
+pValue=pValue';
+
+T1state3cond_activation=table(state,condition,pValue);
+
+writetable(T1state3cond_activation,fullfile(output_path,'T1state3cond_activation.txt'),'Delimiter','\t');
 
 %% Life time calculated based on the max duration of a state 
-figure()
 
 anova_State_mat=NaN(state_trials,2);
 anova_State_cond_mat=NaN(max_cond_trials,3);
@@ -143,17 +171,35 @@ for s_idx=1:model.n_states
     eval(['LT_max_S' num2str(s_idx) 'C3=LT_max_cond_state(find(LT_max_state==s_idx & LT_max_cond==3));']); 
 end
 
+state1={};
+state2={};
+pValue={};
+
 for s_idx=1:model.n_states-1
         for ss_idx=s_idx+1:model.n_states
             anova_State_mat(:,1)=eval(['LT_max_S' num2str(s_idx)]);
             anova_State_mat(:,2)=eval(['LT_max_S' num2str(ss_idx)]);
             
             [p, tbl, stats]=anova1(anova_State_mat);
-            results=multcompare(stats,'dimension',[1 2]);
-            title(sprintf('lifeteime based on max duration - state%d / state%d',s_idx,ss_idx))
-            legend(['p value' ' ' num2str(p)],'location','EastOutside')
+            
+            state1{end+1}=sprintf('state%d',s_idx);
+            state2{end+1}=sprintf('state%d',ss_idx);
+            pValue{end+1}=p;
         end
 end
+
+state1=state1';
+state2=state2';
+pValue=pValue';
+
+T2states_LifeTime_max=table(state1,state2,pValue);
+
+writetable(T2states_LifeTime_max,fullfile(output_path,'T2states_LifeTime_max.txt'),'Delimiter','\t');
+
+%between condition comparison
+state={};
+condition={};
+pValue={};
 
 for s_idx=1:model.n_states
     for t_idx=1:cond_trial_nbr(1)
@@ -167,16 +213,28 @@ for s_idx=1:model.n_states
     end
     
     [p, tbl, stats]=anova1(anova_State_cond_mat);
-    results=multcompare(stats,'dimension',[1 2]);
-    title(sprintf('lifetime based on max duration - state%d / 3conditions',s_idx))
+    [c,m,h,gnames]=multcompare(stats,'dimension',[1 2]);
+
+    for c_idx=1:length(conditions)
+        state{end+1}=sprintf('state%d',s_idx);
+        condition{end+1}=sprintf('condition%d',c_idx);
+        pValue{end+1}=c(c_idx,6);
+    end
 end
+
+state=state';
+condition=condition';
+pValue=pValue';
+
+T1state3cond_LifeTime_max=table(state,condition,pValue);
+
+writetable(T1state3cond_LifeTime_max,fullfile(output_path,'T1state3cond_LifeTime_max.txt'),'Delimiter','\t');
 
 %% lifetime of a state based on the sum of activation
 
 anova_State_mat=NaN(state_trials,2);
 anova_State_cond_mat=NaN(max_cond_trials,3);
 
-figure()
  for s_idx=1:model.n_states
     for c_idx=1:length(conditions)
         % Find data trials for this condition
@@ -210,17 +268,35 @@ for s_idx=1:model.n_states
     eval(['LT_sum_S' num2str(s_idx) 'C3=LT_sum_cond_state(find(LT_sum_state==s_idx & LT_sum_cond==3));']); 
 end
 
+state1={};
+state2={};
+pValue={};
+
 for s_idx=1:model.n_states-1
         for ss_idx=s_idx+1:model.n_states
             anova_State_mat(:,1)=eval(['LT_sum_S' num2str(s_idx)]);
             anova_State_mat(:,2)=eval(['LT_sum_S' num2str(ss_idx)]);
             
             [p, tbl, stats]=anova1(anova_State_mat);
-            results=multcompare(stats,'dimension',[1 2]);
-            title(sprintf('lifetime (sum of activation) - state%d / state%d',s_idx,ss_idx))
-            legend(['p value' ' ' num2str(p)],'location','EastOutside')
+            
+            state1{end+1}=sprintf('state%d',s_idx);
+            state2{end+1}=sprintf('state%d',ss_idx);
+            pValue{end+1}=p;
         end
 end
+
+state1=state1';
+state2=state2';
+pValue=pValue';
+
+T2states_LifeTime_sum=table(state1,state2,pValue);
+
+writetable(T2states_LifeTime_sum,fullfile(output_path,'T2states_LifeTime_sum.txt'),'Delimiter','\t');
+
+%between condition comparison
+state={};
+condition={};
+pValue={};
 
 for s_idx=1:model.n_states
     for t_idx=1:cond_trial_nbr(1)
@@ -234,16 +310,28 @@ for s_idx=1:model.n_states
     end
     
     [p, tbl, stats]=anova1(anova_State_cond_mat);
-    results=multcompare(stats,'dimension',[1 2]);
-    title(sprintf('lifetime (sum of activation) - state%d / 3conditions',s_idx))
+    [c,m,h,gnames]=multcompare(stats,'dimension',[1 2]);
+
+    for c_idx=1:length(conditions)
+        state{end+1}=sprintf('state%d',s_idx);
+        condition{end+1}=sprintf('condition%d',c_idx);
+        pValue{end+1}=c(c_idx,6);
+    end
 end
+
+state=state';
+condition=condition';
+pValue=pValue';
+
+T1state3cond_LifeTime_sum=table(state,condition,pValue);
+
+writetable(T1state3cond_LifeTime_sum,fullfile(output_path,'T1state3cond_LifeTime_sum.txt'),'Delimiter','\t');
 
 %% fracional time occupancy of a state
 
 anova_State_mat=NaN(state_trials,2);
 anova_State_cond_mat=NaN(max_cond_trials,3);
 
-figure()
 for s_idx=1:model.n_states
     for c_idx=1:length(conditions)
         condition_trials = find(strcmp(data.metadata.condition,conditions{c_idx}));
@@ -276,17 +364,35 @@ for s_idx=1:model.n_states
     eval(['ft_S' num2str(s_idx) 'C3=ft_mat_cond_state(find(ft_mat_state==s_idx & ft_mat_cond==3));']); 
 end
 
+state1={};
+state2={};
+pValue={};
+
 for s_idx=1:model.n_states-1
         for ss_idx=s_idx+1:model.n_states
             anova_State_mat(:,1)=eval(['ft_S' num2str(s_idx)]);
             anova_State_mat(:,2)=eval(['ft_S' num2str(ss_idx)]);
             
             [p, tbl, stats]=anova1(anova_State_mat);
-            results=multcompare(stats,'dimension',[1 2]);
-            title(sprintf('fractional time - state%d / state%d',s_idx,ss_idx))
-            legend(['p value' ' ' num2str(p)],'location','EastOutside')
+            
+            state1{end+1}=sprintf('state%d',s_idx);
+            state2{end+1}=sprintf('state%d',ss_idx);
+            pValue{end+1}=p;
         end
 end
+
+state1=state1';
+state2=state2';
+pValue=pValue';
+
+T2states_FractionalOccupancy=table(state1,state2,pValue);
+
+writetable(T2states_FractionalOccupancy,fullfile(output_path,'T2states_FractionalOccupancy.txt'),'Delimiter','\t');
+
+%between condition comparison
+state={};
+condition={};
+pValue={};
 
 for s_idx=1:model.n_states
     for t_idx=1:cond_trial_nbr(1)
@@ -300,16 +406,27 @@ for s_idx=1:model.n_states
     end
     
     [p, tbl, stats]=anova1(anova_State_cond_mat);
-    results=multcompare(stats,'dimension',[1 2]);
-    title(sprintf('fractional time - state%d / 3conditions',s_idx))
+    [c,m,h,gnames]=multcompare(stats,'dimension',[1 2]);
+
+    for c_idx=1:length(conditions)
+        state{end+1}=sprintf('state%d',s_idx);
+        condition{end+1}=sprintf('condition%d',c_idx);
+        pValue{end+1}=c(c_idx,6);
+    end
 end
+state=state';
+condition=condition';
+pValue=pValue';
+
+T1state3cond_FractionalOccupancy=table(state,condition,pValue);
+
+writetable(T1state3cond_FractionalOccupancy,fullfile(output_path,'T1state3cond_FractionalOccupancy.txt'),'Delimiter','\t');
 
 %% interval time between same state activation
 
 anova_State_mat=NaN(state_trials,2);
 anova_State_cond_mat=NaN(max_cond_trials,3);
 
-figure()
 for s_idx=1:model.n_states
     for c_idx=1:length(conditions)
         condition_trials = find(strcmp(data.metadata.condition,conditions{c_idx}));
@@ -346,6 +463,10 @@ for s_idx=1:model.n_states
     eval(['interval_S' num2str(s_idx) 'C3=interval_mat_cond_state(find(interval_mat_state==s_idx & interval_mat_cond==3));']); 
 end
 
+state1={};
+state2={};
+pValue={};
+
 for s_idx=1:model.n_states-1
         for ss_idx=s_idx+1:model.n_states
             for t_idx=1:length(eval(['interval_S' num2str(s_idx)]))
@@ -355,34 +476,59 @@ for s_idx=1:model.n_states-1
                 anova_State_mat(t_idx,2)=eval(['interval_S' num2str(ss_idx) '(t_idx)']);
             end
             [p, tbl, stats]=anova1(anova_State_mat);
-            results=multcompare(stats,'dimension',[1 2]);
-            title(sprintf('intervale time between same state activation - state%d / state%d',s_idx,ss_idx))
-            legend(['p value' ' ' num2str(p)],'location','EastOutside')
+            
+            state1{end+1}=sprintf('state%d',s_idx);
+            state2{end+1}=sprintf('state%d',ss_idx);
+            pValue{end+1}=p;
         end
 end
 
+state1=state1';
+state2=state2';
+pValue=pValue';
+
+T2states_TimeIntervale=table(state1,state2,pValue);
+
+writetable(T2states_TimeIntervale,fullfile(output_path,'T2states_TimeIntervale.txt'),'Delimiter','\t');
+
+%between condition comparison
+state={};
+condition={};
+pValue={};
+
 for s_idx=1:model.n_states
-    for t_idx=1:cond_trial_nbr(1)
+    for t_idx=1:length(eval(['interval_S' num2str(s_idx) 'C1']))
         anova_State_cond_mat(t_idx,1)=eval(['interval_S' num2str(s_idx) 'C1(t_idx)']);
     end
-    for t_idx=1:cond_trial_nbr(2)
+    for t_idx=1:length(eval(['interval_S' num2str(s_idx) 'C2']))
         anova_State_cond_mat(t_idx,2)=eval(['interval_S' num2str(s_idx) 'C2(t_idx)']);
     end
-    for t_idx=1:cond_trial_nbr(3)
+    for t_idx=1:length(eval(['interval_S' num2str(s_idx) 'C3']))
         anova_State_cond_mat(t_idx,3)=eval(['interval_S' num2str(s_idx) 'C3(t_idx)']);
     end
     
     [p, tbl, stats]=anova1(anova_State_cond_mat);
-    results=multcompare(stats,'dimension',[1 2]);
-    title(sprintf('intervale time between same state activation - state%d / 3conditions',s_idx))
+    [c,m,h,gnames]=multcompare(stats,'dimension',[1 2]);
+
+    for c_idx=1:length(conditions)
+        state{end+1}=sprintf('state%d',s_idx);
+        condition{end+1}=sprintf('condition%d',c_idx);
+        pValue{end+1}=c(c_idx,6);
+    end
 end
+state=state';
+condition=condition';
+pValue=pValue';
+
+T1state3cond_TimeIntervale=table(state,condition,pValue);
+
+writetable(T1state3cond_TimeIntervale,fullfile(output_path,'T1state3cond_TimeIntervale.txt'),'Delimiter','\t');
 
 %% state blips (activation of 10ms or less)
 
 anova_State_mat=NaN(state_trials,2);
 anova_State_cond_mat=NaN(max_cond_trials,3);
 
-figure()
 for s_idx=1:model.n_states
     for c_idx=1:length(conditions)
         condition_trials = find(strcmp(data.metadata.condition,conditions{c_idx}));
@@ -415,17 +561,35 @@ for s_idx=1:model.n_states
     eval(['blip_S' num2str(s_idx) 'C3=blip_mat_cond_state(find(blip_mat_state==s_idx & blip_mat_cond==3));']); 
 end
 
+state1={};
+state2={};
+pValue={};
+
 for s_idx=1:model.n_states-1
         for ss_idx=s_idx+1:model.n_states
             anova_State_mat(:,1)=eval(['blip_S' num2str(s_idx)]);
             anova_State_mat(:,2)=eval(['blip_S' num2str(ss_idx)]);
             
             [p, tbl, stats]=anova1(anova_State_mat);
-            results=multcompare(stats,'dimension',[1 2]);
-            title(sprintf('same state blip - state%d / state%d',s_idx,ss_idx))
-            legend(['p value' ' ' num2str(p)],'location','EastOutside')
+            
+            state1{end+1}=sprintf('state%d',s_idx);
+            state2{end+1}=sprintf('state%d',ss_idx);
+            pValue{end+1}=p;
         end
 end
+
+state1=state1';
+state2=state2';
+pValue=pValue';
+
+T2states_Blips=table(state1,state2,pValue);
+
+writetable(T2states_Blips,fullfile(output_path,'T2states_Blips.txt'),'Delimiter','\t');
+
+%between condition comparison
+state={};
+condition={};
+pValue={};
 
 for s_idx=1:model.n_states
     for t_idx=1:cond_trial_nbr(1)
@@ -439,8 +603,20 @@ for s_idx=1:model.n_states
     end
     
     [p, tbl, stats]=anova1(anova_State_cond_mat);
-    results=multcompare(stats,'dimension',[1 2]);
-    title(sprintf('same state blip - state%d / 3conditions',s_idx))
+    [c,m,h,gnames]=multcompare(stats,'dimension',[1 2]);
+
+    for c_idx=1:length(conditions)
+        state{end+1}=sprintf('state%d',s_idx);
+        condition{end+1}=sprintf('condition%d',c_idx);
+        pValue{end+1}=c(c_idx,6);
+    end
 end
+state=state';
+condition=condition';
+pValue=pValue';
 
+T1state3cond_Blips=table(state,condition,pValue);
 
+writetable(T1state3cond_Blips,fullfile(output_path,'T1state3cond_Blips.txt'),'Delimiter','\t');
+
+close all
