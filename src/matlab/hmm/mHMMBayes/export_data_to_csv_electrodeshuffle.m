@@ -7,7 +7,7 @@ shuffle_nbr=3;
   
 for shuff_idx=1:shuffle_nbr
     %create csv file to exporte data
-    data_file=fullfile(output_path, sprintf('hmm_data_electrodeshuffle_%d.csv',shuff_idx));
+    data_file=fullfile(output_path, sprintf('hmm_data_electrodeshuffle_trials_%d.csv',shuff_idx));
     fid=fopen(data_file,'w');
     header='date,trial,condition,electrode,timestep,value';
     fprintf(fid,'%s\n',header);
@@ -15,10 +15,6 @@ for shuff_idx=1:shuffle_nbr
     % Create a cell array with the data structure of each day to concatenate them
     % into one big structure
     all_data={};
-
-    shuff_idx=randperm(length(good_electrodes));
-    shuff_electrode_idx=good_electrodes(:,shuff_idx);
-    
 
     for d_idx=1:length(dates)
         date=dates{d_idx};
@@ -65,6 +61,10 @@ for shuff_idx=1:shuffle_nbr
         % Trial date index
         trial_date_idx=concat_data.trial_date(trial_idx);
         condition_idx=find(strcmp(conditions,concat_data.metadata.condition{trial_idx}));
+        
+        shuff_idx=randperm(length(good_electrodes));
+        shuff_electrode_idx=good_electrodes(:,shuff_idx);
+        
         %for electrode_idx=1:size(trial_spikes,1)
         for electrode_idx=1:length(good_electrodes)
             for time_idx=1:size(trial_spikes,2)
