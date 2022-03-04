@@ -18,6 +18,7 @@ binwidth=(data.bins(2)-data.bins(1));
 
 % Align events
 align_events={'go','hand_mvmt_onset','obj_contact','place'};
+%align_events={'go','hand_mvmt_onset','tool_mvmt_onset','obj_contact','place'};
 
 % Size of epochs around each align event
 win_size=[-150 150];
@@ -178,4 +179,9 @@ for cond_idx=1:length(conditions)
         end
     end
 end
+
+% saveas(f,fullfile(output_path,...
+%      [subject '_' array '_' 'grasp' '_StateSequence_5w_MuldiDayMultiCond' '.png']));
+% saveas(f,fullfile(output_path,...
+%      [subject '_' array '_' 'grasp' '_StateSequence_5w_MuldiDayMultiCond' '.eps']),'epsc');
 end

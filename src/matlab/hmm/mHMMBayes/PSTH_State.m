@@ -13,12 +13,16 @@ conditions={'motor_grasp_center','motor_grasp_right','motor_grasp_left'};
 win_len=100;
 
 dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
-    '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19',...
-    '13.03.19','14.03.19','15.03.19','18.03.19','19.03.19',...
-    '20.03.19','21.03.19','25.03.19'};
+   '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19',...
+   '13.03.19','14.03.19','15.03.19','18.03.19','19.03.19',...
+   '20.03.19','21.03.19','25.03.19'};
+% dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
+%     '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19'};
     
 output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
-    'motor_grasp', '5w_multiday_condHMM', array);
+   'motor_grasp', '5w_multiday_condHMM', array);
+% output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
+%     'motor_grasp', '2w_multiday_condHMM', array);
 
 model=get_best_model(output_path, 'type', 'condition_covar');
 
@@ -143,10 +147,29 @@ for state_nbr=1:model.n_states
             xlabel('Time (ms)');
             ylabel('Firing Rate');
             %ylim([0 0.08]);
-            title(sprintf('Electrode %d', good_elect));   
+            title(sprintf('Electrode %d', good_elect));
+            
+            condition_title=replace(conditions{c_idx},'_',' ');
+            sgtitle(sprintf('State: %d      Condition: %s',state_nbr, condition_title));
+            
+            f2=figure();
+            subplot(length(conditions),model.n_states, sub2ind([length(conditions),model.n_states],c_idx,state_nbr));
+            bar([-50:dt:50],mean(StateElectrodeSpikes,1));
+            hold all
+            plot([0 0],ylim(),'r--');
+            xlabel('Time (ms)');
+            %ylabel('Firing Rate');
+            if rstate_nbr==1
+                ylabel({strrep(conditions{r},'_',' ');'Firing rate'},'FontSize',12,'FontWeight','bold');
+            end
+            %ylim([0 0.08]);
+            title(sprintf('state %d', state_nbr));
+            
+            sgtitle(sprintf(sprintf('Electrode %d', good_elect));
+            
         end
-        condition_title=replace(conditions{c_idx},'_',' ');
-        sgtitle(sprintf('State: %d      Condition: %s',state_nbr, condition_title));
+%         condition_title=replace(conditions{c_idx},'_',' ');
+%         sgtitle(sprintf('State: %d      Condition: %s',state_nbr, condition_title));
             
         saveas(f,fullfile(exp_info.base_output_dir,'figures','HMM',subject,'psth', array,...
             [sprintf('State%d_%s_',state_nbr, conditions{c_idx}) '2w_MuldiDayMultiCond' '.png']));
@@ -154,3 +177,8 @@ for state_nbr=1:model.n_states
             [sprintf('State%d_%s_',state_nbr, conditions{c_idx}) '2w_MuldiDayMultiCond' '.eps']),'epsc');
     end
 end
+
+saveas(f2,fullfile(exp_info.base_output_dir,'figures','HMM',subject,'psth', array,...
+            [sprintf('State%d_%s_',state_nbr, conditions{c_idx}) '2w_MuldiDayMultiCond' '.png']));
+saveas(f2,fullfile(exp_info.base_output_dir,'figures','HMM',subject,'psth', array,...
+            [sprintf('State%d_%s_',state_nbr, conditions{c_idx}) '2w_MuldiDayMultiCond' '.eps']),'epsc');

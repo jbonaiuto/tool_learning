@@ -2,7 +2,6 @@ function concat_data=export_twoday_data_to_csv(exp_info, subject, array,...
     conditions, dates, dt, output_path)
 
 addpath('../../spike_data_processing');
-dbstop if error
 
 %create csv file to exporte data
 data_file=fullfile(output_path, 'hmm_data.csv');

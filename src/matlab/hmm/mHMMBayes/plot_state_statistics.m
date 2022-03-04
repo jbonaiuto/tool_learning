@@ -1,5 +1,7 @@
 function plot_state_statistics(stats, lbls, varargin)
 
+%called by run_state_trial_stats.m
+
 % Parse optional arguments
 defaults=struct('density_type','ks', 'zero_bounded', false, 'ax',-1);
 params=struct(varargin{:});
@@ -10,7 +12,7 @@ for f=fieldnames(defaults)'
 end
 
 
-[cb] = cbrewer('qual','Set3',10,'pchip');
+[cb] = cbrewer('qual','Dark2',10,'pchip');
 
 if params.ax<0
     figure();

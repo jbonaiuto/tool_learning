@@ -16,12 +16,12 @@ win_len=100;
 kernel_width=9; % Kernel width used to smooth data before normalizing
 kernel=gausswin(kernel_width);
 
+% Betta's date
 dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
     '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19',...
     '13.03.19','14.03.19','15.03.19','18.03.19','19.03.19',...
     '20.03.19','21.03.19','25.03.19'};
-% dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
-%     '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19'};
+
 
 output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
     'motor_grasp', '5w_multiday_condHMM', array);
@@ -214,18 +214,14 @@ for c_idx=1:length(conditions)
         end
     end
 end
-    %plot([-50:dt:50],mean(StateElectrodeSpikes,1));
-    %sgtitle(sprintf('Electrode %d',elec_idx));
-    
-    %legend(sprintf('Electrode %d',elec_idx));
-    
-    %ylim([0 0.4]);
-    
-    %     saveas(f,fullfile(exp_info.base_output_dir,'figures','HMM',subject,'psth', array,...
-    %             ['F5hand_' sprintf('Electrode %d',elec_idx) '_BaselinCorr_5w_MuldiDayMultiCond' '.png']));
-    %     saveas(f,fullfile(exp_info.base_output_dir,'figures','HMM',subject,'psth', array,...
-    %             ['F5hand_' sprintf('Electrode %d',elec_idx) '_BaselinCorr_5w_MuldiDayMultiCond' '.eps']),'epsc');
-    
-    
+   
 sgtitle([subject ' ' array]);
+
+% saveas(f,fullfile(exp_info.base_output_dir,'figures','HMM',subject,'psth', array,...
+%      [sprintf('Electrode %d',elec_idx) '_BaselinCorr_5w_MuldiDayMultiCond' '.png']));
+% saveas(f,fullfile(exp_info.base_output_dir,'figures','HMM',subject,'psth', array,...
+%      [sprintf('Electrode %d',elec_idx) '_BaselinCorr_5w_MuldiDayMultiCond' '.eps']),'epsc');
+    
+    
+
 

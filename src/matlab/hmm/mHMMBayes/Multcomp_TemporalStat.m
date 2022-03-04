@@ -134,7 +134,7 @@ for s_idx=1:model.n_states
 %     % test for normality assumtion with Shapiro-wilk test
 %             [H, pValue, W]=swtest(anova_State_cond_mat(:,3), 0.05);
     
-    [p, tbl, stats]=anova1(anova_State_cond_mat);
+    [p, tbl, stats]=anova1(anova_State_cond_mat,'displayopt','off');
     
     [c,m,h,gnames]=multcompare(stats,'dimension',[1 2],'Display','off');
 

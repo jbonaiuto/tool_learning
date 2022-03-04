@@ -56,7 +56,40 @@ disp(sprintf('Removing %d motor grasp trials total', length(motor_grasp_bad_tria
 
 bad_trials=union(bad_trials, motor_grasp_bad_trials);
 
+%filter motor rake trials
+motor_rake_conditions={'motor_rake_center','motor_rake_right','motor_rake_left'};
+motor_rake_trials=zeros(1,length(data.metadata.condition));
+for i=1:length(motor_rake_conditions)
+  motor_rake_trials = motor_rake_trials | (strcmp(data.metadata.condition,motor_rake_conditions{i}));
+end
+motor_rake_trials=find(motor_rake_trials);
+motor_rake_bad_trials=[];
 
+% Figure out RT of each trial
+rts=data.metadata.hand_mvmt_onset(motor_rake_trials)-data.metadata.go(motor_rake_trials);
+% Figure out MT of each trial
+%mts=data.metadata.obj_contact(motor_rake_trials)-data.metadata.hand_mvmt_onset(motor_rake_trials);
+mts=data.metadata.obj_contact(motor_rake_trials)-data.metadata.tool_mvmt_onset(motor_rake_trials);
+% Figure out PT of each trial
+pts=data.metadata.place(motor_rake_trials)-data.metadata.obj_contact(motor_rake_trials);
+      
+rt_bad_trials=union(find(rts<100),find(rts>1500));
+disp(sprintf('Removing %d motor rake trials based on RT', length(rt_bad_trials)));
+motor_rake_bad_trials=union(motor_rake_bad_trials,motor_rake_trials(rt_bad_trials));
+
+mt_bad_trials=union(find(mts<100),find(mts>2500));
+disp(sprintf('Removing %d motor rake trials based on MT', length(mt_bad_trials)));
+motor_rake_bad_trials=union(motor_rake_bad_trials,motor_rake_trials(mt_bad_trials));
+
+pt_bad_trials=union(find(pts<100),find(pts>1500));
+disp(sprintf('Removing %d motor rake trials based on PT', length(pt_bad_trials)));
+motor_rake_bad_trials=union(motor_rake_bad_trials,motor_rake_trials(pt_bad_trials));
+
+disp(sprintf('Removing %d motor rake trials total', length(motor_rake_bad_trials)));
+
+bad_trials=union(bad_trials, motor_rake_bad_trials)
+
+%filter visual trials
 visual_grasp_conditions={'visual_grasp_left','visual_grasp_right'};
 visual_grasp_trials=zeros(1,length(data.metadata.condition));
 for i=1:length(visual_grasp_conditions)
