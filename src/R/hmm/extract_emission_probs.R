@@ -25,7 +25,13 @@ pathName = substr(
 # Load utility functions
 source(paste0(pathName, "/obtain_emiss_pois.R"))
 
-load(model_fname)
+loadRData <- function(fileName){
+#loads an RData file, and returns it
+    load(fileName)
+    get(ls()[ls() != "fileName"])
+}
+
+out<-loadRData(model_fname)
 emissions<-obtain_emiss_pois(out, level="group")
 
 State<-c()

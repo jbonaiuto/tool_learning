@@ -1,3 +1,13 @@
+#! /usr/bin/Rscript
+args = commandArgs(trailingOnly=TRUE)
+output_path=args[1]
+
+# Install packages
+#devtools::install_github("smildiner/mHMMbayes", ref = "develop")
+
+# Set up working environment
+library(tidyverse)
+library(mHMMbayes)
 # Preferred parallel library
 #library(future.apply)
 
@@ -32,11 +42,13 @@ data_wide <- data %>%
 
 # Get training data (don't need date, condition, timestep?)
 train <- data_wide %>%
-  select(trial, c(`1`,`2`,`3`,`4`,`5`,`6`,`7`,`8`,`9`,`10`,`11`,`12`,`13`,`14`,`15`)) %>%
+  select(-c(date, condition, timestep)) %>%
   as.matrix()
 
+n_electrodes<-ncol(train)-1
+
 # Add informative column names
-colnames(train) <- c("trial",paste0("el",1:15))
+colnames(train) <- c("trial",paste0("el",colnames(train)[1:n_electrodes+1]))
 
 # Set matrix of covariates
 gamma_xx_t <- data_wide %>%
@@ -52,18 +64,20 @@ head(gamma_xx_t)
 
 # General parameters
 n       <- length(unique(train[,1]))    # Number of subjects (days)
-n_runs<-10
+#n_runs<-10
+n_runs<-1
 n_iterations<-3000
 burn_in<-1000
 n_dep   <- 15                           # Number of dependent variables
-n_possible_states=c(3:8)
+#n_possible_states=c(3:8)
+n_possible_states=c(4)
 
 #plan(multiprocess, workers = 10)
 
-pois_states<-c()
-pois_run<-c()
-pois_aic<-c()
-pois_bic<-c()
+#pois_states<-c()
+#pois_run<-c()
+#pois_aic<-c()
+#pois_bic<-c()
 
 pgamma_states<-c()
 pgamma_run<-c()
@@ -102,100 +116,100 @@ for(m in n_possible_states) {
     )
     
     # Set seed
-    set.seed(42)
+    #set.seed(42)
     
     # Train models
-    out_tv_pois <- mHMM_pois_tv(s_data = train,
-                                gen = list(m = m, n_dep = n_dep),
-                                start_val = c(list(start_gamma), start_emiss),
-                                emiss_hyp_prior = hyp_pr_pgamma,
-                                xx_t = gamma_xx_t,
-                                mcmc = list(J = n_iterations, burn_in = burn_in),
-                                show_progress = TRUE,
-                                force_ordering = FALSE,
-                                return_fw_prob = TRUE,
-                                alpha_scale = 1)
+    #out_tv_pois <- mHMM_pois_tv(s_data = train,
+    #                            gen = list(m = m, n_dep = n_dep),
+    #                            start_val = c(list(start_gamma), start_emiss),
+    #                            emiss_hyp_prior = hyp_pr_pgamma,
+    #                            xx_t = gamma_xx_t,
+    #                            mcmc = list(J = n_iterations, burn_in = burn_in),
+    #                            show_progress = TRUE,
+    #                            force_ordering = FALSE,
+    #                            return_fw_prob = TRUE,
+    #                            alpha_scale = 1)
     
     
-    # Check emission convergence
-    emiss_data=data.frame()
-    for (elec in 1:n_dep) {
-      e_data <- out_tv_pois$emiss_alpha_bar[[elec]] %>%
-        as.data.frame()
-      names(e_data) <- paste('S',rep(1:m),sep='')
-      e_data <- e_data %>%
-        mutate(iter = row_number()) %>%
-        gather(key = 'variable', value = 'value', -iter)
-      e_data$electrode<-elec
-      e_data$parameter<-'alpha'
-      emiss_data<-rbind(emiss_data,e_data)
-      
-      e_data <- out_tv_pois$emiss_beta_bar[[elec]] %>%
-        as.data.frame()
-      names(e_data) <- paste('S',rep(1:m),sep='')
-      e_data <- e_data %>%
-        mutate(iter = row_number()) %>%
-        gather(key = 'variable', value = 'value', -iter)
-      e_data$electrode<-elec
-      e_data$parameter<-'beta'
-      emiss_data<-rbind(emiss_data,e_data)
-    }
-    dev.new()
-    g<-ggplot(emiss_data[emiss_data$parameter=='alpha',])+
-      geom_line(aes(x=iter,y=value, group=variable, color=variable))+
-      facet_wrap(electrode ~., nrow = 8)
-    print(g)
-    ggsave(paste0('/home/bonaiuto/Projects/tool_learning/data/hmm/betta/F1/model_tv_pois_',run_idx,'_alpha.png'))
-    dev.off()
+    ## Check emission convergence
+    #emiss_data=data.frame()
+    #for (elec in 1:n_dep) {
+    #  e_data <- out_tv_pois$emiss_alpha_bar[[elec]] %>%
+    #    as.data.frame()
+    #  names(e_data) <- paste('S',rep(1:m),sep='')
+    #  e_data <- e_data %>%
+    #    mutate(iter = row_number()) %>%
+    #    gather(key = 'variable', value = 'value', -iter)
+    #  e_data$electrode<-elec
+    #  e_data$parameter<-'alpha'
+    #  emiss_data<-rbind(emiss_data,e_data)
+    #  
+    #  e_data <- out_tv_pois$emiss_beta_bar[[elec]] %>%
+    #    as.data.frame()
+    #  names(e_data) <- paste('S',rep(1:m),sep='')
+    #  e_data <- e_data %>%
+    #    mutate(iter = row_number()) %>%
+    #    gather(key = 'variable', value = 'value', -iter)
+    #  e_data$electrode<-elec
+    #  e_data$parameter<-'beta'
+    #  emiss_data<-rbind(emiss_data,e_data)
+    #}
+    #dev.new()
+    #g<-ggplot(emiss_data[emiss_data$parameter=='alpha',])+
+    #  geom_line(aes(x=iter,y=value, group=variable, color=variable))+
+    #  facet_wrap(electrode ~., nrow = 8)
+    #print(g)
+    #ggsave(paste0('/home/bonaiuto/Projects/tool_learning/data/hmm/betta/F1/model_tv_pois_',run_idx,'_alpha.png'))
+    #dev.off()
     
     
-    dev.new()
-    g<-ggplot(emiss_data[emiss_data$parameter=='beta',])+
-      geom_line(aes(x=iter,y=value, group=variable, color=variable))+
-      facet_wrap(electrode ~., nrow = 8)
-    print(g)
-    ggsave(paste0('/home/bonaiuto/Projects/tool_learning/data/hmm/betta/F1/model_tv_pois_',run_idx,'_beta.png'))
-    dev.off()
+    #dev.new()
+    #g<-ggplot(emiss_data[emiss_data$parameter=='beta',])+
+    #  geom_line(aes(x=iter,y=value, group=variable, color=variable))+
+    #  facet_wrap(electrode ~., nrow = 8)
+    #print(g)
+    #ggsave(paste0('/home/bonaiuto/Projects/tool_learning/data/hmm/betta/F1/model_tv_pois_',run_idx,'_beta.png'))
+    #dev.off()
     
-    # Visualize higher level transition probabilities
-    dev.new()
-    plot_mHMM(out_tv_pois, level = "higher", burnIn = 0, q = 1, target = "trans", plotType = "trace")
-    ggsave(paste0(output_path,'/model_tv_pois_',run_idx,'_trans.png'))
-    dev.off()
+    ## Visualize higher level transition probabilities
+    #dev.new()
+    #plot_mHMM(out_tv_pois, level = "higher", burnIn = 0, q = 1, target = "trans", plotType = "trace")
+    #ggsave(paste0(output_path,'/model_tv_pois_',run_idx,'_trans.png'))
+    #dev.off()
     
-    # Get a glimpse of the fitted model
-    #summary(out)
+    ## Get a glimpse of the fitted model
+    ##summary(out)
     
-    forward_probs <- get_map_fw(out_tv_pois, burn_in = burn_in, target = "median") %>%
-      as.data.frame() %>%
-      group_by(subj) %>%
-      mutate(t = row_number())
+    #forward_probs <- get_map_fw(out_tv_pois, burn_in = burn_in, target = "median") %>%
+    #  as.data.frame() %>%
+    #  group_by(subj) %>%
+    #  mutate(t = row_number())
     
-    date1 <- data_wide %>%
-      select(trial, condition) %>%
-      rename("subj" = trial) %>%
-      group_by(subj) %>%
-      mutate(t = row_number())
+    #date1 <- data_wide %>%
+    #  select(trial, condition) %>%
+    #  rename("subj" = trial) %>%
+    #  group_by(subj) %>%
+    #  mutate(t = row_number())
     
-    merged_data <- inner_join(x = forward_probs, y = date1, by = c("subj","t"))
+    #merged_data <- inner_join(x = forward_probs, y = date1, by = c("subj","t"))
     
-    head(merged_data)
+    #head(merged_data)
     
-    save(out_tv_pois, file=paste0(output_path, '/model_tv_pois_',run_idx,'.rda'))
+    #save(out_tv_pois, file=paste0(output_path, '/model_tv_pois_',run_idx,'.rda'))
     
-    write.csv(merged_data,paste0(output_path, '/forward_probs_tv_pois_',run_idx,'.csv'))
+    #write.csv(merged_data,paste0(output_path, '/forward_probs_tv_pois_',run_idx,'.csv'))
     
     # Get averaged AIC across subjects
-    run_aic<-get_aic_pois(out_tv_pois)
-    run_bic<-get_bic_pois(out_tv_pois)
-    pois_states<-c(pois_states,m)
-    pois_run<-c(pois_run,run_idx)
-    pois_aic<-c(pois_aic,run_aic)
-    pois_bic<-c(pois_bic,run_bic)
+    #run_aic<-get_aic_pois(out_tv_pois)
+    #run_bic<-get_bic_pois(out_tv_pois)
+    #pois_states<-c(pois_states,m)
+    #pois_run<-c(pois_run,run_idx)
+    #pois_aic<-c(pois_aic,run_aic)
+    #pois_bic<-c(pois_bic,run_bic)
     
     # Write AIC-BIC every iteration
-    df<-data.frame(pois_states,pois_run,pois_aic,pois_bic)
-    write.csv(df,paste0(output_path,'/pois_aic_bic.csv'))
+    #df<-data.frame(pois_states,pois_run,pois_aic,pois_bic)
+    #write.csv(df,paste0(output_path,'/pois_aic_bic.csv'))
     
     out_tv_pgamma <- mHMM_pgamma_tv(s_data = train,
                                     gen = list(m = m, n_dep = n_dep),
@@ -236,7 +250,7 @@ for(m in n_possible_states) {
       geom_line(aes(x=iter,y=value, group=variable, color=variable))+
       facet_wrap(electrode ~., nrow = 8)
     print(g)
-    ggsave(paste0('/home/bonaiuto/Projects/tool_learning/data/hmm/betta/F1/model_tv_pgamma_',run_idx,'_alpha.png'))
+    ggsave(paste0(output_path,'/model_tv_pgamma_',m,'states_',run_idx,'_alpha.png'))
     dev.off()
     
     
@@ -245,13 +259,13 @@ for(m in n_possible_states) {
       geom_line(aes(x=iter,y=value, group=variable, color=variable))+
       facet_wrap(electrode ~., nrow = 8)
     print(g)
-    ggsave(paste0('/home/bonaiuto/Projects/tool_learning/data/hmm/betta/F1/model_tv_pgamma_',run_idx,'_beta.png'))
+    ggsave(paste0(output_path,'/model_tv_pgamma_',m,'states_',run_idx,'_beta.png'))
     dev.off()
     
     # Visualize higher level transition probabilities
     dev.new()
     plot_mHMM(out_tv_pgamma, level = "higher", burnIn = 0, q = 1, target = "trans", plotType = "trace")
-    ggsave(paste0(output_path,'/model_tv_pgamma_',run_idx,'_trans.png'))
+    ggsave(paste0(output_path,'/model_tv_pgamma_',m,'states_',run_idx,'_trans.png'))
     dev.off()
     
     # Get a glimpse of the fitted model
@@ -272,9 +286,9 @@ for(m in n_possible_states) {
     
     head(merged_data)
     
-    save(out_tv_pgamma, file=paste0(output_path, '/model_tv_pgamma_',run_idx,'.rda'))
+    save(out_tv_pgamma, file=paste0(output_path, '/model_tv_pgamma__',m,'states_',run_idx,'.rda'))
     
-    write.csv(merged_data,paste0(output_path, '/forward_probs_tv_pgamma_',run_idx,'.csv'))
+    write.csv(merged_data,paste0(output_path, '/forward_probs_tv_pgamma_',m,'states_',run_idx,'.csv'))
     
     # Get averaged AIC across subjects
     run_aic<-get_aic_pois(out_tv_pgamma)
@@ -335,7 +349,7 @@ for(m in n_possible_states) {
       geom_line(aes(x=iter,y=value, group=variable, color=variable))+
       facet_wrap(electrode ~., nrow = 8)
     print(g)
-    ggsave(paste0('/home/bonaiuto/Projects/tool_learning/data/hmm/betta/F1/model_tv_plnorm_',run_idx,'_mu.png'))
+    ggsave(paste0(output_path,'/model_tv_plnorm_',m,'states_',run_idx,'_mu.png'))
     dev.off()
     
     
@@ -344,13 +358,13 @@ for(m in n_possible_states) {
       geom_line(aes(x=iter,y=value, group=variable, color=variable))+
       facet_wrap(electrode ~., nrow = 8)
     print(g)
-    ggsave(paste0('/home/bonaiuto/Projects/tool_learning/data/hmm/betta/F1/model_tv_plnorm_',run_idx,'_varmu.png'))
+    ggsave(paste0(output_path,'/model_tv_plnorm_',m,'states_',run_idx,'_varmu.png'))
     dev.off()
     
     # Visualize higher level transition probabilities
     dev.new()
     plot_mHMM(out_tv_plnorm, level = "higher", burnIn = 0, q = 1, target = "trans", plotType = "trace")
-    ggsave(paste0(output_path,'/model_tv_pgamma_',run_idx,'_trans.png'))
+    ggsave(paste0(output_path,'/model_tv_pgamma_',m,'states_',run_idx,'_trans.png'))
     dev.off()
     
     # Get a glimpse of the fitted model
@@ -371,9 +385,9 @@ for(m in n_possible_states) {
     
     head(merged_data)
     
-    save(out_tv_plnorm, file=paste0(output_path, '/model_tv_plnorm_',run_idx,'.rda'))
+    save(out_tv_plnorm, file=paste0(output_path, '/model_tv_plnorm_',m,'states_',run_idx,'.rda'))
     
-    write.csv(merged_data,paste0(output_path, '/forward_probs_tv_plnorm_',run_idx,'.csv'))
+    write.csv(merged_data,paste0(output_path, '/forward_probs_tv_plnorm_',m,'states_',run_idx,'.csv'))
     
     # Get averaged AIC across subjects
     run_aic<-get_aic_pois(out_tv_plnorm)
@@ -386,5 +400,5 @@ for(m in n_possible_states) {
     # Write AIC-BIC every iteration
     df<-data.frame(plnorm_states,plnorm_run,plnorm_aic,plnorm_bic)
     write.csv(df,paste0(output_path,'/plnorm_aic_bic.csv'))
-  
+  }
 }
