@@ -16,10 +16,10 @@ obtain_emiss_pois <- function(object, level = "group", burn_in = NULL){
   m       <- input$m
   n_dep   <- input$n_dep
   if (level == "group"){
-      est <- rep(list(matrix(, nrow = m, ncol = 2, dimnames = list(paste("State", 1:m), c("Alpha", "Beta")))), n_dep)
+      est <- rep(list(matrix(, nrow = m, ncol = 2, dimnames = list(paste("State", 1:m), c("Mean", "Var")))), n_dep)
       names(est) <- dep_labels
       for(j in 1:n_dep){
-        est[[j]][] <-  matrix(round(c(apply(object$emiss_alpha_bar[[j]][((burn_in + 1): J),], 2, median), apply(object$emiss_beta_bar[[j]][((burn_in + 1): J),], 2, median)),3), ncol = 2, nrow = m)
+        est[[j]][] <-  matrix(round(c(apply(object$emiss_mu_bar[[j]][((burn_in + 1): J),], 2, median), apply(object$emiss_varmu_bar[[j]][((burn_in + 1): J),], 2, median)),3), ncol = 2, nrow = m)
       }
     est_emiss <- est
   }

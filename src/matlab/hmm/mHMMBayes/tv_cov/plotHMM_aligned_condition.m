@@ -1,5 +1,5 @@
-function [aligned_forward_probs,f]=plotHMM_aligned_condition_combine_models(datasets, dates,...
-    conditions, models, varargin)
+function [aligned_forward_probs,f]=plotHMM_aligned_condition(data, dates,...
+    conditions, model, varargin)
 
 % Parse optional arguments
 defaults=struct();
@@ -10,14 +10,15 @@ for f=fieldnames(defaults)'
     end
 end
 
-max_n_states=0;
-for i=1:length(datasets)
-    n_states=max(cellfun(@str2num,models(i).metadata.state_labels));
-    max_n_states=max([n_states,max_n_states]);
-end
+% Compute firing rate
+data=compute_firing_rate(data, 'baseline_type', 'none', 'win_len', 6);
+ 
+% Compute bin width
+binwidth=(data.bins(2)-data.bins(1));
 
 % Align events
 align_events={'go','hand_mvmt_onset','obj_contact','place'};
+%align_events={'go','hand_mvmt_onset','tool_mvmt_onset','obj_contact','place'};
 
 % Size of epochs around each align event
 win_size=[-150 150];
@@ -28,15 +29,6 @@ aligned_firing_rates={};
 
 % For each condition
 for cond_idx=1:length(conditions)
-    data=datasets{cond_idx};
-    model=models(cond_idx);
-    
-    % Compute firing rate
-    data=compute_firing_rate(data, 'baseline_type', 'none', 'win_len', 6);
- 
-    % Compute bin width
-    binwidth=(data.bins(2)-data.bins(1));
-
     % Find data trials for this condition
     condition_trials = find(strcmp(data.metadata.condition,conditions{cond_idx}));
     
@@ -44,10 +36,10 @@ for cond_idx=1:length(conditions)
     trial_date=data.trial_date(condition_trials);
 
     % Aligned forward probabilities and firing rates for this condition
-    cond_forward_probs=zeros(length(condition_trials), model.n_states,...
-            length(align_events), length([win_size(1):binwidth:win_size(2)]));
-    cond_firing_rates=zeros(length(condition_trials), length(data.electrodes),...
-        length(align_events), length([win_size(1):binwidth:win_size(2)]));
+    cond_forward_probs=[];%zeros(length(condition_trials), model.n_states,...
+            %length(align_events), length([win_size(1):binwidth:win_size(2)]));
+    cond_firing_rates=[];%zeros(length(condition_trials), length(data.electrodes),...
+        %length(align_events), length([win_size(1):binwidth:win_size(2)]));
     
     % For each alignment event
     for r=1:length(align_events)
@@ -73,35 +65,32 @@ for cond_idx=1:length(conditions)
                     trial_rows=find((model.forward_probs.subj==d) & (model.forward_probs.rm==n));
                 end
                             
-                % Get the bins that we used in the HMM (time>0 and up to reward)
-                bin_idx=find((data.bins>=0) & (data.bins<=data.metadata.reward(day_trials(n))));
-                
-                % Find time of alignment event in this trial
-                event_time = align_event_times(day_trials(n));
+                if length(trial_rows)
+                    % Get the bins that we used in the HMM (time>0 and up to reward)
+                    bin_idx=find((data.bins>=0) & (data.bins<=data.metadata.reward(day_trials(n))));
 
-                % Window around event to get data
-                win_start_idx=knnsearch(data.bins(bin_idx)',event_time+win_size(1));
-                win_end_idx=knnsearch(data.bins(bin_idx)',event_time+win_size(2));
-                event_wdw = [win_start_idx:win_end_idx];
+                    % Find time of alignment event in this trial
+                    event_time = align_event_times(day_trials(n));
 
-                % Save p states within this window
-                for i=1:max_n_states
-                    st_idx=find(strcmp(model.metadata.state_labels,num2str(i)));
-                    if length(st_idx)
-                        sprobs=model.forward_probs.(sprintf('fw_prob_S%d',st_idx));
+                    % Window around event to get data
+                    win_start_idx=knnsearch(data.bins(bin_idx)',event_time+win_size(1));
+                    win_end_idx=knnsearch(data.bins(bin_idx)',event_time+win_size(2));
+                    event_wdw = [win_start_idx:win_end_idx];
+
+                    % Save p states within this window
+                    for i=1:model.n_states
+                        sprobs=model.forward_probs.(sprintf('fw_prob_S%d',i));
                         cond_forward_probs(t_idx,i,r,1:length(event_wdw)) = sprobs(trial_rows(event_wdw));                        
-                    else
-                        cond_forward_probs(t_idx,i,r,1:length(event_wdw)) = NaN;
                     end
+
+                    % Get firing rates for this trial
+                    trial_firing_rates=squeeze(data.smoothed_firing_rate(1,:,day_trials(n),bin_idx));
+
+                    % Save firing rates in this window
+                    win_rates=trial_firing_rates(:,event_wdw);
+                    cond_firing_rates(t_idx,:,r,1:size(win_rates,2))=win_rates;    
+                    t_idx=t_idx+1;
                 end
-
-                % Get firing rates for this trial
-                trial_firing_rates=squeeze(data.smoothed_firing_rate(1,:,day_trials(n),bin_idx));
-
-                % Save firing rates in this window
-                win_rates=trial_firing_rates(:,event_wdw);
-                cond_firing_rates(t_idx,:,r,1:size(win_rates,2))=win_rates;    
-                t_idx=t_idx+1;
             end
         end
     end
@@ -124,7 +113,8 @@ for cond_idx=1:length(conditions)
     end
 end
 
-colors=cbrewer('qual','Paired',12);
+%colors=cbrewer('qual','Paired',12);
+colors=cbrewer('qual','Dark2',12);
 
 f=figure();
 set(f, 'Position', [0 88 889 987]);
@@ -165,16 +155,20 @@ for cond_idx=1:length(conditions)
         end
         handles=[];
         state_labels={};
-        for m=1:max_n_states
-            mean_pstate=squeeze(nanmean(cond_aligned_p_states(:,m,r,:)));
-            stderr_pstate=squeeze(nanstd(cond_aligned_p_states(:,m,r,:)))./sqrt(size(cond_aligned_p_states,1));
-            H=shadedErrorBar([win_size(1):binwidth:win_size(2)],mean_pstate,stderr_pstate,'LineProps',{'Color',colors(m,:)});
-            handles(end+1)=H.mainLine;
-            state_labels{end+1}=sprintf('State %s', m);
+        state_nums=cellfun(@str2num,model.metadata.state_labels);
+        for m=1:max(state_nums)
+            state_idx=find(strcmp(model.metadata.state_labels,num2str(m)));
+            if length(state_idx)
+                mean_pstate=squeeze(nanmean(cond_aligned_p_states(:,state_idx,r,:)));
+                stderr_pstate=squeeze(nanstd(cond_aligned_p_states(:,state_idx,r,:)))./sqrt(size(cond_aligned_p_states,1));
+                H=shadedErrorBar([win_size(1):binwidth:win_size(2)],mean_pstate,stderr_pstate,'LineProps',{'Color',colors(m,:)});
+                handles(end+1)=H.mainLine;
+                state_labels{end+1}=sprintf('State %s', model.metadata.state_labels{state_idx});
+            end
         end
 
         plot([0 0],[0 1],':k');
-        plot(xlim(),[1/max_n_states 1/max_n_states],'-.k');
+        plot(xlim(),[1/model.n_states 1/model.n_states],'-.k');
         xlim(win_size);
         ylim([0 1]);
         if cond_idx==length(conditions)
@@ -187,4 +181,9 @@ for cond_idx=1:length(conditions)
         end
     end
 end
+
+% saveas(f,fullfile(output_path,...
+%      [subject '_' array '_' 'grasp' '_StateSequence_5w_MuldiDayMultiCond' '.png']));
+% saveas(f,fullfile(output_path,...
+%      [subject '_' array '_' 'grasp' '_StateSequence_5w_MuldiDayMultiCond' '.eps']),'epsc');
 end

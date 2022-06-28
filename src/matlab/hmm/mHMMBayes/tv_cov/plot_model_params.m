@@ -35,24 +35,18 @@ else
     sp_idx=2;
 end
 subplot(n_row,n_col,sp_idx);
-plot(model.emiss_alpha_mat(state_idx,:)');
+plot(model.emiss_mu_mat(state_idx,:)');
 legend(model.metadata.state_labels(state_idx));
-xlim([1 size(model.emiss_alpha_mat,2)]);
-xlabel('Electrode');
-ylabel('Alpha');
-sp_idx=sp_idx+1;
-
-subplot(n_row,n_col,sp_idx);
-plot(model.emiss_beta_mat(state_idx,:)');
-legend(model.metadata.state_labels(state_idx));
-xlim([1 size(model.emiss_beta_mat,2)]);
-xlabel('Electrode');
-ylabel('Beta');
-sp_idx=sp_idx+1;
-
-subplot(n_row,n_col,sp_idx);
-plot(model.emiss_alpha_mat(state_idx,:)'.*model.emiss_beta_mat(state_idx,:)');
-legend(model.metadata.state_labels(state_idx));
-xlim([1 size(model.emiss_beta_mat,2)]);
+xlim([1 size(model.emiss_mu_mat,2)]);
 xlabel('Electrode');
 ylabel('Mean');
+sp_idx=sp_idx+1;
+
+subplot(n_row,n_col,sp_idx);
+plot(model.emiss_varmu_mat(state_idx,:)');
+legend(model.metadata.state_labels(state_idx));
+xlim([1 size(model.emiss_varmu_mat,2)]);
+xlabel('Electrode');
+ylabel('Var');
+sp_idx=sp_idx+1;
+

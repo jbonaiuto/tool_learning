@@ -1,17 +1,26 @@
 function model2=align_models(prev_models, model2, threshold)
 
 
-prev_state_labels={};
-prev_emiss_alphas=[];
-prev_emiss_betas=[];
+all_prev_state_labels={};
+all_prev_emiss_alphas=[];
+all_prev_emiss_betas=[];
 for i=1:length(prev_models)
     prev_model=prev_models(i);
     for j=1:length(prev_model.metadata.state_labels)
         lbl=prev_model.metadata.state_labels{j};
-        prev_state_labels{end+1}=lbl;
-        prev_emiss_alphas(end+1,:)=prev_model.emiss_alpha_mat(j,:);
-        prev_emiss_betas(end+1,:)=prev_model.emiss_beta_mat(j,:);
+        all_prev_state_labels{end+1}=lbl;
+        all_prev_emiss_alphas(end+1,:)=prev_model.emiss_alpha_mat(j,:);
+        all_prev_emiss_betas(end+1,:)=prev_model.emiss_beta_mat(j,:);
     end
+end
+
+prev_state_labels=unique(all_prev_state_labels);
+prev_emiss_alphas=[];
+prev_emiss_betas=[];
+for i=1:length(prev_state_labels)
+    idx=find(strcmp(all_prev_state_labels,prev_state_labels{i}));
+    prev_emiss_alphas(end+1,:)=mean(all_prev_emiss_alphas(idx,:),1);
+    prev_emiss_betas(end+1,:)=mean(all_prev_emiss_betas(idx,:),1);
 end
 
 % Get number of states and electrodes

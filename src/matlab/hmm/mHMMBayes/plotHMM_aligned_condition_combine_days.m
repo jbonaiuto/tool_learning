@@ -14,12 +14,12 @@ end
 max_n_states=0;
 for i=1:length(datasets)
     datasets{i}=compute_firing_rate(datasets{i}, 'baseline_type', 'none', 'win_len', 6);
-    n_states=max(cellfun(@str2num,models{i}.metadata.state_labels));
+    n_states=max(cellfun(@str2num,models(i).metadata.state_labels));
     max_n_states=max([n_states,max_n_states]);
 end
  
 % Compute bin width
-binwidth=(datasets{i}.bins(2)-datasets{i}.bins(1));
+binwidth=(datasets{1}.bins(2)-datasets{i}.bins(1));
 
 % Align events
 align_events={'go','hand_mvmt_onset','obj_contact','place'};
@@ -45,7 +45,7 @@ for cond_idx=1:length(conditions)
     
         for d_idx=1:length(datasets)
             data=datasets{d_idx};
-            model=models{d_idx};
+            model=models(d_idx);
     
             % Find data trials for this condition
             condition_trials = find(strcmp(data.metadata.condition,conditions{cond_idx}));
