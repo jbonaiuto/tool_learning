@@ -48,3 +48,11 @@ legend(model.metadata.state_labels(state_idx));
 xlim([1 size(model.emiss_beta_mat,2)]);
 xlabel('Electrode');
 ylabel('Beta');
+sp_idx=sp_idx+1;
+
+subplot(n_row,n_col,sp_idx);
+plot(model.emiss_alpha_mat(state_idx,:)'.*model.emiss_beta_mat(state_idx,:)');
+legend(model.metadata.state_labels(state_idx));
+xlim([1 size(model.emiss_beta_mat,2)]);
+xlabel('Electrode');
+ylabel('Mean');
