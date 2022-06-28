@@ -57,3 +57,15 @@ plot_model_params(model, conditions);
 run_state_trial_stats(subject, array, model, data, dates, conditions, output_path);
 
 run_perm_test_events(data, model, conditions, dates);
+
+system(sprintf('/home/bonaiuto/miniconda3/envs/hmm/bin/Rscript ../../../../R/hmm/shuffle_electrode_plnorm_tv_covar_new.R "%s" %d 1',...
+    strrep(output_path,'\','/'), model.n_states));
+
+plotHMM_aligned_condition_elec_shuffled(data, dates, conditions, model);
+plot_fwd_probs_event_sorted_elec_shuffled(data, model, dates);
+
+system(sprintf('/home/bonaiuto/miniconda3/envs/hmm/bin/Rscript ../../../../R/hmm/shuffle_temp_plnorm_tv_covar_new.R "%s" %d 1',...
+    strrep(output_path,'\','/'), model.n_states));
+
+plotHMM_aligned_condition_temp_shuffled(data, dates, conditions, model);
+plot_fwd_probs_event_sorted_temp_shuffled(data, model, dates);
