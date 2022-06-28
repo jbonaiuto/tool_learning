@@ -6,7 +6,13 @@ args <- commandArgs(trailingOnly = TRUE)
 model_fname<-args[1]
 out_fname<-args[2]
 
-load(model_fname)
+loadRData <- function(fileName){
+#loads an RData file, and returns it
+    load(fileName)
+    get(ls()[ls() != "fileName"])
+}
+
+out<-loadRData(model_fname)
 transitions<-obtain_gamma_pois(out, level="group")
 
 From<-c()
