@@ -12,10 +12,10 @@ end
 % Find num states and run with lowest AIC
 T = readtable(fullfile(output_path, sprintf('%s_aic_bic.csv',params.type)));
 
-aic=T.(sprintf('%s_aic',params.type));
-bic=T.(sprintf('%s_bic',params.type));
-states=T.(sprintf('%s_states',params.type));
-run=T.(sprintf('%s_run',params.type));
+aic=T.aic;
+bic=T.bic;
+states=T.states;
+run=T.run;
 
 if strcmp(params.method,'AIC')
     min_aic=min(aic);
