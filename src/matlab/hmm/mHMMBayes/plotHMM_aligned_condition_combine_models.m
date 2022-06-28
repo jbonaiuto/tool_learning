@@ -12,7 +12,7 @@ end
 
 max_n_states=0;
 for i=1:length(datasets)
-    n_states=max(cellfun(@str2num,models{i}.metadata.state_labels));
+    n_states=max(cellfun(@str2num,models(i).metadata.state_labels));
     max_n_states=max([n_states,max_n_states]);
 end
 
@@ -29,7 +29,7 @@ aligned_firing_rates={};
 % For each condition
 for cond_idx=1:length(conditions)
     data=datasets{cond_idx};
-    model=models{cond_idx};
+    model=models(cond_idx);
     
     % Compute firing rate
     data=compute_firing_rate(data, 'baseline_type', 'none', 'win_len', 6);
