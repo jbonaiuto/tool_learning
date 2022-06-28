@@ -46,7 +46,7 @@ if exist(fullfile(model.path, model.fname),'file')==2
     % Export transition probabilities if not done already
     model.trans_probs_fname=sprintf('trans_probs_tv_%s.csv',model.name);
     if exist(fullfile(model.path, model.trans_probs_fname),'file')~=2
-        system(sprintf('Rscript ../../../../R/hmm/extract_transition_probs.R "%s" "%s"', fullfile(model.path,model.fname),...
+        system(sprintf('/home/bonaiuto/miniconda3/envs/hmm/bin/Rscript ../../../../R/hmm/extract_transition_probs.R "%s" "%s"', fullfile(model.path,model.fname),...
             fullfile(model.path,model.trans_probs_fname)));
     end
     % Load transition probabilities
@@ -60,7 +60,7 @@ if exist(fullfile(model.path, model.fname),'file')==2
         % Export condition covariates if not done already
         model.cond_trans_covs_fname=sprintf('cond_trans_covs_%s.csv',model.name);        
         if exist(fullfile(model.path, model.cond_trans_covs_fname),'file')~=2
-	    system(sprintf('Rscript ../../../../R/hmm/extract_condition_transition_covs.R "%s" "%s" "%s"', fullfile(model.path,model.fname),...
+            system(sprintf('/home/bonaiuto/miniconda3/envs/hmm/bin/Rscript ../../../../R/hmm/extract_condition_transition_covs.R "%s" "%s" "%s"', fullfile(model.path,model.fname),...
                 fullfile(model.path,model.cond_trans_covs_fname), model.path));
         end
         % Load condition covariates
@@ -70,26 +70,26 @@ if exist(fullfile(model.path, model.fname),'file')==2
         model.cond_trans_cov_cci_upr_mat=zeros(length(model.metadata.conditions),model.n_states,model.n_states);
         model.cond_trans_cov_cci_lwr_mat=zeros(length(model.metadata.conditions),model.n_states,model.n_states);
         for i=1:size(model_cond_trans_covs)
-	    cond_idx=find(strcmp(model.metadata.conditions,model_cond_trans_covs.Cov{i}));
-	    model.cond_trans_cov_med_mat(cond_idx,model_cond_trans_covs.From(i),model_cond_trans_covs.To(i))=model_cond_trans_covs.MedVal(i);
-	    model.cond_trans_cov_cci_upr_mat(cond_idx,model_cond_trans_covs.From(i),model_cond_trans_covs.To(i))=model_cond_trans_covs.CCI_upr(i);
-	    model.cond_trans_cov_cci_lwr_mat(cond_idx,model_cond_trans_covs.From(i),model_cond_trans_covs.To(i))=model_cond_trans_covs.CCI_lwr(i);
-	end
+            cond_idx=find(strcmp(model.metadata.conditions,model_cond_trans_covs.Cov{i}));
+            model.cond_trans_cov_med_mat(cond_idx,model_cond_trans_covs.From(i),model_cond_trans_covs.To(i))=model_cond_trans_covs.MedVal(i);
+            model.cond_trans_cov_cci_upr_mat(cond_idx,model_cond_trans_covs.From(i),model_cond_trans_covs.To(i))=model_cond_trans_covs.CCI_upr(i);
+            model.cond_trans_cov_cci_lwr_mat(cond_idx,model_cond_trans_covs.From(i),model_cond_trans_covs.To(i))=model_cond_trans_covs.CCI_lwr(i);
+        end
     end
     
     % Export emission probabilities if not done already
     model.emiss_probs_fname=sprintf('emiss_probs_tv_%s.csv',model.name);
     if exist(fullfile(model.path, model.emiss_probs_fname),'file')~=2
-        system(sprintf('Rscript ../../../../R/hmm/extract_emission_probs.R "%s" "%s"', fullfile(model.path,model.fname),...
+        system(sprintf('/home/bonaiuto/miniconda3/envs/hmm/bin/Rscript ../../../../R/hmm/extract_emission_probs.R "%s" "%s"', fullfile(model.path,model.fname),...
             fullfile(model.path,model.emiss_probs_fname)));
     end
     % Load emission probabilities
     model_emiss_probs=readtable(fullfile(model.path, model.emiss_probs_fname));
-    model.emiss_alpha_mat=zeros(model.n_states,length(unique(model_emiss_probs.Electrode)));
-    model.emiss_beta_mat=zeros(model.n_states,length(unique(model_emiss_probs.Electrode)));
+    model.emiss_mu_mat=zeros(model.n_states,length(unique(model_emiss_probs.Electrode)));
+    model.emiss_varmu_mat=zeros(model.n_states,length(unique(model_emiss_probs.Electrode)));
     for i=1:size(model_emiss_probs)
-        model.emiss_alpha_mat(model_emiss_probs.State(i),model_emiss_probs.Electrode(i))=model_emiss_probs.Alpha(i);
-        model.emiss_beta_mat(model_emiss_probs.State(i),model_emiss_probs.Electrode(i))=model_emiss_probs.Beta(i);
+        model.emiss_mu_mat(model_emiss_probs.State(i),model_emiss_probs.Electrode(i))=model_emiss_probs.Mean(i);
+        model.emiss_varmu_mat(model_emiss_probs.State(i),model_emiss_probs.Electrode(i))=model_emiss_probs.Var(i);
     end
     
     
