@@ -36,15 +36,15 @@ emissions<-obtain_emiss_pois(out, level="group")
 
 State<-c()
 Electrode<-c()
-Alpha<-c()
-Beta<-c()
+Mean<-c()
+Var<-c()
 for(j in 1:nrow(emissions[1]$el1)) {
   for(i in 1:length(emissions)) {
     State<-c(State, j)
     Electrode<-c(Electrode, i)
-    Alpha<-c(Alpha, emissions[i][[paste0('el',i)]][j,1])
-    Beta<-c(Beta, emissions[i][[paste0('el',i)]][j,2])
+    Mean<-c(Mean, emissions[i][[paste0('el',i)]][j,1])
+    Var<-c(Var, emissions[i][[paste0('el',i)]][j,2])
   }
 }
-df=data.frame(State, Electrode, Alpha, Beta)
+df=data.frame(State, Electrode, Mean, Var)
 write.csv(df, out_fname, row.names = FALSE)
