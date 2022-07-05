@@ -4,12 +4,18 @@ exp_info=init_exp_info();
 rmpath('../../');
 % LOAD THE DATA WITH 1MS BIN SIZE
 dt=1;
-subject='betta';
-array='F1';
-%array='F5hand';
-%condition='motor_grasp_right';
-conditions={'motor_grasp_center','motor_grasp_right','motor_grasp_left'};
-
+% subject='betta';
+% array='F1';
+% %array='F5hand';
+% %condition='motor_grasp_right';
+% conditions={'motor_grasp_center','motor_grasp_right','motor_grasp_left'};
+model
+array
+subject
+conditions
+dates
+output_path
+data
 %state_nbr=5;
 win_len=100;
 
@@ -17,20 +23,20 @@ kernel_width=9; % Kernel width used to smooth data before normalizing
 kernel=gausswin(kernel_width);
 
 % Betta's date
-dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
-    '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19',...
-    '13.03.19','14.03.19','15.03.19','18.03.19','19.03.19',...
-    '20.03.19','21.03.19','25.03.19'};
+% dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
+%     '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19',...
+%     '13.03.19','14.03.19','15.03.19','18.03.19','19.03.19',...
+%     '20.03.19','21.03.19','25.03.19'};
 
 
-output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
-    'motor_grasp', '5w_multiday_condHMM', array);
+% output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
+%     'motor_grasp', '5w_multiday_condHMM', array);
 % output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
 %     'motor_grasp', '2w_multiday_condHMM', array);
 
-model=get_best_model(output_path, 'type', 'condition_covar');
+%model=get_best_model(output_path, 'type', 'condition_covar');
 
-load(fullfile(output_path,'data.mat'));
+%load(fullfile(output_path,'data.mat'));
 data10ms=data;
 
 data_fname=fullfile(output_path,'data1ms.mat');
@@ -217,10 +223,11 @@ end
    
 sgtitle([subject ' ' array]);
 
-% saveas(f,fullfile(exp_info.base_output_dir,'figures','HMM',subject,'psth', array,...
-%      [sprintf('Electrode %d',elec_idx) '_BaselinCorr_5w_MuldiDayMultiCond' '.png']));
-% saveas(f,fullfile(exp_info.base_output_dir,'figures','HMM',subject,'psth', array,...
-%      [sprintf('Electrode %d',elec_idx) '_BaselinCorr_5w_MuldiDayMultiCond' '.eps']),'epsc');
+saveas(f,fullfile(output_path,...
+     [subject '_' array '_' 'grasp' 'TvCov_10d_PSTH_OnsetOffset' '.png']));
+saveas(f,fullfile(output_path,...
+     [subject '_' array '_' 'grasp' 'TvCov_10d_PSTH_OnsetOffset' '.eps']),'epsc');
+
     
     
 
