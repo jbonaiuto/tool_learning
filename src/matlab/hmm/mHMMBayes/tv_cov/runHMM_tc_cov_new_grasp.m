@@ -17,6 +17,14 @@ if strcmp(subject,'betta')
     elseif strcmp(array,'F5hand')
         electrodes=[1 3 4 6 11 12 19 21 22 23 27 28 29 30 31 32];
     end
+elseif strcmp(subject,'samovar')
+    dates={'21.04.21', '22.04.21', '28.04.21', '29.04.21', '30.04.21',...
+        '04.05.21', '06.05.21', '07.05.21', '11.05.21', '14.05.21'};
+    %good channels sample
+    % for F1
+    if strcmp(array, 'F1')
+        electrodes=[4 5 6 7 9 10 11 13 14 15 16 17 18 19 20 21 22 23 25 26 27 28 29 30 31];
+    end
 end
 
 % Create output path if it doesnt exist
@@ -69,3 +77,6 @@ system(sprintf('/home/bonaiuto/miniconda3/envs/hmm/bin/Rscript ../../../../R/hmm
 
 plotHMM_aligned_condition_temp_shuffled(data, dates, conditions, model);
 plot_fwd_probs_event_sorted_temp_shuffled(data, model, dates);
+
+system(sprintf('/home/bonaiuto/miniconda3/envs/hmm/bin/Rscript ../../../../R/hmm/analyze_covars.R "%s" %s',...
+    strrep(output_path,'\','/'), model.fname));
