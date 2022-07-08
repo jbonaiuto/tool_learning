@@ -176,7 +176,7 @@ for cond_idx=1:length(conditions)
 end
 
 %colors=cbrewer('qual','Paired',12);
-colors=cbrewer('qual','Dark2',12);
+colors=cbrewer('qual','Dark2',6);
 
 f=figure();
 set(f, 'Position', [0 88 889 987]);
