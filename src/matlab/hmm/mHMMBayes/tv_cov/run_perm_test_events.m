@@ -57,7 +57,8 @@ for d=1:length(dates)
             for i=1:model.n_states
                 mon=trial_state_onsets{i};
                 moff=trial_state_offsets{i};
-                sprobs=model.forward_probs.(sprintf('fw_prob_S%d',i));
+                state_idx=find(model.metadata.state_labels==i);
+                sprobs=model.forward_probs.(sprintf('fw_prob_S%d',state_idx)); 
                 trial_fwd_probs = sprobs(trial_rows);                  
                 %trial_fwd_probs_sm=conv(trial_fwd_probs(sub_bin_idx),w,'same');
                 trial_fwd_probs_sm=trial_fwd_probs(sub_bin_idx);
@@ -95,7 +96,6 @@ event_times.pl=pl_times;
 events={'go','mo','oc','pl'};
 
 for i=1:model.n_states
-    state=model.metadata.state_labels{i};
     mon=trial_state_onsets{i};
     moff=trial_state_offsets{i};
     first_onsets=[];
@@ -143,20 +143,18 @@ for i=1:model.n_states
         end
         
         b_onsets=first_onsets;
-        %on_diff=nanmean(b_onsets-e_times);
-        %on_diff=corr(b_onsets',e_times','type','Spearman', 'rows','complete');
-        on_diff=partialcorr(b_onsets',e_times',other_event_times', 'rows','complete');
+        on_diff=partialcorr(b_onsets',e_times',other_event_times',...
+            'rows','complete','type','Spearman');
         shuffled_diffs=[];
         for j=1:10000
             p_idx=randperm(length(e_times));
-            shuffled_e_times=e_times(p_idx);%-prev_e_times;
-            %shuffled_diffs(j)=nanmean(b_onsets-shuffled_e_times);
-            %shuffled_diffs(j)=corr(b_onsets',shuffled_e_times','type','Spearman', 'rows','complete');
-            shuffled_diffs(j)=partialcorr(b_onsets',shuffled_e_times',other_event_times(:,p_idx)', 'rows','complete');
+            shuffled_e_times=e_times(p_idx);
+            shuffled_diffs(j)=partialcorr(b_onsets',shuffled_e_times',...
+                other_event_times(:,p_idx)', 'rows','complete','type','Spearman');
         end        
         b=sum(abs(shuffled_diffs)>=abs(on_diff));
         p = (b+1)/(length(shuffled_diffs)+1);
-        disp(sprintf('State: %s, Event: %s, First Onset, p=%.3f', state, event, p));
+        disp(sprintf('State: %d, Event: %s, First Onset, r=%.3f, p=%.3f', i, event, on_diff, p));
         [f,xi]=ksdensity(shuffled_diffs);
         subplot(4,length(events)-1,e-1);
         hold all;
@@ -166,24 +164,22 @@ for i=1:model.n_states
         yl=ylim();
         plot([on_diff on_diff],yl);
         set(p,'ydata',[yl(1) yl(1) yl(2) yl(2)]);
-        title(sprintf('%s - %s', state, event));
+        title(sprintf('%s - %s', i, event));
         ylabel('First onset');
     
         b_offsets=first_offsets;
-        %off_diff=nanmean(b_offsets-e_times);
-        %off_diff=corr(b_offsets',e_times','type','Spearman', 'rows','complete');
-        off_diff=partialcorr(b_offsets',e_times',other_event_times', 'rows','complete');
+        off_diff=partialcorr(b_offsets',e_times',other_event_times',...
+            'rows','complete','type','Spearman');
         shuffled_diffs=[];
         for j=1:10000
             p_idx=randperm(length(e_times));
-            shuffled_e_times=e_times(p_idx);%-prev_e_times;
-            %shuffled_diffs(j)=nanmean(b_offsets-shuffled_e_times);
-            %shuffled_diffs(j)=corr(b_offsets',shuffled_e_times','type','Spearman', 'rows','complete');
-            shuffled_diffs(j)=partialcorr(b_offsets',shuffled_e_times',other_event_times(:,p_idx)', 'rows','complete');
+            shuffled_e_times=e_times(p_idx);
+            shuffled_diffs(j)=partialcorr(b_offsets',shuffled_e_times',...
+                other_event_times(:,p_idx)', 'rows','complete','type','Spearman');
         end
         b=sum(abs(shuffled_diffs)>=abs(off_diff));
         p = (b+1)/(length(shuffled_diffs)+1);
-        disp(sprintf('State: %s, Event: %s, First Offset, p=%.3f', state, event, p));
+        disp(sprintf('State: %d, Event: %s, First Offset, r=%.3f, p=%.3f', i, event, off_diff, p));
         [f,xi]=ksdensity(shuffled_diffs);
         subplot(4,length(events)-1,(length(events)-1)+e-1);
         hold all;
@@ -196,21 +192,19 @@ for i=1:model.n_states
         ylabel('First offset');
         
         if length(find(~isnan(last_onsets)))>length(last_onsets)*.5
-            b_onsets=last_onsets;%-prev_e_times;
-            %on_diff=nanmean(b_onsets-e_times);
-            %on_diff=corr(b_onsets',e_times','type','Spearman', 'rows','complete');
-            on_diff=partialcorr(b_onsets',e_times',other_event_times', 'rows','complete');
+            b_onsets=last_onsets;
+            on_diff=partialcorr(b_onsets',e_times',other_event_times',...
+                'rows','complete','type','Spearman');
             shuffled_diffs=[];
             for j=1:10000
                 p_idx=randperm(length(e_times));
-                shuffled_e_times=e_times(p_idx);%-prev_e_times;
-                %shuffled_diffs(j)=nanmean(b_onsets-shuffled_e_times);
-                %shuffled_diffs(j)=corr(b_onsets',shuffled_e_times','type','Spearman', 'rows','complete');
-                shuffled_diffs(j)=partialcorr(b_onsets',shuffled_e_times',other_event_times(:,p_idx)', 'rows','complete');
+                shuffled_e_times=e_times(p_idx);
+                shuffled_diffs(j)=partialcorr(b_onsets',shuffled_e_times',...
+                    other_event_times(:,p_idx)', 'rows','complete','type','Spearman');
             end
             b=sum(abs(shuffled_diffs)>=abs(on_diff));
             p = (b+1)/(length(shuffled_diffs)+1);
-            disp(sprintf('State: %s, Event: %s, Last Onset, p=%.3f', state, event, p));
+            disp(sprintf('State: %d, Event: %s, Last Onset, r=%.3f, p=%.3f', i, event, on_diff, p));
             [f,xi]=ksdensity(shuffled_diffs);
             subplot(4,length(events)-1,(length(events)-1)*2+e-1);
             hold all;
@@ -224,21 +218,19 @@ for i=1:model.n_states
         end
     
         if length(find(~isnan(last_offsets)))>length(last_offsets)*.5
-            b_offsets=last_offsets;%-prev_e_times;
-            %off_diff=nanmean(b_offsets-e_times);
-            %off_diff=corr(b_offsets',e_times','type','Spearman', 'rows','complete');
-            off_diff=partialcorr(b_offsets',e_times',other_event_times', 'rows','complete');
+            b_offsets=last_offsets;
+            off_diff=partialcorr(b_offsets',e_times',other_event_times',...
+                'rows','complete','type','Spearman');
             shuffled_diffs=[];
             for j=1:10000
                 p_idx=randperm(length(e_times));
-                shuffled_e_times=e_times(p_idx);%-prev_e_times;
-                %shuffled_diffs(j)=nanmean(b_offsets-shuffled_e_times);
-                %shuffled_diffs(j)=corr(b_offsets',shuffled_e_times','type','Spearman', 'rows','complete');
-                shuffled_diffs(j)=partialcorr(b_offsets',shuffled_e_times',other_event_times(:,p_idx)', 'rows','complete');
+                shuffled_e_times=e_times(p_idx);
+                shuffled_diffs(j)=partialcorr(b_offsets',shuffled_e_times',...
+                    other_event_times(:,p_idx)', 'rows','complete','type','Spearman');
             end
             b=sum(abs(shuffled_diffs)>=abs(off_diff));
             p = (b+1)/(length(shuffled_diffs)+1);
-            disp(sprintf('State: %s, Event: %s, Last Offset, p=%.3f', state, event, p));
+            disp(sprintf('State: %d, Event: %s, Last Offset, r=%.3f, p=%.3f', i, event, off_diff, p));
             [f,xi]=ksdensity(shuffled_diffs);
             subplot(4,length(events)-1,(length(events)-1)*3+e-1);
             hold all;

@@ -1,7 +1,5 @@
 function plot_fwd_probs_event_sorted(data, model, dates)
 
-state_idx=get_state_idx(model);
-
 % Times of this event in all trials
 go_times= [];
 mo_times = [];
@@ -49,7 +47,8 @@ for d=1:length(dates)
 
             % Save p states within this window
             for i=1:model.n_states
-                sprobs=model.forward_probs.(sprintf('fw_prob_S%d',i));
+                state_idx=find(model.metadata.state_labels==i);
+                sprobs=model.forward_probs.(sprintf('fw_prob_S%d',state_idx));
                 trial_fwd_probs = sprobs(trial_rows);                  
                 trial_state_probs(i,all_t_idx,1:length(sub_bin_idx))=conv(trial_fwd_probs(sub_bin_idx),w,'same');                
             end
@@ -64,7 +63,7 @@ aligned_times=[1:size(trial_state_probs,3)].*dt-500;
 f=figure();
 for i=1:model.n_states
     subplot(model.n_states,4,(i-1)*4+1);
-    contourf(aligned_times,[1:length(idx)],squeeze(trial_state_probs(state_idx(i),idx,:)),'linecolor','none'); 
+    contourf(aligned_times,[1:length(idx)],squeeze(trial_state_probs(i,idx,:)),'linecolor','none'); 
     set(gca,'clim',[0 1]);
     hold all;
 %     plot(go_times(idx),[1:length(idx)],'.w','MarkerSize',sz);
@@ -75,7 +74,7 @@ for i=1:model.n_states
     plot(mo_times(idx),[1:length(idx)],'.','color',evtcolors(2,:));
     plot(oc_times(idx),[1:length(idx)],'.','color',evtcolors(3,:));
     plot(pl_times(idx),[1:length(idx)],'.','color',evtcolors(4,:));
-    ylabel({sprintf('State %s',model.metadata.state_labels{state_idx(i)}); 'Trial'});
+    ylabel({sprintf('State %d',i); 'Trial'});
     if i==1
         title('Go-sorted');
     elseif i==model.n_states
@@ -88,7 +87,7 @@ end
 for i=1:model.n_states
     %subplot(2,3,i);
     subplot(model.n_states,4,(i-1)*4+2);
-    contourf(aligned_times,[1:length(idx)],squeeze(trial_state_probs(state_idx(i),idx,:)),'linecolor','none'); 
+    contourf(aligned_times,[1:length(idx)],squeeze(trial_state_probs(i,idx,:)),'linecolor','none'); 
     set(gca,'clim',[0 1]);
     hold all;
 %     plot(go_times(idx),[1:length(idx)],'.w','MarkerSize',sz);
@@ -111,7 +110,7 @@ end
 for i=1:model.n_states
     %subplot(2,3,i);
     subplot(model.n_states,4,(i-1)*4+3);
-    contourf(aligned_times,[1:length(idx)],squeeze(trial_state_probs(state_idx(i),idx,:)),'linecolor','none'); 
+    contourf(aligned_times,[1:length(idx)],squeeze(trial_state_probs(i,idx,:)),'linecolor','none'); 
     set(gca,'clim',[0 1]);
     hold all;
 %     plot(go_times(idx),[1:length(idx)],'.w','MarkerSize',sz);
@@ -134,7 +133,7 @@ end
 for i=1:model.n_states
     %subplot(2,3,i);
     subplot(model.n_states,4,(i-1)*4+4);
-    contourf(aligned_times,[1:length(idx)],squeeze(trial_state_probs(state_idx(i),idx,:)),'linecolor','none'); 
+    contourf(aligned_times,[1:length(idx)],squeeze(trial_state_probs(i,idx,:)),'linecolor','none'); 
     %set(gca,'clim',[0 1]);
     set(gca,'color',[1 1 1]);
     hold all;

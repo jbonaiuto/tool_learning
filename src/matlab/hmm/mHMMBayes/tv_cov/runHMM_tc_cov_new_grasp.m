@@ -62,7 +62,7 @@ plot_fwd_probs_event_sorted(data, model, dates);
 
 plot_model_params(model, conditions);
 
-run_state_trial_stats(subject, array, model, data, dates, conditions, output_path);
+run_state_trial_stats(model, data, dates, conditions);
 
 run_perm_test_events(data, model, conditions, dates);
 

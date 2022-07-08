@@ -41,7 +41,8 @@ for d=1:length(dates)
 
             % Save p states within this window
             for i=1:model.n_states
-                sprobs=model.forward_probs.(sprintf('fw_prob_S%d',i));
+                state_idx=find(model.metadata.state_labels==i);
+                sprobs=model.forward_probs.(sprintf('fw_prob_S%d',state_idx));                
                 trial_fwd_probs = sprobs(trial_rows);   
 
                 trial_state_probs=trial_fwd_probs(sub_bin_idx);

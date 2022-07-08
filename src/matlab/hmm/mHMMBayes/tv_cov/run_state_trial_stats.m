@@ -1,20 +1,4 @@
-function run_state_trial_stats(subject, array, model, data, dates, conditions, output_path, varargin)
-
-%addpath('../..');
-%exp_info=init_exp_info();
-% array='F1';
-% subject='betta';
-% conditions={'motor_grasp_center','motor_grasp_right','motor_grasp_left'};
-% cond_labels={'center','right','left'};
-% dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
-%     '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19'};
-% dt=10;
-% output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
-%     'motor_grasp', '10w_multiday_condHMM', array);
-
-% % Load best model (lowest AIC)
-% model=get_best_model(output_path, 'type', 'condition_covar');
-% load(fullfile(output_path,'data.mat'));
+function run_state_trial_stats(model, data, dates, conditions, varargin)
 
 dt=10;
 cond_labels={'center','right','left'};
@@ -26,16 +10,17 @@ state_color={'Greens','Oranges','Greys','Purples','RdPu','YlGn'};
 
 %each number of times a state becam active per trial overall conditions
 active_mat={};
-
+state_lbls={};
 for s=1:model.n_states
    state_mat=zeros(data.ntrials,1);
    for t=1:data.ntrials
        state_mat(t)=length(state_trial_stats.state_onsets{s,t});
    end
    active_mat{s}=state_mat;
+   state_lbls{s}=num2str(s);
 end
 
-plot_state_statistics(active_mat,model.metadata.state_labels,'zero_bounded',true,'density_type','rash');
+plot_state_statistics(active_mat,state_lbls,'zero_bounded',true,'density_type','rash');
 xlabel('# activations');
 title('number of activation');
 
@@ -56,7 +41,7 @@ for s_idx=1:model.n_states
     if s_idx==model.n_states || s_idx==model.n_states-1
         xlabel('blip');
     end
-    title(model.metadata.state_labels{s_idx});
+    title(s_idx);
 end
 %sgtitle('number of activation');
 
@@ -83,7 +68,7 @@ for s_idx=1:model.n_states
     if s_idx==model.n_states || s_idx==model.n_states-1
         xlabel('# activations');
     end
-    title(model.metadata.state_labels{s_idx});
+    title(s_idx);
 end
 %sgtitle('mean state activation per trial');
 %%
@@ -112,7 +97,7 @@ for s=1:model.n_states
     end
     state_blip{s}=blip_mat;
 end
-% plot_state_statistics(state_blip,model.metadata.state_labels,'zero_bounded',true,'density_type','rash');
+% plot_state_statistics(state_blip,state_lbls,'zero_bounded',true,'density_type','rash');
 % xlabel('# blips');
 % title('mean state blips');
 
@@ -134,7 +119,7 @@ end
 %     if s_idx==model.n_states || s_idx==model.n_states-1
 %         xlabel('blip');
 %     end
-%     title(model.metadata.state_labels{s_idx});
+%     title(s_idx);
 % end
 % sgtitle('mean state blip');
 %%
@@ -158,7 +143,7 @@ for s=1:model.n_states
     end
     LT_max{s}=lt_mat;
 end
-plot_state_statistics(LT_max,model.metadata.state_labels,'zero_bounded',true,'density_type','rash');
+plot_state_statistics(LT_max,state_lbls,'zero_bounded',true,'density_type','rash');
 xlabel('max lifetime (ms)');
 title('mean state lifetime (based on max activation length)');
 
@@ -179,7 +164,7 @@ for s_idx=1:model.n_states
     if s_idx==model.n_states || s_idx==model.n_states-1
         xlabel('max lifetime (ms)');
     end
-    title(model.metadata.state_labels{s_idx});
+    title(s_idx);
 end
 %sgtitle('mean state lifetime (based on max activation length)');
 
@@ -196,7 +181,7 @@ for s=1:model.n_states
     end
     LT_max{s}=lt_mat;
 end
-plot_state_statistics(LT_max,model.metadata.state_labels,'zero_bounded',true,'density_type','rash');
+plot_state_statistics(LT_max,state_lbls,'zero_bounded',true,'density_type','rash');
 xlabel('max lifetime (ms)');
 title('mean state lifetime (max activation without o ms activation)')
 
@@ -220,7 +205,7 @@ for s_idx=1:model.n_states
     if s_idx==model.n_states || s_idx==model.n_states-1
         xlabel('max lifetime (ms)');
     end
-    title(model.metadata.state_labels{s_idx});
+    title(s_idx);
 end
 %sgtitle('mean state lifetime (without 0)');
 
@@ -235,7 +220,7 @@ for s=1:model.n_states
     end
     LT_sum{s}=lts;
 end
-plot_state_statistics(LT_sum,model.metadata.state_labels,'zero_bounded',true,'density_type','rash');
+plot_state_statistics(LT_sum,state_lbls,'zero_bounded',true,'density_type','rash');
 xlabel('total lifetime (ms)');
 title('mean state lifetime (based on the sum of state activation in the trial)');
 
@@ -257,7 +242,7 @@ for s_idx=1:model.n_states
     if s_idx==model.n_states || s_idx==model.n_states-1
         xlabel('total lifetime (ms)');
     end
-    title(model.metadata.state_labels{s_idx});
+    title(s_idx);
 end
 %sgtitle('mean state lifetime (based on the sum of state activation in the trial)');
 
@@ -274,7 +259,7 @@ for s=1:model.n_states
     end
     fractional_time{s}=frac_mat;
 end
-plot_state_statistics(fractional_time,model.metadata.state_labels,'zero_bounded',true,'density_type','rash');
+plot_state_statistics(fractional_time,state_lbls,'zero_bounded',true,'density_type','rash');
 xlabel('fractional occupancy');
 title('fractional occupancy');
 
@@ -295,7 +280,7 @@ for s_idx=1:model.n_states
     if s_idx==model.n_states || s_idx==model.n_states-1
         xlabel('fractional occupancy');
     end
-    title(model.metadata.state_labels{s_idx});
+    title(s_idx);
 end
 %sgtitle('fractional occupancy');
 
@@ -315,7 +300,7 @@ for s=1:model.n_states
     end
     time_interval{s}=interval_mat;
 end
-plot_state_statistics(time_interval,model.metadata.state_labels,'zero_bounded',true,'density_type','rash');
+plot_state_statistics(time_interval,state_lbls,'zero_bounded',true,'density_type','rash');
 xlabel('interval (ms)');
 title('state interval time (time between two visits in the same state)');
 
@@ -340,7 +325,7 @@ for s_idx=1:model.n_states
     if s_idx==model.n_states || s_idx==model.n_states-1
         xlabel('interval (ms)');
     end
-    title(model.metadata.state_labels{s_idx});
+    title(s_idx);
 end
 %sgtitle('state interval time (time between two visits in the same state)');
 
