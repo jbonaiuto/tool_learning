@@ -1,7 +1,6 @@
 function run_perm_test_events(data, model, conditions, dates)
 
-threshold=0.25;
-dur_thresh=20;
+min_time_steps=1;
 
 CIFcn = @(x,p)prctile(x(~isnan(x)),abs([0,100]-(100-p)/2));
 
@@ -20,11 +19,6 @@ for i=1:model.n_states
 end
 all_t_idx=1;
 
-% Smoothing kernel
-w=gausswin(5);
-w=w/sum(w);
-
-
 % Date index of each trial for this condition
 trial_date=data.trial_date;
     
@@ -36,11 +30,8 @@ for d=1:length(dates)
     % For each trial from this day in this condition
     for n=1:length(day_trials)
                 
-        % Rows of forward probabilities for this trial
-        trial_rows=find((model.forward_probs.subj==day_trials(n)));
-        if strcmp(model.type,'multilevel')
-            trial_rows=find((model.forward_probs.subj==d) & (model.forward_probs.rm==n));
-        end
+        % Rows of state seq for this trial
+        trial_rows=find((model.state_seq.trial==day_trials(n)));
                             
         if length(trial_rows)
             % Get the bins that we used in the HMM (time>0 and up to reward)
@@ -57,31 +48,20 @@ for d=1:length(dates)
             for i=1:model.n_states
                 mon=trial_state_onsets{i};
                 moff=trial_state_offsets{i};
+                % Get mapped index
                 state_idx=find(model.metadata.state_labels==i);
-                sprobs=model.forward_probs.(sprintf('fw_prob_S%d',state_idx)); 
-                trial_fwd_probs = sprobs(trial_rows);                  
-                %trial_fwd_probs_sm=conv(trial_fwd_probs(sub_bin_idx),w,'same');
-                trial_fwd_probs_sm=trial_fwd_probs(sub_bin_idx);
-                above_thresh=trial_fwd_probs_sm>threshold;
-                thresh_diff=diff([0; above_thresh]);
-                onsets=find(thresh_diff==1);
-                offsets=find(thresh_diff==-1);
-                if length(onsets)>length(offsets)
-                    durations=offsets-onsets(1:end-1);
-                    durations(end+1)=length(thresh_diff)-onsets(end);
-                    good_idx=find(durations>dur_thresh);
-                    mon{all_t_idx}=data.bins(bin_idx(sub_bin_idx(onsets(good_idx))))-data.metadata.go(day_trials(n));
-                    trial_state_onsets{i}=mon;
-                    moff{all_t_idx}=data.bins(bin_idx(sub_bin_idx(offsets(good_idx(1:end-1)))))-data.metadata.go(day_trials(n));
-                    trial_state_offsets{i}=moff;
-                else
-                    durations=offsets-onsets;
-                    good_idx=find(durations>dur_thresh);
-                    mon{all_t_idx}=data.bins(bin_idx(sub_bin_idx(onsets(good_idx))))-data.metadata.go(day_trials(n));
-                    trial_state_onsets{i}=mon;
-                    moff{all_t_idx}=data.bins(bin_idx(sub_bin_idx(offsets(good_idx))))-data.metadata.go(day_trials(n));
-                    trial_state_offsets{i}=moff;
-                end
+                % Get state activations from most likely state sequence
+                above_thresh=model.state_seq.state(trial_rows(sub_bin_idx))==state_idx;
+                onsets = strfind([0 above_thresh'], [0 ones(1,min_time_steps)]);
+                offsets = strfind([above_thresh' 0], [ones(1,min_time_steps) 0]);
+                % Use the onset and offset time of the activation with the
+                % max duration
+                durations=offsets-onsets;
+                [m_dur,m_idx]=max(durations);
+                mon{all_t_idx}=data.bins(bin_idx(sub_bin_idx(onsets(m_idx))))-data.metadata.go(day_trials(n));
+                trial_state_onsets{i}=mon;
+                moff{all_t_idx}=data.bins(bin_idx(sub_bin_idx(offsets(m_idx))))-data.metadata.go(day_trials(n));
+                trial_state_offsets{i}=moff;
             end
             all_t_idx=all_t_idx+1;
         end
@@ -98,37 +78,25 @@ events={'go','mo','oc','pl'};
 for i=1:model.n_states
     mon=trial_state_onsets{i};
     moff=trial_state_offsets{i};
-    first_onsets=[];
-    first_offsets=[];
-    last_onsets=[];
-    last_offsets=[];
+    onsets=[];
+    offsets=[];
     for j=1:length(mon)
         ton=mon{j};
         
         % Get first and last onsets
-        first_on=NaN;
-        last_on=NaN;
+        on=NaN;
         if length(ton)>0
-            first_on=ton(1);
+            on=ton(1);
         end
-        if length(ton)>1
-            last_on=ton(end);
-        end
-        first_onsets(end+1)=first_on;
-        last_onsets(end+1)=last_on;
+        onsets(end+1)=on;
         
         % Get first and last offsets
         toff=moff{j};
-        first_off=NaN;
-        last_off=NaN;
+        off=NaN;
         if length(toff)>0
-            first_off=toff(1);
+            off=toff(1);
         end
-        if length(toff)>1
-            last_off=toff(1);
-        end
-        first_offsets(end+1)=first_off;
-        last_offsets(end+1)=last_off;
+        offsets(end+1)=off;        
     end
     
     figure();
@@ -142,7 +110,7 @@ for i=1:model.n_states
             end
         end
         
-        b_onsets=first_onsets;
+        b_onsets=onsets;
         on_diff=partialcorr(b_onsets',e_times',other_event_times',...
             'rows','complete','type','Spearman');
         shuffled_diffs=[];
@@ -154,7 +122,7 @@ for i=1:model.n_states
         end        
         b=sum(abs(shuffled_diffs)>=abs(on_diff));
         p = (b+1)/(length(shuffled_diffs)+1);
-        disp(sprintf('State: %d, Event: %s, First Onset, r=%.3f, p=%.3f', i, event, on_diff, p));
+        disp(sprintf('State: %d, Event: %s, Onset, r=%.3f, p=%.3f', i, event, on_diff, p));
         [f,xi]=ksdensity(shuffled_diffs);
         subplot(4,length(events)-1,e-1);
         hold all;
@@ -167,7 +135,7 @@ for i=1:model.n_states
         title(sprintf('%s - %s', i, event));
         ylabel('First onset');
     
-        b_offsets=first_offsets;
+        b_offsets=offsets;
         off_diff=partialcorr(b_offsets',e_times',other_event_times',...
             'rows','complete','type','Spearman');
         shuffled_diffs=[];
@@ -179,7 +147,7 @@ for i=1:model.n_states
         end
         b=sum(abs(shuffled_diffs)>=abs(off_diff));
         p = (b+1)/(length(shuffled_diffs)+1);
-        disp(sprintf('State: %d, Event: %s, First Offset, r=%.3f, p=%.3f', i, event, off_diff, p));
+        disp(sprintf('State: %d, Event: %s, Offset, r=%.3f, p=%.3f', i, event, off_diff, p));
         [f,xi]=ksdensity(shuffled_diffs);
         subplot(4,length(events)-1,(length(events)-1)+e-1);
         hold all;
@@ -189,59 +157,7 @@ for i=1:model.n_states
         yl=ylim();
         plot([off_diff off_diff],yl);
         set(p,'ydata',[yl(1) yl(1) yl(2) yl(2)]);
-        ylabel('First offset');
-        
-        if length(find(~isnan(last_onsets)))>length(last_onsets)*.5
-            b_onsets=last_onsets;
-            on_diff=partialcorr(b_onsets',e_times',other_event_times',...
-                'rows','complete','type','Spearman');
-            shuffled_diffs=[];
-            for j=1:10000
-                p_idx=randperm(length(e_times));
-                shuffled_e_times=e_times(p_idx);
-                shuffled_diffs(j)=partialcorr(b_onsets',shuffled_e_times',...
-                    other_event_times(:,p_idx)', 'rows','complete','type','Spearman');
-            end
-            b=sum(abs(shuffled_diffs)>=abs(on_diff));
-            p = (b+1)/(length(shuffled_diffs)+1);
-            disp(sprintf('State: %d, Event: %s, Last Onset, r=%.3f, p=%.3f', i, event, on_diff, p));
-            [f,xi]=ksdensity(shuffled_diffs);
-            subplot(4,length(events)-1,(length(events)-1)*2+e-1);
-            hold all;
-            ci=CIFcn(shuffled_diffs,95);
-            p=fill([ci(1) ci(2) ci(2) ci(1)],[0 0 0 0],'y');
-            plot(xi,f);
-            yl=ylim();
-            plot([on_diff on_diff],yl);
-            set(p,'ydata',[yl(1) yl(1) yl(2) yl(2)]);
-            ylabel('Last onset');
-        end
-    
-        if length(find(~isnan(last_offsets)))>length(last_offsets)*.5
-            b_offsets=last_offsets;
-            off_diff=partialcorr(b_offsets',e_times',other_event_times',...
-                'rows','complete','type','Spearman');
-            shuffled_diffs=[];
-            for j=1:10000
-                p_idx=randperm(length(e_times));
-                shuffled_e_times=e_times(p_idx);
-                shuffled_diffs(j)=partialcorr(b_offsets',shuffled_e_times',...
-                    other_event_times(:,p_idx)', 'rows','complete','type','Spearman');
-            end
-            b=sum(abs(shuffled_diffs)>=abs(off_diff));
-            p = (b+1)/(length(shuffled_diffs)+1);
-            disp(sprintf('State: %d, Event: %s, Last Offset, r=%.3f, p=%.3f', i, event, off_diff, p));
-            [f,xi]=ksdensity(shuffled_diffs);
-            subplot(4,length(events)-1,(length(events)-1)*3+e-1);
-            hold all;
-            ci=CIFcn(shuffled_diffs,95);
-            p=fill([ci(1) ci(2) ci(2) ci(1)],[0 0 0 0],'y');
-            plot(xi,f);
-            yl=ylim();
-            plot([off_diff off_diff],yl);
-            set(p,'ydata',[yl(1) yl(1) yl(2) yl(2)]);
-            ylabel('Last offset');
-        end
+        ylabel('First offset');        
     end
     
 end

@@ -1,7 +1,7 @@
 function state_trial_stats=extract_state_trial_stats(model, data, dates, varargin)
 
 %define default values
-defaults = struct('min_time_steps',2);  
+defaults = struct('min_time_steps',1);  
 params = struct(varargin{:});
 for f = fieldnames(defaults)',  
     if ~isfield(params, f{1}),
@@ -14,7 +14,6 @@ state_trial_stats.state_offsets={};
 state_trial_stats.state_durations={};
 
 all_t_idx=1;
-thresh=0.9;
 
 % Date index of each trial for this condition
 trial_date=data.trial_date;
@@ -27,11 +26,8 @@ for d=1:length(dates)
     % For each trial from this day in this condition
     for n=1:length(day_trials)
                 
-        % Rows of forward probabilities for this trial
-        trial_rows=find((model.forward_probs.subj==day_trials(n)));
-        if strcmp(model.type,'multilevel')
-            trial_rows=find((model.forward_probs.subj==d) & (model.forward_probs.rm==n));
-        end
+        % Rows of state seq for this trial
+        trial_rows=find((model.state_seq.trial==day_trials(n)));
                
         if length(trial_rows)
             % Get the bins that we used in the HMM (time>0 and up to reward)
@@ -42,11 +38,9 @@ for d=1:length(dates)
             % Save p states within this window
             for i=1:model.n_states
                 state_idx=find(model.metadata.state_labels==i);
-                sprobs=model.forward_probs.(sprintf('fw_prob_S%d',state_idx));                
-                trial_fwd_probs = sprobs(trial_rows);   
-
-                trial_state_probs=trial_fwd_probs(sub_bin_idx);
-                mask=(trial_state_probs>thresh);
+                
+                mask=model.state_seq.state(trial_rows(sub_bin_idx))==state_idx;
+                
                 onsets = trial_times(strfind([0 mask'], [0 ones(1,params.min_time_steps)]));
                 offsets = trial_times(strfind([mask' 0], [ones(1,params.min_time_steps) 0]))+params.min_time_steps;
                 durations=offsets-onsets;
