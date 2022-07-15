@@ -51,7 +51,7 @@ for s_idx=1:model.n_states
         end
         active_cond{cond_idx}=active_mat;
     end
-    [cb] = cbrewer('seq',state_color{s_idx},10,'pchip');
+    [cb] = cbrewer2('seq',state_color{s_idx},10,'pchip');
     plot_state_statistics_cond(active_cond,cond_labels, cb,'zero_bounded',true,'density_type','rash','ax',ax);
     if s_idx==model.n_states || s_idx==model.n_states-1
         xlabel('blip');

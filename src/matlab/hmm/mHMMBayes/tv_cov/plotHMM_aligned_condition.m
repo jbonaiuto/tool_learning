@@ -1,5 +1,5 @@
-function [aligned_forward_probs,f]=plotHMM_aligned_condition(data, dates,...
-    conditions, model, varargin)
+function [aligned_forward_probs,f]=plotHMM_aligned_condition(subject, array, data, dates,...
+    conditions, model,output_path, varargin)
 
 % Parse optional arguments
 defaults=struct();
@@ -114,7 +114,7 @@ for cond_idx=1:length(conditions)
 end
 
 %colors=cbrewer('qual','Paired',12);
-colors=cbrewer('qual','Dark2',12);
+colors=cbrewer2('qual','Dark2',12);
 
 f=figure();
 set(f, 'Position', [0 88 889 987]);
@@ -182,8 +182,8 @@ for cond_idx=1:length(conditions)
     end
 end
 
-% saveas(f,fullfile(output_path,...
-%      [subject '_' array '_' 'grasp' '_StateSequence_5w_MuldiDayMultiCond' '.png']));
-% saveas(f,fullfile(output_path,...
-%      [subject '_' array '_' 'grasp' '_StateSequence_5w_MuldiDayMultiCond' '.eps']),'epsc');
+saveas(f,fullfile(output_path,...
+     [subject '_' array '_' 'grasp' 'tv_StateSequence_10d' '.png']));
+saveas(f,fullfile(output_path,...
+     [subject '_' array '_' 'grasp' 'tv_StateSequence_10d' '.eps']),'epsc');
 end

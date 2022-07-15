@@ -1,4 +1,4 @@
-function run_perm_test_events(data, model, conditions, dates)
+function run_perm_test_events(subject, array, data, model, conditions, dates, output_path)
 
 threshold=0.25;
 dur_thresh=20;
@@ -145,7 +145,7 @@ for i=1:model.n_states
         b_onsets=first_onsets;
         %on_diff=nanmean(b_onsets-e_times);
         %on_diff=corr(b_onsets',e_times','type','Spearman', 'rows','complete');
-        on_diff=partialcorr(b_onsets',e_times',other_event_times', 'rows','complete');
+        on_diff=partialcorr(b_onsets',e_times',other_event_times', 'rows','complete','Type','Spearman');
         shuffled_diffs=[];
         for j=1:10000
             p_idx=randperm(length(e_times));

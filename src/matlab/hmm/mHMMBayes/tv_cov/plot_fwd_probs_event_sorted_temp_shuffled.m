@@ -1,4 +1,4 @@
-function plot_fwd_probs_event_sorted_temp_shuffled(data, model, dates, varargin)
+function plot_fwd_probs_event_sorted_temp_shuffled(subject, array, data, model, dates, output_path, varargin)
 
 % Parse optional arguments
 defaults=struct('n_shuffs',100);
@@ -17,7 +17,7 @@ mo_times = [];
 oc_times = [];
 pl_times = [];
 
-evtcolors=cbrewer('qual','Set1',5);
+evtcolors=cbrewer2('qual','Set1',5);
 
 dt=10;
 %dt=1;
@@ -104,6 +104,8 @@ sz=3;
 aligned_times=[1:size(trial_state_probs,3)].*dt-500;
 [~,idx] = sort(go_times);
 f=figure();
+f.WindowState = 'maximized';
+
 for i=1:model.n_states
     subplot(model.n_states,4,(i-1)*4+1);
     contourf(aligned_times,[1:length(idx)],squeeze(trial_state_probs(state_idx(i),idx,:)),'linecolor','none'); 
@@ -203,7 +205,7 @@ for i=1:model.n_states
     end    
 end
 
-% saveas(f,fullfile(output_path,...
-%      [subject '_' array '_' 'grasp' '_SortedEvent_5w_MuldiDayMultiCond' '.png']));
-% saveas(f,fullfile(output_path,...
-%      [subject '_' array '_' 'grasp' '_SortedEvent_5w_MuldiDayMultiCond' '.eps']),'epsc');
+saveas(f,fullfile(output_path,...
+     [subject '_' array '_' 'grasp' '_Sorted_TempShuff_10d_TvCov' '.png']));
+saveas(f,fullfile(output_path,...
+     [subject '_' array '_' 'grasp' '_Sorted_TempShuff_10d_TvCov' '.eps']),'epsc');
