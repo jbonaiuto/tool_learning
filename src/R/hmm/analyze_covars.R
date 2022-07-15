@@ -96,13 +96,16 @@ out_cov <- bind_rows(out_r_long,out_l_long) %>%
 
 head(out_cov)
 
-ggplot(out_cov, aes(x = covariate, y = map_median, fill = covariate)) +
+dev.new()
+g<-ggplot(out_cov, aes(x = covariate, y = map_median, fill = covariate)) +
   geom_col() +
   geom_errorbar(aes(ymin = CCI_lwr, ymax = CCI_upr)) +
   facet_wrap(state~., ncol = m) +
   theme_minimal()
+print(g)
+ggsave(paste0(output_path,'/model_tv_plnorm_',out$input$m,'states_',1,'_trans_covar.png'))
 
-out$gamma_cov_bar %>%
+cov_df<-out$gamma_cov_bar %>%
     as.data.frame() %>%
     slice(2001:4000) %>% # change for the number of iterations after burn-in (i.e., 2001:4000)
     gather(key = variable, value = value) %>%
@@ -113,3 +116,4 @@ out$gamma_cov_bar %>%
     mutate(sig = case_when(CCI_upr < 0 | CCI_lwr > 0 ~ "*",
                            (CCI_upr >=0 & CCI_lwr <= 0) ~ "")) %>%
     as.data.frame()
+write.csv(cov_df,paste0(output_path,'/model_tv_plnorm_',out$input$m,'states_',1,'_trans_covar.csv'))

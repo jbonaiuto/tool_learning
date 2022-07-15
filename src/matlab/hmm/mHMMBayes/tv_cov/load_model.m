@@ -35,6 +35,11 @@ if exist(fullfile(model.path, model.fname),'file')==2
         end
     end
     
+    model.state_seq_fname=sprintf('state_seq_tv_%s.csv',model.name);
+    if exist(fullfile(model.path, model.state_seq_fname),'file')==2
+        model.state_seq=readtable(fullfile(model.path, model.state_seq_fname));
+    end
+    
     % Initialize model metadata if not done already
     model.metadata_fname=sprintf('metadata_tv_%s.mat',model.name);
     if exist(fullfile(model.path, model.metadata_fname),'file')~=2 || params.reinit_metadata

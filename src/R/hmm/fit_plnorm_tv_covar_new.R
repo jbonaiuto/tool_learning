@@ -207,6 +207,17 @@ for(m in n_possible_states) {
     save(out, file=paste0(output_path, '/model_tv_plnorm_',m,'states_',run_idx,'.rda'))
     
     write.csv(forward_probs,paste0(output_path, '/forward_probs_tv_plnorm_',m,'states_',run_idx,'.csv'))
+
+    state_seq_df <- gdecoding$state_seq %>%
+          as.data.frame() %>%
+          mutate(tstep = row_number()) %>%
+          gather(trial, state, -tstep) %>%
+          mutate(trial = str_sub(trial, 6, -1)) %>%
+          mutate_at('trial', as.numeric) %>%
+          drop_na(state)
+
+    write.csv(state_seq_df,paste0(output_path, '/state_seq_tv_plnorm_',m,'states_',run_idx,'.csv'))
+    
     
     # Get averaged AIC across subjects
     aic<-c(aic, get_aic_pois(out))

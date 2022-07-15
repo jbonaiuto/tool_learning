@@ -1,6 +1,6 @@
 function plot_model_params(model, conditions)
 
-state_idx=get_state_idx(model);
+[~,state_idx] = sort(model.metadata.state_labels);
 
 f=figure();
 n_row=1;
@@ -36,7 +36,7 @@ else
 end
 subplot(n_row,n_col,sp_idx);
 plot(model.emiss_mu_mat(state_idx,:)');
-legend(model.metadata.state_labels(state_idx));
+legend();
 xlim([1 size(model.emiss_mu_mat,2)]);
 xlabel('Electrode');
 ylabel('Mean');
@@ -44,7 +44,7 @@ sp_idx=sp_idx+1;
 
 subplot(n_row,n_col,sp_idx);
 plot(model.emiss_varmu_mat(state_idx,:)');
-legend(model.metadata.state_labels(state_idx));
+legend();
 xlim([1 size(model.emiss_varmu_mat,2)]);
 xlabel('Electrode');
 ylabel('Var');

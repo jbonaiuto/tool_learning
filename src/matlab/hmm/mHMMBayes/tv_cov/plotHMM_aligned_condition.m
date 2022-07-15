@@ -79,7 +79,8 @@ for cond_idx=1:length(conditions)
 
                     % Save p states within this window
                     for i=1:model.n_states
-                        sprobs=model.forward_probs.(sprintf('fw_prob_S%d',i));
+                        state_idx=find(model.metadata.state_labels==i);
+                        sprobs=model.forward_probs.(sprintf('fw_prob_S%d',state_idx));
                         cond_forward_probs(t_idx,i,r,1:length(event_wdw)) = sprobs(trial_rows(event_wdw));                        
                     end
 
@@ -114,7 +115,7 @@ for cond_idx=1:length(conditions)
 end
 
 %colors=cbrewer('qual','Paired',12);
-colors=cbrewer2('qual','Dark2',12);
+colors=cbrewer('qual','Dark2',6);
 
 f=figure();
 set(f, 'Position', [0 88 889 987]);
@@ -155,16 +156,12 @@ for cond_idx=1:length(conditions)
         end
         handles=[];
         state_labels={};
-        state_nums=cellfun(@str2num,model.metadata.state_labels);
-        for m=1:max(state_nums)
-            state_idx=find(strcmp(model.metadata.state_labels,num2str(m)));
-            if length(state_idx)
-                mean_pstate=squeeze(nanmean(cond_aligned_p_states(:,state_idx,r,:)));
-                stderr_pstate=squeeze(nanstd(cond_aligned_p_states(:,state_idx,r,:)))./sqrt(size(cond_aligned_p_states,1));
-                H=shadedErrorBar([win_size(1):binwidth:win_size(2)],mean_pstate,stderr_pstate,'LineProps',{'Color',colors(m,:)});
-                handles(end+1)=H.mainLine;
-                state_labels{end+1}=sprintf('State %s', model.metadata.state_labels{state_idx});
-            end
+        for m=1:model.n_states
+            mean_pstate=squeeze(nanmean(cond_aligned_p_states(:,m,r,:)));
+            stderr_pstate=squeeze(nanstd(cond_aligned_p_states(:,m,r,:)))./sqrt(size(cond_aligned_p_states,1));
+            H=shadedErrorBar([win_size(1):binwidth:win_size(2)],mean_pstate,stderr_pstate,'LineProps',{'Color',colors(m,:)});
+            handles(end+1)=H.mainLine;
+            state_labels{end+1}=sprintf('State %d', m);
         end
 
         plot([0 0],[0 1],':k');
