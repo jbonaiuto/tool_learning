@@ -73,6 +73,7 @@ load(fullfile(output_path,'data.mat'));
 plotHMM_aligned_condition(subject, array, data, dates, conditions, model,output_path);
 plot_fwd_probs_event_sorted(subject, array, data, model, dates,output_path);
 
+PSTH_OnOff_MostLikelyStateSequence(model,array,subject,conditions,dates,electrodes,data,output_path);
 
 plot_model_params(subject, array, model, conditions,output_path);
 
