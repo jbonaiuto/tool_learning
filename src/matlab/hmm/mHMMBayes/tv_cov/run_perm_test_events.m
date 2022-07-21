@@ -1,4 +1,4 @@
-function run_perm_test_events(subject, array, data, model, conditions, dates, output_path)
+function run_perm_test_events(data, model, dates)
 
 min_time_steps=1;
 
