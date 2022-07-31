@@ -4,18 +4,27 @@ exp_info=init_exp_info();
 rmpath('../../');
 % LOAD THE DATA WITH 1MS BIN SIZE
 dt=1;
-subject='betta';
-array='F1';
-%condition='motor_grasp_right';
-conditions={'motor_grasp_center','motor_grasp_right','motor_grasp_left'};
+% subject='betta';
+% array='F1';
+% %condition='motor_grasp_right';
+% conditions={'motor_grasp_center','motor_grasp_right','motor_grasp_left'};
+
+
+model
+array
+subject
+conditions
+dates
+output_path
+data
 
 %state_nbr=5;
 win_len=100;
 
-dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
-   '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19',...
-   '13.03.19','14.03.19','15.03.19','18.03.19','19.03.19',...
-   '20.03.19','21.03.19','25.03.19'};
+% dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
+%    '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19',...
+%    '13.03.19','14.03.19','15.03.19','18.03.19','19.03.19',...
+%    '20.03.19','21.03.19','25.03.19'};
 % dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
 %     '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19'};
     
@@ -24,9 +33,9 @@ output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
 % output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
 %     'motor_grasp', '2w_multiday_condHMM', array);
 
-model=get_best_model(output_path, 'type', 'condition_covar');
+%model=get_best_model(output_path, 'type', 'condition_covar');
 
-load(fullfile(output_path,'data.mat'));
+%load(fullfile(output_path,'data.mat'));
 data10ms=data;
 
 data_fname=fullfile(output_path,'data1ms.mat');
@@ -165,7 +174,7 @@ for state_nbr=1:model.n_states
             %ylim([0 0.08]);
             title(sprintf('state %d', state_nbr));
             
-            sgtitle(sprintf(sprintf('Electrode %d', good_elect));
+            sgtitle(sprintf(sprintf('Electrode %d', good_elect)));
             
         end
 %         condition_title=replace(conditions{c_idx},'_',' ');
@@ -178,7 +187,7 @@ for state_nbr=1:model.n_states
     end
 end
 
-saveas(f2,fullfile(exp_info.base_output_dir,'figures','HMM',subject,'psth', array,...
-            [sprintf('State%d_%s_',state_nbr, conditions{c_idx}) '2w_MuldiDayMultiCond' '.png']));
-saveas(f2,fullfile(exp_info.base_output_dir,'figures','HMM',subject,'psth', array,...
-            [sprintf('State%d_%s_',state_nbr, conditions{c_idx}) '2w_MuldiDayMultiCond' '.eps']),'epsc');
+% saveas(f2,fullfile(exp_info.base_output_dir,'figures','HMM',subject,'psth', array,...
+%             [sprintf('State%d_%s_',state_nbr, conditions{c_idx}) '2w_MuldiDayMultiCond' '.png']));
+% saveas(f2,fullfile(exp_info.base_output_dir,'figures','HMM',subject,'psth', array,...
+%             [sprintf('State%d_%s_',state_nbr, conditions{c_idx}) '2w_MuldiDayMultiCond' '.eps']),'epsc');

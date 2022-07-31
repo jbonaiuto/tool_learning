@@ -12,7 +12,7 @@ for f=fieldnames(defaults)'
 end
 
 
-[cb] = cbrewer('qual','Dark2',10,'pchip');
+[cb] = cbrewer2('qual','Dark2',10,'pchip');
 
 if params.ax<0
     figure();

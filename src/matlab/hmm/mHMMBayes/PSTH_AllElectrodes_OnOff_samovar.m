@@ -5,12 +5,18 @@ rmpath('../../');
 % LOAD THE DATA WITH 1MS BIN SIZE
 dt=1;
 %subject='betta';
-subject='samovar';
-array='F1';
-%array='F5hand';
-%condition='motor_grasp_right';
-conditions={'motor_grasp_center','motor_grasp_right','motor_grasp_left'};
-
+% subject='samovar';
+% array='F1';
+% %array='F5hand';
+% %condition='motor_grasp_right';
+% conditions={'motor_grasp_center','motor_grasp_right','motor_grasp_left'};
+model
+array
+subject
+conditions
+dates
+output_path
+data
 %state_nbr=5;
 win_len=100;
 
@@ -24,22 +30,22 @@ kernel=gausswin(kernel_width);
 %     '20.03.19','21.03.19','25.03.19'};
 
 %SAMO's dates
-dates={'23.03.21','24.03.21','25.03.21','26.03.21','30.03.21',...
-   '31.03.21','01.04.21','02.04.21','06.04.21','07.04.21',...
-   '08.04.21','12.04.21','14.04.21','15.04.21',...
-   '16.04.21','19.04.21','20.04.21','21.04.21','22.04.21','26.04.21'};
+% dates={'23.03.21','24.03.21','25.03.21','26.03.21','30.03.21',...
+%    '31.03.21','01.04.21','02.04.21','06.04.21','07.04.21',...
+%    '08.04.21','12.04.21','14.04.21','15.04.21',...
+%    '16.04.21','19.04.21','20.04.21','21.04.21','22.04.21','26.04.21'};
 
 %Betta's directory
 % output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
 %     'motor_grasp', '5w_multiday_condHMM', array);
 
 %Samo's directory
-output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
-     'motor_grasp', '20d__230321_multiday_condHMM', array);
+% output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
+%      'motor_grasp', '20d__230321_multiday_condHMM', array);
 
-model=get_best_model(output_path, 'type', 'condition_covar');
+%model=get_best_model(output_path, 'type', 'condition_covar');
 
-load(fullfile(output_path,'data.mat'));
+%load(fullfile(output_path,'data.mat'));
 data10ms=data;
 
 data_fname=fullfile(output_path,'data1ms.mat');

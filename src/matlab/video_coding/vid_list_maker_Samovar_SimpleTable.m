@@ -1,6 +1,6 @@
 function [videopath, xlspath] = vid_list_maker(dateofrecording) %dateofrecording format 'dd-mm-yyyy'
 
-dateofrecording = '15-06-2021';
+dateofrecording = '05-08-2021';
 %month = 'Aug'; %3 first letter of the month and the first letter in capital
 subject = 'Samovar';
 

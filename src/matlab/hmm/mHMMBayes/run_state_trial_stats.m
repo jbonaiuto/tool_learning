@@ -1,4 +1,4 @@
-function run_state_trial_stats(subject, array, model, data, dates, conditions, output_path, varargin)
+%function run_state_trial_stats(subject, array, model, data, dates, conditions, output_path, varargin)
 
 addpath('../..');
 exp_info=init_exp_info();
@@ -15,6 +15,14 @@ exp_info=init_exp_info();
 % % Load best model (lowest AIC)
 % model=get_best_model(output_path, 'type', 'condition_covar');
 % load(fullfile(output_path,'data.mat'));
+model
+array
+subject
+conditions
+dates
+output_path
+data
+
 
 dt=10;
 cond_labels={'center','right','left'};
@@ -51,7 +59,7 @@ for s_idx=1:model.n_states
         end
         active_cond{cond_idx}=active_mat;
     end
-    [cb] = cbrewer('seq',state_color{s_idx},10,'pchip');
+    [cb] = cbrewer2('seq',state_color{s_idx},10,'pchip');
     plot_state_statistics_cond(active_cond,cond_labels, cb,'zero_bounded',true,'density_type','rash','ax',ax);
     if s_idx==model.n_states || s_idx==model.n_states-1
         xlabel('blip');
@@ -344,4 +352,4 @@ for s_idx=1:model.n_states
 end
 sgtitle('state interval time (time between two visits in the same state)');
 
-end
+%end

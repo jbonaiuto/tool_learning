@@ -1,12 +1,12 @@
 function [videopath, xlspath] = vid_list_maker(dateofrecording) %dateofrecording format 'dd-mm-yyyy'
 
-dateofrecording = '20-05-2019';
+dateofrecording = '20-09-2019';
 %month = 'Aug'; %3 first letter of the month and the first letter in capital
 subject = 'Betta';
 
 
 %videopath = ['C:\Users\kirchher\project\video_coding\', [dateofrecording 'rake\']];
-videopath = ['E:\project\video_coding\rake_videos' '\' subject '\' dateofrecording];;
+videopath = ['E:\project\video_coding\rake_videos' '\' subject '\' dateofrecording];
 xlspath = ['E:\project\video_coding\' subject '\table\rake_coding_grid_in_xlsx\'];
 
 load('motor_rake_trial_ID_for_video_coding.mat');
@@ -66,7 +66,7 @@ datname{1,13} = 'Overshoot';
 datname{1,14} = 'rake released';
 datname{1,15} = 'hand_after_trial';
 datname{1,16} = 'Screen';
-datname{1,17} = 'parasite mvt';
+datname{1,17} = 'parasite_mvt';
 datname{1,18} = 'comments';
 
 

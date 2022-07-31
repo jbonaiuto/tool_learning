@@ -1,4 +1,4 @@
-function AT_trial_idx=rakecod(removed_trials)
+function data_idx=rakecod(removed_trials)
 
 %AlignedTrials_idx=rakecod(data, dates)
 
@@ -7,8 +7,8 @@ function AT_trial_idx=rakecod(removed_trials)
 % date_data={};
 % for i=1:length(dates)
     %videocod_file=fullfile(C:\Users\kirchher\project\video_coding\,sprintf('fr_b_%s_%s_whole_trial.mat',array,dates{i})));
-    videocod_file = 'C:\Users\kirchher\project\video_coding\table\VideoCoding_May\motor_rake_20190515_15-05-2019_SK.xlsx';
-    videocod = readtable(videocod_file);
+    videocod_file = 'E:\project\video_coding\Betta\table\motor_rake_20190701_01-07-2019_SK.xlsx';
+    videotable = readtable(videocod_file);
 
 % PerfectTrials = videocod.ValidVideo==1 & ...
 %                 videocod.DoesTheTask==1 & ...
@@ -63,29 +63,37 @@ function AT_trial_idx=rakecod(removed_trials)
 %                 strcmp(videocod.ReleaseTheRake,'0') & ...
 %                 strcmp(videocod.SpasmHandle,'0');
             
-AlignedTrial = videocod.ValidTrial==1 & ...
-                videocod.DoesTheTask==1 & ...
-                videocod.Success==1 & ...
-                videocod.MoveTowardTarget==0 & ...
-                videocod.RakePulled==1 & ...
-                videocod.MultipleAttempts==0 & ...
-                videocod.ShaftCorrection==0 & ...
-                videocod.MissTarget==0 & ...
-                videocod.ExpInterv==0 & ...
-                videocod.RakeGuidance==0 & ...
-                videocod.RakeOnlyTouchedOrGrasped==0 & ...
-                videocod.TouchRakeHead==0 & ...
-                videocod.PulledInSteps==0 & ...
-                videocod.ShaftCorrection==0;
+% AlignedTrial = videocod.ValidTrial==1 & ...
+%                 videocod.DoesTheTask==1 & ...
+%                 videocod.Success==1 & ...
+%                 videocod.MoveTowardTarget==0 & ...
+%                 videocod.RakePulled==1 & ...
+%                 videocod.MultipleAttempts==0 & ...
+%                 videocod.ShaftCorrection==0 & ...
+%                 videocod.MissTarget==0 & ...
+%                 videocod.ExpInterv==0 & ...
+%                 videocod.RakeGuidance==0 & ...
+%                 videocod.RakeOnlyTouchedOrGrasped==0 & ...
+%                 videocod.TouchRakeHead==0 & ...
+%                 videocod.PulledInSteps==0 & ...
+%                 videocod.ShaftCorrection==0;
 
-            
+ l_A_idx=find((videotable.RakeStarting==15 & strcmp(videotable.TargetStarting,'b')));
+ c_A_idx=find((videotable.RakeStarting==17 & strcmp(videotable.TargetStarting,'c')));
+ r_A_idx=find((videotable.RakeStarting==19 & strcmp(videotable.TargetStarting,'d')));
+ AlignedTrial=[l_A_idx ; c_A_idx ; r_A_idx];
+ 
+ Hit_c_A_nbr=find(videotable.Success(AlignedTrial)==1);
+ 
 % PerfectTrials_idx = find(PerfectTrials);
 %SterotypedPull_idx = find(SterotypedPull);
-AlignedTrial_idx = find(AlignedTrial);
+%AlignedTrial_idx = find(AlignedTrial);
+AlignedTrial_idx = AlignedTrial;
+
 
 %PerfectTrials_list = videocod.Date(PerfectTrials_idx);
 %SterotypedPull_list = videocod.Date(SterotypedPull_idx);
-AlignedTrial_list = videocod.Date(AlignedTrial_idx);
+AlignedTrial_list = videotable.Date(AlignedTrial_idx);
 
 for i=1:length(AlignedTrial_list)
     ATofinterest=AlignedTrial_list(i);
@@ -93,19 +101,36 @@ for i=1:length(AlignedTrial_list)
     AlignedTrial_list{i}=ATcropped;
 end
 
-trial_info_file = 'E:\project\tool_learning\data\preprocessed_data\betta\15.05.19\trial_info.csv';
+trial_info_file = 'E:\project\tool_learning\data\preprocessed_data\betta\01.07.19\trial_info.csv';
 trial_info = readtable(trial_info_file, 'readVariableNames', true, 'delimiter','comma');
 trial_info=trial_info(find(strcmp(trial_info.status,'good')),:);
 trial_info=trial_info(setdiff(1:nrows(trial_info),removed_trials),:);
 
-%trial_info=trial_info(setdiff(1:nrow(trial_info)),
 % List of trial indices (for videos mapped to a good trial)
 AT_trial_idx=[];
 for i=1:length(AlignedTrial_list)
     % Find trial for this video
     AT_Trial=find(strcmp(trial_info.video, AlignedTrial_list{i}));
     % If trial found and it's good - add to list
-    if length(AT_Trial)>0 && strcmp(trial_info.task{AT_Trial},'motor_task_rake')
+    if length(AT_Trial)>0 && strcmp(trial_info.status{AT_Trial},'good')
         AT_trial_idx(end+1)=AT_Trial;
     end
 end
+
+%trial_info=trial_info(setdiff(1:nrow(trial_info)),
+% List of trial indices (for videos mapped to a good trial)
+                %AT_trial_idx=[];
+data_idx=[];
+for i=1:length(AlignedTrial_list)
+        %     % Find trial for this video
+        %     AT_Trial=find(strcmp(trial_info.video, AlignedTrial_list{i}));
+        %     % If trial found and it's good - add to list
+        %     if length(AT_Trial)>0 && strcmp(trial_info.task{AT_Trial},'motor_task_rake')
+        %         AT_trial_idx(end+1)=AT_Trial;
+        %     end
+        
+   trialmatch=find(trial_info_good_idx==AT_trial_idx(n));
+   data_idx(n)=trialmatch;     
+end
+
+

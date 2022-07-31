@@ -1,11 +1,10 @@
-function aligned_p_states=plotHMM_aligned_condition_rake_videotrials(data, date, conditions, array, forward_probs_file)
-
-dbstop if error
+%function aligned_p_states=plotHMM_aligned_condition_rake_videotrials(data, date, conditions, array, forward_probs_file)
+function aligned_p_states=plotHMM_aligned_condition_rake_videotrials(data, date, conditions, directions, array)
 
 addpath('../..');
 exp_info=init_exp_info();
 
-data=compute_firing_rate(data, 'baseline_type', 'none', 'win_len', 6);
+%data=compute_firing_rate(data, 'baseline_type', 'none', 'win_len', 6);
  
 binwidth=(data.bins(2)-data.bins(1));
 
@@ -14,24 +13,24 @@ align_events={'go','hand_mvmt_onset','obj_contact','place'};
 
 win_size=[-150 150];
 
-forward_probs=readtable(forward_probs_file);
-n_states=0;
-for i=1:length(forward_probs.Properties.VariableNames)
-    var_name=forward_probs.Properties.VariableNames{i};
-    if length(var_name)>8 && strcmp(var_name(1:8),'fw_prob_')
-    %if startsWith(var_name,'fw_prob_')
-        n_states=n_states+1;
-    end
-end
+%forward_probs=readtable(forward_probs_file);
+% n_states=0;
+% for i=1:length(forward_probs.Properties.VariableNames)
+%     var_name=forward_probs.Properties.VariableNames{i};
+%     if length(var_name)>8 && strcmp(var_name(1:8),'fw_prob_')
+%     %if startsWith(var_name,'fw_prob_')
+%         n_states=n_states+1;
+%     end
+% end
 
-aligned_p_states={};
+%aligned_p_states={};
 aligned_firing_rates={};
 
 %% Figure out which trials to use and get trial data
 
 if strcmp(conditions,'AlignedTrial')==1
    addpath('../../video_coding');
-   data_idx=rakecod();
+   data_idx=ExtractVideoTrial();
 
    condition={'motor_rake_center','motor_rake_right','motor_rake_left'};
     trials=zeros(1,length(data.metadata.condition));
@@ -51,7 +50,7 @@ if strcmp(conditions,'AlignedTrial')==1
 
         cond_firing_rates=[];%zeros(length(trials), length(data.electrodes),...
             %length(align_events), length([win_size(1):binwidth:win_size(2)]));
-        cond_p_states=[];
+        %cond_p_states=[];
 
         % Rows from forward probs with this condition
         cond_rows=find(forward_probs.condition==i);    
@@ -83,10 +82,10 @@ if strcmp(conditions,'AlignedTrial')==1
                     event_wdw = [win_start_idx:win_end_idx];
 
                     % Save p states within this window
-                    for j=1:n_states
-                        sprobs=forward_probs.(sprintf('fw_prob_S%d',j));
-                        cond_p_states(t_idx,j,r,1:length(event_wdw)) = sprobs(trial_rows(event_wdw));                        
-                    end
+%                     for j=1:n_states
+%                         sprobs=forward_probs.(sprintf('fw_prob_S%d',j));
+%                         cond_p_states(t_idx,j,r,1:length(event_wdw)) = sprobs(trial_rows(event_wdw));                        
+%                     end
 
                     % Get firing rates for this trial
                     trial_firing_rates=squeeze(data.smoothed_firing_rate(1,:,trials(g),bin_idx));
@@ -98,7 +97,7 @@ if strcmp(conditions,'AlignedTrial')==1
                 end
             end
         end
-        aligned_p_states{i}=cond_p_states;
+        %aligned_p_states{i}=cond_p_states;
         aligned_firing_rates{i}=cond_firing_rates;
 
 else

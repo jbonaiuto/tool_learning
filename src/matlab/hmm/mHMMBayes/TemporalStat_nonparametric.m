@@ -7,17 +7,21 @@ cond_labels={'center','right','left'};
 
 dt=10;
 
-dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
-    '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19',...
-    '13.03.19','14.03.19','15.03.19','18.03.19','19.03.19',...
-    '20.03.19','21.03.19','25.03.19'};
-
-output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
-    'motor_grasp', '5w_multiday_condHMM', array);
-
+% dates={'26.02.19','27.02.19','28.02.19','01.03.19','04.03.19',...
+%     '05.03.19','07.03.19','08.03.19','11.03.19','12.03.19',...
+%     '13.03.19','14.03.19','15.03.19','18.03.19','19.03.19',...
+%     '20.03.19','21.03.19','25.03.19'};
+% 
+% output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
+%     'motor_grasp', '5w_multiday_condHMM', array);
+dates
+output_path
 % Load best model (lowest AIC)
-model=get_best_model(output_path, 'type', 'condition_covar');
-load(fullfile(output_path,'data.mat'));
+% model=get_best_model(output_path, 'type', 'condition_covar');
+% load(fullfile(output_path,'data.mat'));
+model
+data
+
 state_trial_stats=extract_state_trial_stats(model, data, dates, 'min_time_steps',1);
 
 for c_idx=1:length(conditions)
@@ -119,42 +123,42 @@ end
 
 %between condition comparison
 
-results_stmt=fopen(fullfile(output_path,'ANOVAHSD_ResultStatement_Activation_3conditions.txt'),'wt');
-for s_idx=1:model.n_states
-    for t_idx=1:cond_trial_nbr(1)
-        anova_State_cond_mat(t_idx,1)=eval(['active_S' num2str(s_idx) 'C1(t_idx)']);
-    end
-    for t_idx=1:cond_trial_nbr(2)
-        anova_State_cond_mat(t_idx,2)=eval(['active_S' num2str(s_idx) 'C2(t_idx)']);
-    end
-    for t_idx=1:cond_trial_nbr(3)
-        anova_State_cond_mat(t_idx,3)=eval(['active_S' num2str(s_idx) 'C3(t_idx)']);
-    end
-    
-    % test for mean and variance normality assumtion with Shapiro-wilk test
-            %[H, pValue, W]=swtest(anova_State_cond_mat(:,3), 0.05);
-            
-    % non-parametric ANOVA: Kruskal-Wallis (post hoc=Dunn's mc test that fits group with different size) 
-    % or Friedmann (better with matched groups, post hoc test: wilcoxon matched pairs test with Bonferroni or Holm adjustment)? 
-    %since we are in the same neuronal population we are in a matched situation
-    %Friedmann
-        [p,tbl,stats]=friedman(rmmissing(anova_State_cond_mat),'displayopt','off');
-        Wilcoxon_cond_p=[];
-    if p<0.05
-        %  if significtive: wilcoxon rank sum test
-        for c_idx=1:length(conditions)-1
-            for cc_idx=c_idx+1:length(conditions)
-                [p,h,stats]=ranksum(anova_State_cond_mat(:,c_idx),anova_State_cond_mat(:,cc_idx));
-                Wilcoxon_cond_p(end+1)=p;
-            end
-        end
-        
-        %Bonferroni-Holm correction
-        [corrected_p, h]=bonf_holm(Wilcoxon_cond_p,0.05);
-    end
-    % or instead of Wilcoxon rank sum test: Conover post-hoc test
-        %[rZ,ties] = ranksWithTies(Z);  
-end
+% results_stmt=fopen(fullfile(output_path,'ANOVAHSD_ResultStatement_Activation_3conditions.txt'),'wt');
+% for s_idx=1:model.n_states
+%     for t_idx=1:cond_trial_nbr(1)
+%         anova_State_cond_mat(t_idx,1)=eval(['active_S' num2str(s_idx) 'C1(t_idx)']);
+%     end
+%     for t_idx=1:cond_trial_nbr(2)
+%         anova_State_cond_mat(t_idx,2)=eval(['active_S' num2str(s_idx) 'C2(t_idx)']);
+%     end
+%     for t_idx=1:cond_trial_nbr(3)
+%         anova_State_cond_mat(t_idx,3)=eval(['active_S' num2str(s_idx) 'C3(t_idx)']);
+%     end
+%     
+%     % test for mean and variance normality assumtion with Shapiro-wilk test
+%             %[H, pValue, W]=swtest(anova_State_cond_mat(:,3), 0.05);
+%             
+%     % non-parametric ANOVA: Kruskal-Wallis (post hoc=Dunn's mc test that fits group with different size) 
+%     % or Friedmann (better with matched groups, post hoc test: wilcoxon matched pairs test with Bonferroni or Holm adjustment)? 
+%     %since we are in the same neuronal population we are in a matched situation
+%     %Friedmann
+%         [p,tbl,stats]=friedman(rmmissing(anova_State_cond_mat),'displayopt','off');
+%         Wilcoxon_cond_p=[];
+%     if p<0.05
+%         %  if significtive: wilcoxon rank sum test
+%         for c_idx=1:length(conditions)-1
+%             for cc_idx=c_idx+1:length(conditions)
+%                 [p,h,stats]=ranksum(anova_State_cond_mat(:,c_idx),anova_State_cond_mat(:,cc_idx));
+%                 Wilcoxon_cond_p(end+1)=p;
+%             end
+%         end
+%         
+%         %Bonferroni-Holm correction
+%         [corrected_p, h]=bonf_holm(Wilcoxon_cond_p,0.05);
+%     end
+%     % or instead of Wilcoxon rank sum test: Conover post-hoc test
+%         %[rZ,ties] = ranksWithTies(Z);  
+% end
 
 
 
