@@ -1,4 +1,4 @@
-function plot_state_statistics_cond(stats, lbls, cb, varargin)
+function plot_state_statistics_cond(stats, lbls, cb, s_idx,varargin)
 
 %called by run_state_trial_stats.m
 
@@ -21,9 +21,15 @@ lg={};
 max_y=0;
 for i = 1:length(lbls)
     lg{i}=sprintf('s%d',i);
-    h = raincloud_plot(stats{i}, ...
-        'box_on', 1, 'color', cb(i+4,:), 'alpha', 0.05,...
+    if s_idx==5 || s_idx==6
+        h = raincloud_plot(stats{i}, ...
+            'box_on', 1, 'color', cb(i+3,:), 'alpha', 1,...
+            'cloud_edge_col', cb(i,:), 'box_col_match',1, 'density_type',params.density_type);
+    else
+        h = raincloud_plot(stats{i}, ...
+        'box_on', 1, 'color', cb(i+5,:), 'alpha', 1,...
         'cloud_edge_col', cb(i,:), 'box_col_match',1, 'density_type',params.density_type);
+    end
     s_max_y=max(h{1}.YData(~isinf(h{1}.YData)));
     if s_max_y>max_y
         max_y=s_max_y;
