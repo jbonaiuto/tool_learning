@@ -47,7 +47,8 @@ plot_state_statistics(active_mat,model.metadata.state_labels,'zero_bounded',true
 xlabel('# activations');
 title('number of activation');
 
-figure();
+
+f1=figure();
 for s_idx=1:model.n_states
     ax=subplot(3,ceil(model.n_states/3),s_idx);    
     active_cond={};
@@ -68,10 +69,15 @@ for s_idx=1:model.n_states
 end
 sgtitle('number of activation');
 
+saveas(f1,fullfile(output_path,...
+     [subject '_' array '_' 'grasp' '_number of activation' '.png']));
+saveas(f1,fullfile(output_path,...
+     [subject '_' array '_' 'grasp' '_number of activation' '.eps']),'epsc');
+ 
 %each number of times a state became active per trial for each condition
 %mean_active_mat_cond=zeros(length(conditions),model.n_states);
 
-figure();
+f2=figure();
 for s_idx=1:model.n_states
     ax=subplot(3,ceil(model.n_states/3),s_idx);
     
@@ -94,6 +100,11 @@ for s_idx=1:model.n_states
     title(model.metadata.state_labels{s_idx});
 end
 sgtitle('mean state activation per trial');
+
+saveas(f2,fullfile(output_path,...
+     [subject '_' array '_' 'grasp' '_mean state activation per trial' '.png']));
+saveas(f2,fullfile(output_path,...
+     [subject '_' array '_' 'grasp' '_mean state activation per trial' '.eps']),'epsc');
 %%
 %average life time of each states
 % THIS IS ALREADY IN state_trial_stats.state_durations

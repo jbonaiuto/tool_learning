@@ -79,7 +79,7 @@ for cond_idx=1:length(conditions)
 
                     % Save p states within this window
                     for i=1:model.n_states
-                        state_idx=find(model.metadata.state_labels==i);
+                        state_idx=model.metadata.state_labels(i);
                         sprobs=model.forward_probs.(sprintf('fw_prob_S%d',state_idx));
                         cond_forward_probs(t_idx,i,r,1:length(event_wdw)) = sprobs(trial_rows(event_wdw));                        
                     end

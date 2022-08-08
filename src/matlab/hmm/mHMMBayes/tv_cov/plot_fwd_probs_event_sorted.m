@@ -60,12 +60,15 @@ end
 sz=3;    
 aligned_times=[1:size(trial_state_probs,3)].*dt-500;
 [~,idx] = sort(go_times);
+
 f=figure();
+%set(gcf,'renderer','Painters')
 f.WindowState = 'maximized';
 
 for i=1:model.n_states
     subplot(model.n_states,4,(i-1)*4+1);
-    contourf(aligned_times,[1:length(idx)],squeeze(trial_state_probs(i,idx,:)),'linecolor','none'); 
+    imagesc(aligned_times,[1:length(idx)],squeeze(trial_state_probs(i,idx,:))); 
+    set(gca,'ydir','normal');
     set(gca,'clim',[0 1]);
     hold all;
 %     plot(go_times(idx),[1:length(idx)],'.w','MarkerSize',sz);
@@ -89,7 +92,8 @@ end
 for i=1:model.n_states
     %subplot(2,3,i);
     subplot(model.n_states,4,(i-1)*4+2);
-    contourf(aligned_times,[1:length(idx)],squeeze(trial_state_probs(i,idx,:)),'linecolor','none'); 
+    imagesc(aligned_times,[1:length(idx)],squeeze(trial_state_probs(i,idx,:))); 
+    set(gca,'ydir','normal');
     set(gca,'clim',[0 1]);
     hold all;
 %     plot(go_times(idx),[1:length(idx)],'.w','MarkerSize',sz);
@@ -112,7 +116,8 @@ end
 for i=1:model.n_states
     %subplot(2,3,i);
     subplot(model.n_states,4,(i-1)*4+3);
-    contourf(aligned_times,[1:length(idx)],squeeze(trial_state_probs(i,idx,:)),'linecolor','none'); 
+    imagesc(aligned_times,[1:length(idx)],squeeze(trial_state_probs(i,idx,:))); 
+    set(gca,'ydir','normal');
     set(gca,'clim',[0 1]);
     hold all;
 %     plot(go_times(idx),[1:length(idx)],'.w','MarkerSize',sz);
@@ -135,7 +140,8 @@ end
 for i=1:model.n_states
     %subplot(2,3,i);
     subplot(model.n_states,4,(i-1)*4+4);
-    contourf(aligned_times,[1:length(idx)],squeeze(trial_state_probs(i,idx,:)),'linecolor','none'); 
+    imagesc(aligned_times,[1:length(idx)],squeeze(trial_state_probs(i,idx,:))); 
+    set(gca,'ydir','normal');
     %set(gca,'clim',[0 1]);
     set(gca,'color',[1 1 1]);
     hold all;
@@ -163,6 +169,6 @@ for i=1:model.n_states
 end
 
 saveas(f,fullfile(output_path,...
-     [subject '_' array '_' 'grasp' '_Sorted_10d_TvCov' '.png']));
+     [subject '_' array '_' 'grasp' '_Sorted_10d_TvCov_2' '.png']));
 saveas(f,fullfile(output_path,...
-     [subject '_' array '_' 'grasp' '_Sorted_10d_TvCov' '.eps']),'epsc');
+     [subject '_' array '_' 'grasp' '_Sorted_10d_TvCov_2' '.eps']),'epsc');
