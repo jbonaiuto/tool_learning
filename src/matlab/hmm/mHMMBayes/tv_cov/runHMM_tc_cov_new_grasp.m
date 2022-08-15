@@ -24,7 +24,7 @@ elseif strcmp(subject,'samovar')
     %good channels sample
     % for F1
     if strcmp(array, 'F1')
-        electrodes=[4 5 6 13 14 16 17 18 19 20 21 22 23 25 26 27 28];
+        electrodes=[4 5 6 7 9 10 11 13 14 15 16 17 18 19 20 21 22 23 25 26 27 28 29 30 31];
     end
 end
 
@@ -61,7 +61,7 @@ plotHMM_aligned_condition(subject, array, data, dates, conditions, model,output_
 plot_fwd_probs_event_sorted(subject, array, data, model, dates,output_path);
 
 
-plot_model_params(subject, array, model, conditions,output_path);
+plot_model_params(model, conditions);
 
 run_state_trial_stats(model, data, dates, conditions);
 
