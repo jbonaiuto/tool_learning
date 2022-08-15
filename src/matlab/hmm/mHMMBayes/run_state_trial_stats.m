@@ -1,4 +1,4 @@
-function run_state_trial_stats(subject, array, model, data, dates, conditions, output_path, varargin)
+%function run_state_trial_stats(subject, array, model, data, dates, conditions, output_path, varargin)
 
 addpath('../..');
 exp_info=init_exp_info();
@@ -15,6 +15,14 @@ exp_info=init_exp_info();
 % % Load best model (lowest AIC)
 % model=get_best_model(output_path, 'type', 'condition_covar');
 % load(fullfile(output_path,'data.mat'));
+model
+array
+subject
+conditions
+dates
+output_path
+data
+
 
 dt=10;
 cond_labels={'center','right','left'};
@@ -39,7 +47,8 @@ plot_state_statistics(active_mat,model.metadata.state_labels,'zero_bounded',true
 xlabel('# activations');
 title('number of activation');
 
-figure();
+
+f1=figure();
 for s_idx=1:model.n_states
     ax=subplot(3,ceil(model.n_states/3),s_idx);    
     active_cond={};
@@ -51,7 +60,7 @@ for s_idx=1:model.n_states
         end
         active_cond{cond_idx}=active_mat;
     end
-    [cb] = cbrewer('seq',state_color{s_idx},10,'pchip');
+    [cb] = cbrewer2('seq',state_color{s_idx},10,'pchip');
     plot_state_statistics_cond(active_cond,cond_labels, cb,'zero_bounded',true,'density_type','rash','ax',ax);
     if s_idx==model.n_states || s_idx==model.n_states-1
         xlabel('blip');
@@ -60,10 +69,15 @@ for s_idx=1:model.n_states
 end
 sgtitle('number of activation');
 
+saveas(f1,fullfile(output_path,...
+     [subject '_' array '_' 'grasp' '_number of activation' '.png']));
+saveas(f1,fullfile(output_path,...
+     [subject '_' array '_' 'grasp' '_number of activation' '.eps']),'epsc');
+ 
 %each number of times a state became active per trial for each condition
 %mean_active_mat_cond=zeros(length(conditions),model.n_states);
 
-figure();
+f2=figure();
 for s_idx=1:model.n_states
     ax=subplot(3,ceil(model.n_states/3),s_idx);
     
@@ -86,6 +100,11 @@ for s_idx=1:model.n_states
     title(model.metadata.state_labels{s_idx});
 end
 sgtitle('mean state activation per trial');
+
+saveas(f2,fullfile(output_path,...
+     [subject '_' array '_' 'grasp' '_mean state activation per trial' '.png']));
+saveas(f2,fullfile(output_path,...
+     [subject '_' array '_' 'grasp' '_mean state activation per trial' '.eps']),'epsc');
 %%
 %average life time of each states
 % THIS IS ALREADY IN state_trial_stats.state_durations
@@ -344,4 +363,4 @@ for s_idx=1:model.n_states
 end
 sgtitle('state interval time (time between two visits in the same state)');
 
-end
+%end

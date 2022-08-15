@@ -176,7 +176,7 @@ for cond_idx=1:length(conditions)
 end
 
 %colors=cbrewer('qual','Paired',12);
-colors=cbrewer('qual','Dark2',6);
+colors=cbrewer2('qual','Dark2',6);
 
 f=figure();
 set(f, 'Position', [0 88 889 987]);
@@ -199,8 +199,9 @@ for cond_idx=1:length(conditions)
         electrode_labels={};
         for m=1:length(data.electrodes)
             mean_fr=squeeze(mean(cond_aligned_firing_rates(:,m,r,:)));
-            stderr_fr=squeeze(std(cond_aligned_firing_rates(:,m,r,:)))./sqrt(size(cond_aligned_firing_rates,1));
-            H=shadedErrorBar([win_size(1):binwidth:win_size(2)],mean_fr,stderr_fr,'LineProps',{'Color',fr_colors(mod(m-1,7)+1,:)});
+            %stderr_fr=squeeze(std(cond_aligned_firing_rates(:,m,r,:)))./sqrt(size(cond_aligned_firing_rates,1));
+            StdDev_fr=squeeze(std(cond_aligned_firing_rates(:,m,r,:)));
+            H=shadedErrorBar([win_size(1):binwidth:win_size(2)],mean_fr,StdDev_fr,'LineProps',{'Color',fr_colors(mod(m-1,7)+1,:)});
             handles(end+1)=H.mainLine;
             electrode_labels{end+1}=sprintf('electrode %d',m);
         end
@@ -219,8 +220,9 @@ for cond_idx=1:length(conditions)
         state_labels={};
         for m=1:model.nstates
             mean_pstate=squeeze(nanmean(cond_aligned_p_states(:,m,r,:)));
-            stderr_pstate=squeeze(nanstd(cond_aligned_p_states(:,m,r,:)))./sqrt(size(cond_aligned_p_states,1));
-            H=shadedErrorBar([win_size(1):binwidth:win_size(2)],mean_pstate,stderr_pstate,'LineProps',{'Color',colors(m,:)});
+            %stderr_pstate=squeeze(nanstd(cond_aligned_p_states(:,m,r,:)))./sqrt(size(cond_aligned_p_states,1));
+            StdDev_pstate=squeeze(nanstd(cond_aligned_p_states(:,m,r,:)));
+            H=shadedErrorBar([win_size(1):binwidth:win_size(2)],mean_pstate,StdDev_pstate,'LineProps',{'Color',colors(m,:)});
             handles(end+1)=H.mainLine;
             state_labels{end+1}=sprintf('State %d', m);
         end
@@ -241,7 +243,7 @@ for cond_idx=1:length(conditions)
 end
 
 saveas(f,fullfile(output_path,...
-     [subject '_' array '_' 'grasp' '_StateSequence_TempShuff_10d_TvCov' '.png']));
+     [subject '_' array '_' 'grasp' '_StateSequence_TempShuff_10d_TvCov_StdDev' '.png']));
 saveas(f,fullfile(output_path,...
-     [subject '_' array '_' 'grasp' '_StateSequence_TempShuff_10d_TvCov' '.eps']),'epsc');
+     [subject '_' array '_' 'grasp' '_StateSequence_TempShuff_10d_TvCov_StdDev' '.eps']),'epsc');
 end

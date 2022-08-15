@@ -10,7 +10,7 @@ for f=fieldnames(defaults)'
 end
 
 % Find num states and run with lowest AIC
-T = readtable(fullfile(output_path, 'aic_bic.csv'));
+T = readtable(fullfile(output_path, 'plnorm_aic_bic.csv'));
 
 if strcmp(params.method,'AIC')
     min_aic=min(T.aic);
@@ -57,4 +57,4 @@ end
 
 % Load model
 model_name=sprintf('%dstates_%d',n_states,run_idx);
-model=load_model(output_path,model_name, 'type',params.type);
+model=load_model(output_path, model_name, 'type',params.type);

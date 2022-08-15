@@ -1,7 +1,11 @@
-function runHMM_tc_cov_new_grasp(exp_info, subject, array)
+%runHMM_tc_cov_new_grasp
 
 addpath('../../..');
 addpath('../../../spike_data_processing');
+
+exp_info=init_exp_info();
+subject='betta';%'betta'  'samovar'
+array='F1';% 'F1'  'F5hand' 'F5mouth','46v-12r', '45a', 'F2'
 
 % Conditions to run on
 conditions={'motor_grasp_center','motor_grasp_right','motor_grasp_left'};
@@ -32,10 +36,8 @@ end
 output_path=fullfile(exp_info.base_output_dir, 'HMM', subject,...
      'motor_grasp', 'tv_cov_new', array);
 
-
 % 10ms bins
 dt=10;
-
 
 if exist(output_path,'dir')~=7
     mkdir(output_path);
@@ -50,36 +52,40 @@ if exist(fullfile(output_path,'data.mat'),'file')~=2
 end
  
 % Fit the model
-system(sprintf('/home/bonaiuto/miniconda3/envs/hmm/bin/Rscript ../../../../R/hmm/fit_plnorm_tv_covar_new.R "%s"',...
-     strrep(output_path,'\','/')));
+% system(sprintf('/home/bonaiuto/miniconda3/envs/hmm/bin/Rscript ../../../../R/hmm/fit_plnorm_tv_covar_new.R "%s"',...
+%      strrep(output_path,'\','/')));
 
 % Load best model (lowest AIC)
 model=get_best_model(output_path, 'type', 'plnorm');
 load(fullfile(output_path,'data.mat'));
 
+plotHMM_aligned_condition_OneWindow(subject, array, data, dates,conditions, model, output_path);
+plotHMM_onetrial_raster(subject, array, electrodes, data, dates, conditions, model, output_path);
+
 plotHMM_aligned_condition(subject, array, data, dates, conditions, model,output_path);
 plot_fwd_probs_event_sorted(subject, array, data, model, dates,output_path);
 
+PSTH_OnOff_MostLikelyStateSequence(model,array,subject,conditions,dates,electrodes,data,output_path);
 
 plot_model_params(model, conditions);
 
-run_state_trial_stats(model, data, dates, conditions);
+run_state_trial_stats(subject, array,model, data, dates, conditions,output_path);
 
 run_perm_test_events(data, model, dates)
 
-system(sprintf('"C:/Program Files/R/R-4.1.3/bin/Rscript" ../../../R/hmm/shuffle_electrode_plnorm_tv_covar_new.R "%s" %d 1',...
-    strrep(output_path,'\','/'), model.n_states));
+% system(sprintf('"C:/Program Files/R/R-4.1.3/bin/Rscript" ../../../R/hmm/shuffle_electrode_plnorm_tv_covar_new.R "%s" %d 1',...
+%     strrep(output_path,'\','/'), model.n_states));
 
 
 plotHMM_aligned_condition_elec_shuffled(subject, array, data, dates, conditions, model,output_path);
 plot_fwd_probs_event_sorted_elec_shuffled(subject, array, data, model, dates,output_path);
 
-system(sprintf('"C:/Program Files/R/R-4.1.3/bin/Rscript" ../../../../R/hmm/shuffle_temp_plnorm_tv_covar_new.R "%s" %d 1',...
-    strrep(output_path,'\','/'), model.n_states));
+% system(sprintf('"C:/Program Files/R/R-4.1.3/bin/Rscript" ../../../../R/hmm/shuffle_temp_plnorm_tv_covar_new.R "%s" %d 1',...
+%     strrep(output_path,'\','/'), model.n_states));
 
 plotHMM_aligned_condition_temp_shuffled(data, dates, conditions, model);
 plot_fwd_probs_event_sorted_temp_shuffled(data, model, dates);
 
-system(sprintf('/home/bonaiuto/miniconda3/envs/hmm/bin/Rscript ../../../../R/hmm/analyze_covars.R "%s" %s',...
+system(sprintf('"C:/Program Files/R/R-4.1.3/bin/Rscript" ../../../../R/hmm/analyze_covars.R "%s" %s',...
     strrep(output_path,'\','/'), model.fname));
 

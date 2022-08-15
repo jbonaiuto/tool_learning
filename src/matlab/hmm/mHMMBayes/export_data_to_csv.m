@@ -29,6 +29,17 @@ for d_idx=1:length(dates)
     data=filter_data(data);
     data=rebin_spikes(data,dt);
     
+%     % Figure out which trials to use
+%     condition_trials=zeros(1,length(data.metadata.condition));
+%     for i=1:length(conditions)
+%         condition_trials = condition_trials | (strcmp(data.metadata.condition,conditions{i}));
+%     end
+%     condition_trials=find(condition_trials);
+%     % Remove extra trials - makes the following bit a lot simpler
+%     all_trials=[1:length(data.metadata.condition)];
+%     trials_to_remove=setdiff(all_trials,condition_trials);
+%     data=remove_trials(data,trials_to_remove);
+
     % Save to cell array
     all_data{d_idx}=data;
 end
@@ -71,5 +82,5 @@ for trial_idx = 1:length(condition_trials)
         end
     end
 end
-
+concat_data=data_week(concat_data,dates,subject);
 fclose(fid);

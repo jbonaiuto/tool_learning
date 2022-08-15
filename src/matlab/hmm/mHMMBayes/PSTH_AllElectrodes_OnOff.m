@@ -16,6 +16,7 @@ conditions
 dates
 output_path
 data
+electrodes
 %state_nbr=5;
 win_len=100;
 
@@ -81,9 +82,6 @@ if exist(data_fname,'file')~=2
 else
     load(data_fname);
 end
-
-good_electrodes=[1,2,3,5,6,7,9,10,13,14,17,18,21,25,27,28,29,30,31,32];%for F1
-%good_electrodes=[1,2,3,4,5,6,8,12,13,14,15,18,21,22,23,25,26,27,28,29,30,31,32];%for F5hand
 
 %daySTATE_idx=zeros(length(dates),model.n_states*2);
 daySTATE_idx={};
@@ -152,8 +150,8 @@ for c_idx=1:length(conditions)
                     woi_bins=[knnsearch(data.bins',start_time_ON):knnsearch(data.bins',end_time_ON)];
                     baseline_bins=[knnsearch(data.bins',start_time_ON):knnsearch(data.bins',threshONCrossTime)];
 
-                    BaselineSpikes(end+1,:)=mean(data.binned_spikes(1,good_electrodes,day_trials(n),baseline_bins),4);
-                    StateOnElectrodeSpikes(end+1,:,:)=squeeze(data.binned_spikes(1,good_electrodes,day_trials(n),woi_bins));
+                    BaselineSpikes(end+1,:)=mean(data.binned_spikes(1,electrodes,day_trials(n),baseline_bins),4);
+                    StateOnElectrodeSpikes(end+1,:,:)=squeeze(data.binned_spikes(1,electrodes,day_trials(n),woi_bins));
                 end
 
                 for i=1:length(offset_times)
@@ -168,20 +166,20 @@ for c_idx=1:length(conditions)
 
                     woi_bins=[knnsearch(data.bins',start_time_OFF):knnsearch(data.bins',end_time_OFF)];
 
-                    StateOffElectrodeSpikes(end+1,:,:)=squeeze(data.binned_spikes(1,good_electrodes,day_trials(n),woi_bins));
+                    StateOffElectrodeSpikes(end+1,:,:)=squeeze(data.binned_spikes(1,electrodes,day_trials(n),woi_bins));
                 end
             end
         end
 
         for i=1:size(StateOnElectrodeSpikes,1)
             StateOnElectrodeSpikes(i,:,:)=squeeze(StateOnElectrodeSpikes(i,:,:))-repmat(mean(BaselineSpikes,1)',1,length(woi_bins));
-            for j=1:length(good_electrodes)
+            for j=1:length(electrodes)
                 StateOnElectrodeSpikes(i,j,:)=filtfilt(kernel,3,squeeze(StateOnElectrodeSpikes(i,j,:)));
             end
         end
         for i=1:size(StateOffElectrodeSpikes,1)
             StateOffElectrodeSpikes(i,:,:)=squeeze(StateOffElectrodeSpikes(i,:,:))-repmat(mean(BaselineSpikes,1)',1,length(woi_bins));
-            for j=1:length(good_electrodes)
+            for j=1:length(electrodes)
                 StateOffElectrodeSpikes(i,j,:)=filtfilt(kernel,3,squeeze(StateOffElectrodeSpikes(i,j,:)));
             end
         end
@@ -223,10 +221,10 @@ end
    
 sgtitle([subject ' ' array]);
 
-saveas(f,fullfile(output_path,...
-     [subject '_' array '_' 'grasp' 'TvCov_10d_PSTH_OnsetOffset' '.png']));
-saveas(f,fullfile(output_path,...
-     [subject '_' array '_' 'grasp' 'TvCov_10d_PSTH_OnsetOffset' '.eps']),'epsc');
+% saveas(f,fullfile(output_path,...
+%      [subject '_' array '_' 'grasp' 'TvCov_10d_PSTH_OnsetOffset' '.png']));
+% saveas(f,fullfile(output_path,...
+%      [subject '_' array '_' 'grasp' 'TvCov_10d_PSTH_OnsetOffset' '.eps']),'epsc');
 
     
     

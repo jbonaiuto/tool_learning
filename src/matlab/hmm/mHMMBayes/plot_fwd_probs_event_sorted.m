@@ -1,4 +1,4 @@
-function plot_fwd_probs_event_sorted(data, model, conditions, dates, output_path)
+function plot_fwd_probs_event_sorted(subject, array, data, model, dates, output_path)
 
 state_idx=get_state_idx(model);
 
@@ -159,7 +159,7 @@ for i=1:model.n_states
     end    
 end
 
-% saveas(f,fullfile(output_path,...
-%      [subject '_' array '_' 'grasp' '_SortedEvent_5w_MuldiDayMultiCond' '.png']));
-% saveas(f,fullfile(output_path,...
-%      [subject '_' array '_' 'grasp' '_SortedEvent_5w_MuldiDayMultiCond' '.eps']),'epsc');
+saveas(f,fullfile(output_path,...
+     [subject '_' array '_' 'grasp' '_SortedEvent_5w_MuldiDayMultiCond' '.png']));
+saveas(f,fullfile(output_path,...
+     [subject '_' array '_' 'grasp' '_SortedEvent_5w_MuldiDayMultiCond' '.eps']),'epsc');

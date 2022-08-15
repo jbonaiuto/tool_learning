@@ -1,4 +1,4 @@
-function plot_state_statistics(stats, lbls, varargin)
+function plot_state_statistics(stats, lbls,varargin)
 
 %called by run_state_trial_stats.m
 
@@ -12,7 +12,7 @@ for f=fieldnames(defaults)'
 end
 
 
-[cb] = cbrewer('qual','Dark2',10,'pchip');
+[cb] = cbrewer2('qual','Dark2',10,'pchip');
 
 if params.ax<0
     figure();
@@ -24,7 +24,7 @@ max_y=0;
 for i = 1:length(lbls)
     lg{i}=sprintf('s%d',i);
     h = raincloud_plot(stats{i}, ...
-        'box_on', 1, 'color', cb(i,:), 'alpha', 0.05,...
+        'box_on', 1, 'color', cb(i,:), 'alpha', 1,...
         'cloud_edge_col', cb(i,:), 'box_col_match',1, 'density_type',params.density_type);
     s_max_y=max(h{1}.YData(~isinf(h{1}.YData)));
     if s_max_y>max_y

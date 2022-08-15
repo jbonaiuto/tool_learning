@@ -1,14 +1,14 @@
-function [aligned_forward_probs,f]=plotHMM_aligned_condition_OneWindow(data, dates,...
+function [aligned_forward_probs,f]=plotHMM_aligned_condition_OneWindow(subject, array, data, dates,...
     conditions, model, varargin)
 
 % Parse optional arguments
-defaults=struct();
-params=struct(varargin{:});
-for f=fieldnames(defaults)'
-    if ~isfield(params, f{1})
-        params.(f{1})=defaults.(f{1});
-    end
-end
+% defaults=struct();
+% params=struct(varargin{:});
+% for f=fieldnames(defaults)'
+%     if ~isfield(params, f{1})
+%         params.(f{1})=defaults.(f{1});
+%     end
+% end
 
 % Compute firing rate
 data=compute_firing_rate(data, 'baseline_type', 'none', 'win_len', 6);
@@ -116,7 +116,7 @@ for cond_idx=1:length(conditions)
 end
 
 %colors=cbrewer('qual','Paired',12);
-colors=cbrewer('qual','Dark2',12);
+colors=cbrewer2('qual','Dark2',12);
 
 f=figure();
 set(f, 'Position', [0 88 889 987]);
@@ -159,7 +159,8 @@ for cond_idx=1:length(conditions)
         end
         handles=[];
         state_labels={};
-        state_nums=cellfun(@str2num,model.metadata.state_labels);
+        %state_nums=cellfun(@str2num,model.metadata.state_labels);
+        state_nums=model.metadata.state_labels;
         for m=1:max(state_nums)
             state_idx=find(strcmp(model.metadata.state_labels,num2str(m)));
             if length(state_idx)
