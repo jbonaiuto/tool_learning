@@ -100,10 +100,10 @@ dev.new()
 g<-ggplot(out_cov, aes(x = covariate, y = map_median, fill = covariate)) +
   geom_col() +
   geom_errorbar(aes(ymin = CCI_lwr, ymax = CCI_upr)) +
-  facet_wrap(state~., ncol = m) +
+  facet_wrap(state~., ncol = out$input$m) +
   theme_minimal()
 print(g)
-ggsave(paste0(output_path,'/model_tv_plnorm_',out$input$m,'states_',1,'_trans_covar.png'))
+ggsave(paste0(output_path,'/model_tv_plnorm_',out$input$m,'states_',1,'_trans_covar.eps'))
 
 cov_df<-out$gamma_cov_bar %>%
     as.data.frame() %>%
