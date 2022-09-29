@@ -103,6 +103,7 @@ sz=3;
 aligned_times=[1:size(trial_state_probs,3)].*dt-500;
 [~,idx] = sort(go_times);
 f=figure();
+set(f,'renderer','Painters');
 f.WindowState = 'maximized';
 for i=1:model.n_states
     subplot(model.n_states,4,(i-1)*4+1);

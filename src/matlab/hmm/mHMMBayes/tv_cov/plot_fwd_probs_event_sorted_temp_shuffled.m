@@ -1,4 +1,4 @@
-function plot_fwd_probs_event_sorted_temp_shuffled(subject, array, data, model, dates, output_path, varargin)
+function plot_fwd_probs_temp_sorted_temp_shuffled(subject, array, data, model, dates, output_path, varargin)
 
 % Parse optional arguments
 defaults=struct('n_shuffs',100);
@@ -8,8 +8,6 @@ for f=fieldnames(defaults)'
         params.(f{1})=defaults.(f{1});
     end
 end
-
-state_idx=get_state_idx(model);
 
 % Times of this event in all trials
 go_times= [];
@@ -105,8 +103,8 @@ sz=3;
 aligned_times=[1:size(trial_state_probs,3)].*dt-500;
 [~,idx] = sort(go_times);
 f=figure();
+set(f,'renderer','Painters');
 f.WindowState = 'maximized';
-
 for i=1:model.n_states
     subplot(model.n_states,4,(i-1)*4+1);
     contourf(aligned_times,[1:length(idx)],squeeze(trial_state_probs(i,idx,:)),'linecolor','none'); 
