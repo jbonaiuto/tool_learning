@@ -62,7 +62,7 @@ aligned_times=[1:size(trial_state_probs,3)].*dt-500;
 [~,idx] = sort(go_times);
 
 f=figure();
-%set(gcf,'renderer','Painters')
+set(gcf,'renderer','Painters')
 f.WindowState = 'maximized';
 
 for i=1:model.n_states
