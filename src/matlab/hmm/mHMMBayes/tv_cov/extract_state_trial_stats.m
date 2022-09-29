@@ -1,7 +1,7 @@
 function state_trial_stats=extract_state_trial_stats(model, data, dates, varargin)
 
 %define default values
-defaults = struct('min_time_steps',1);  
+defaults = struct('min_time_steps',10);  
 params = struct(varargin{:});
 for f = fieldnames(defaults)',  
     if ~isfield(params, f{1}),
@@ -37,9 +37,7 @@ for d=1:length(dates)
 
             % Save p states within this window
             for i=1:model.n_states
-                state_idx=find(model.metadata.state_labels==i);
-                
-                mask=model.state_seq.state(trial_rows(sub_bin_idx))==state_idx;
+                mask=model.state_seq.state(trial_rows(sub_bin_idx))==i;
                 
                 onsets = trial_times(strfind([0 mask'], [0 ones(1,params.min_time_steps)]));
                 offsets = trial_times(strfind([mask' 0], [ones(1,params.min_time_steps) 0]))+params.min_time_steps;
