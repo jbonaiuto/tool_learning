@@ -169,10 +169,11 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
             print('extract_some_waveforms', t2 - t1)
 
             fname = 'chan_%d_init_waveforms.png' % ch_grp
-            fig = plot_waveforms(np.squeeze(cc.some_waveforms).T)
-            fig.savefig(os.path.join(figure_out_dir, fname))
-            fig.clf()
-            plt.close()
+            if len(np.squeeze(cc.some_waveforms)):
+                fig = plot_waveforms(np.squeeze(cc.some_waveforms).T)
+                fig.savefig(os.path.join(figure_out_dir, fname))
+                fig.clf()
+                plt.close()
 
             t1 = time.perf_counter()
             # ~ duration = d['duration'] if d['limit_duration'] else None
@@ -182,10 +183,11 @@ def compute_array_catalogue(array_idx, preprocess_dir, subject, recording_date, 
             print('clean_waveforms', t2 - t1)
 
             fname = 'chan_%d_clean_waveforms.png' % ch_grp
-            fig = plot_waveforms(np.squeeze(cc.some_waveforms).T)
-            fig.savefig(os.path.join(figure_out_dir, fname))
-            fig.clf()
-            plt.close()
+            if len(np.squeeze(cc.some_waveforms)):
+                fig = plot_waveforms(np.squeeze(cc.some_waveforms).T)
+                fig.savefig(os.path.join(figure_out_dir, fname))
+                fig.clf()
+                plt.close()
 
             # ~ t1 = time.perf_counter()
             # ~ n_left, n_right = cc.find_good_limits(mad_threshold = 1.1,)
