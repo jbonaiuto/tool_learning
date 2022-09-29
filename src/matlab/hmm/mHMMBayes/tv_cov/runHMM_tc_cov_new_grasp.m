@@ -59,33 +59,37 @@ end
 model=get_best_model(output_path, 'type', 'plnorm');
 load(fullfile(output_path,'data.mat'));
 
-plotHMM_aligned_condition_OneWindow(subject, array, data, dates,conditions, model, output_path);
 plotHMM_onetrial_raster(subject, array, electrodes, data, dates, conditions, model, output_path);
 
-plotHMM_aligned_condition(subject, array, data, dates, conditions, model,output_path);
+plotHMM_aligned(model, data);
 plot_fwd_probs_event_sorted(subject, array, data, model, dates,output_path);
 
-PSTH_OnOff_MostLikelyStateSequence(model,array,subject,conditions,dates,electrodes,data,output_path);
+PSTH_OnOff_MostLikelyStateSequence(model,electrodes,data)
 
 plot_model_params(model, conditions);
 
-run_state_trial_stats(subject, array,model, data, dates, conditions,output_path);
+run_state_trial_stats(model, data, dates, conditions, output_path);
 
 run_perm_test_events(data, model, dates)
 
-% system(sprintf('"C:/Program Files/R/R-4.1.3/bin/Rscript" ../../../R/hmm/shuffle_electrode_plnorm_tv_covar_new.R "%s" %d 1',...
-%     strrep(output_path,'\','/'), model.n_states));
+system(sprintf('/home/bonaiuto/miniconda3/envs/hmm/bin/Rscript ../../../../R/hmm/shuffle_electrode_plnorm_tv_covar_new.R "%s" %d 1',...
+    strrep(output_path,'\','/'), model.n_states));
 
-
-plotHMM_aligned_condition_elec_shuffled(subject, array, data, dates, conditions, model,output_path);
+plotHMM_aligned_elec_shuffled(model, data)
 plot_fwd_probs_event_sorted_elec_shuffled(subject, array, data, model, dates,output_path);
 
-% system(sprintf('"C:/Program Files/R/R-4.1.3/bin/Rscript" ../../../../R/hmm/shuffle_temp_plnorm_tv_covar_new.R "%s" %d 1',...
-%     strrep(output_path,'\','/'), model.n_states));
+system(sprintf('/home/bonaiuto/miniconda3/envs/hmm/bin/Rscript ../../../../R/hmm/shuffle_temp_plnorm_tv_covar_new.R "%s" %d 1',...
+    strrep(output_path,'\','/'), model.n_states));
 
-plotHMM_aligned_condition_temp_shuffled(data, dates, conditions, model);
-plot_fwd_probs_event_sorted_temp_shuffled(data, model, dates);
+plotHMM_aligned_temp_shuffled(model, data)
+plot_fwd_probs_event_sorted_temp_shuffled(subject, array, data, model, dates,output_path);
 
-system(sprintf('"C:/Program Files/R/R-4.1.3/bin/Rscript" ../../../../R/hmm/analyze_covars.R "%s" %s',...
+system(sprintf('/home/bonaiuto/miniconda3/envs/hmm/bin/Rscript ../../../../R/hmm/analyze_covars.R "%s" %s',...
     strrep(output_path,'\','/'), model.fname));
 
+export_kinematics(data, output_path)
+
+plot_kinematics(data)
+
+run_perm_test_events_temp_shuffled(data, model)
+run_perm_test_events_elec_shuffled(data, model)
