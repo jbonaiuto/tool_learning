@@ -30,9 +30,11 @@ for i = 1:length(lbls)
         'box_on', 1, 'color', cb(i+5,:), 'alpha', 1,...
         'cloud_edge_col', cb(i,:), 'box_col_match',1, 'density_type',params.density_type);
     end
-    s_max_y=max(h{1}.YData(~isinf(h{1}.YData)));
-    if s_max_y>max_y
-        max_y=s_max_y;
+    if strcmp(class(h{1}),'matlab.graphics.chart.primitive.Area')
+        s_max_y=max(h{1}.YData(~isinf(h{1}.YData)));
+        if s_max_y>max_y
+            max_y=s_max_y;
+        end
     end
     hs{i}=h;
 end
@@ -62,7 +64,7 @@ for i = 1:length(lbls)
     h{5}.YData=[-((i-1)*(dot_height+upper_gap+box_height+lower_gap)+dot_height+upper_gap+.5*box_height); -((i-1)*(dot_height+upper_gap+box_height+lower_gap)+dot_height+upper_gap+.5*box_height);];
     h{6}.YData=[-((i-1)*(dot_height+upper_gap+box_height+lower_gap)+dot_height+upper_gap+.5*box_height); -((i-1)*(dot_height+upper_gap+box_height+lower_gap)+dot_height+upper_gap+.5*box_height);];
     box off
-    leg_hs(i)=h{1};
+    leg_hs(i)=h{4};
 end
 ylim([-length(lbls)*(dot_height+upper_gap+box_height+lower_gap) max_y]);
 %xlim([-10 1000]);
