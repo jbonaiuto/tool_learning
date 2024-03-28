@@ -38,11 +38,11 @@ granger_glm_results=[];
 for array_idx=1:length(array)
     
     date_data={};
-    for date_idx=1:length(dates)
+    for date_idx=4:length(dates)
         date=dates{date_idx};
         load(fullfile(data_dir, date, 'multiunit','binned',sprintf('fr_b_%s_%s_%s.mat', array{array_idx}, date,event)));
          data=concatenate_data({data});
-        data=filter_data(exp_info, data,'thresh_percentile',10 );
+        [data, bad]=filter_data( data,'thresh_percentile',10 ); %exp_info,
         
         date_data{date_idx}=data;
     end

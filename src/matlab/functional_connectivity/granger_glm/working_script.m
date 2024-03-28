@@ -17,7 +17,7 @@ close all
 %% Parameters
 
 array = {'F1','F5hand'}; 
-electrodes = 1:32;
+electrodes = 1:2;
 event = 'whole_trial';
 condition= {'fixation'};
 
@@ -35,9 +35,10 @@ condition= {'fixation'};
 % parentdir = 'C:\Users\quettier\Documents\GitHub\tool_learning\output\functional_connectivity';
 %
 % %loading data mac
-data_dir = '/Users/thomasquettier/Documents/GitHub/tool_learning/preprocessed_data/betta'; % data folder path
-addpath('/Users/thomasquettier/Documents/GitHub/tool_learning/src/matlab/spm12'); 
-parentdir = '/Users/thomasquettier/Documents/GitHub/tool_learning/output/functional_connectivity';
+data_dir = '/Volumes/EXTREME_SSD/09.CNRS/data/betta/betta_old'; % data folder path
+addpath('/Users/thomasquettier/Documents/MATLAB/spm12'); 
+parentdir = '/Volumes/EXTREME_SSD/09.CNRS/data/betta/multiunit_binned_data/output/functional_connectivity';
+
 
 %% exp_info.base_data_dir 
 %
